@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Package, ArrowRight } from "lucide-react";
-import { type Part, formatBRL, getActiveCategories } from "@/data/sample-parts";
+import { type Part, formatBRL, getActiveCategories } from "@/hooks/use-parts";
 
 interface PartCardProps {
   part: Part;
@@ -10,7 +10,7 @@ interface PartCardProps {
 
 export function PartCard({ part, onClick }: PartCardProps) {
   const categories = getActiveCategories(part);
-  const isStale = part.lastEntryTime === "mais de 2 anos";
+  const isStale = part.last_entry_time === "mais de 2 anos";
 
   return (
     <Card
@@ -20,10 +20,10 @@ export function PartCard({ part, onClick }: PartCardProps) {
       {isStale && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
       )}
-      {part.compatibleModels && part.compatibleModels.length > 1 && (
+      {part.compatible_models && part.compatible_models.length > 1 && (
         <div className="absolute top-2 right-2">
           <Badge variant="secondary" className="text-[10px] bg-info/10 text-info border-info/20">
-            +{part.compatibleModels.length} modelos
+            +{part.compatible_models.length} modelos
           </Badge>
         </div>
       )}
@@ -33,27 +33,21 @@ export function PartCard({ part, onClick }: PartCardProps) {
             <Package className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-muted-foreground font-mono">
-              {part.material}
-            </p>
-            <p className="text-sm font-medium text-foreground leading-tight mt-0.5 line-clamp-2">
-              {part.description}
-            </p>
+            <p className="text-[10px] text-muted-foreground font-mono">{part.material}</p>
+            <p className="text-sm font-medium text-foreground leading-tight mt-0.5 line-clamp-2">{part.description}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-1">
           {categories.map((cat) => (
-            <Badge key={cat} variant="outline" className="text-[10px] py-0">
-              {cat}
-            </Badge>
+            <Badge key={cat} variant="outline" className="text-[10px] py-0">{cat}</Badge>
           ))}
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <p className="text-muted-foreground">Modelo</p>
-            <p className="font-medium text-foreground truncate">{part.machineModel}</p>
+            <p className="font-medium text-foreground truncate">{part.machine_model}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Estoque</p>
@@ -62,9 +56,7 @@ export function PartCard({ part, onClick }: PartCardProps) {
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t">
-          <p className="font-display font-bold text-sm text-foreground">
-            {formatBRL(part.estimatedPrice)}
-          </p>
+          <p className="font-display font-bold text-sm text-foreground">{formatBRL(part.estimated_price)}</p>
           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
       </CardContent>
