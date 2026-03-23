@@ -14,6 +14,8 @@ export type Customer = {
   state: string | null;
   segment: string | null;
   notes: string | null;
+  country: string | null;
+  source: string | null;
   created_at: string;
   updated_at: string;
 };
