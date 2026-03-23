@@ -38,6 +38,7 @@ const crmItems = [
 ];
 
 const toolItems = [
+  { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];

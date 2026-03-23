@@ -25,6 +25,7 @@ const App = () => (
           <Route path="/clientes" element={<ComingSoonPage title="CRM - Clientes" />} />
           <Route path="/vendas" element={<ComingSoonPage title="Vendas" />} />
           <Route path="/pos-venda" element={<ComingSoonPage title="Pós-Venda" />} />
+          <Route path="/pesquisa-mercado" element={<MarketResearchPage />} />
           <Route path="/assistente" element={<ComingSoonPage title="IA Assistente" />} />
           <Route path="/configuracoes" element={<ComingSoonPage title="Configurações" />} />
           <Route path="*" element={<NotFound />} />
