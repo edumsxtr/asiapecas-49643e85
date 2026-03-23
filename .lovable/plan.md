@@ -1,68 +1,41 @@
 
-# Sistema de Gestão de Peças XCMG — Lopes & Lopes
 
-## Visão Geral
-Plataforma completa para gerenciar o catálogo de peças XCMG, controle de estoque, CRM para clientes no Brasil/Venezuela/Guiana, integração com IA e pós-venda.
+# Importar Todos os Itens da Planilha (~20.000+ linhas)
 
----
+## Situação Atual
+- A planilha contém **~20.436 linhas** de peças
+- O sistema atual tem apenas **12 peças hardcoded** em `sample-parts.ts`
+- **Não há banco de dados** configurado — sem Supabase
 
-## Fase 1 — Catálogo Interativo + Análise de Estoque
+## Problema
+20.000+ itens não podem ficar em um arquivo TypeScript estático. Isso travaria o navegador e tornaria o app inutilizável. Precisamos de um banco de dados.
 
-### Catálogo de Peças
-- Página de catálogo com busca, filtros por categoria (Mineração, Linha Amarela, Perfuratriz, Guindaste, Caminhão Elétrico), modelo de máquina e fabricante
-- Cards de peças com código, descrição, preço estimado, saldo em estoque, tempo de última entrada
-- **Classificação cruzada**: indicação de quais peças servem em outras máquinas/modelos para aumentar vendas
-- Detalhes da peça com informações completas
+## Plano
 
-### Busca com IA
-- Chatbot integrado para pesquisar peças por descrição natural (ex: "preciso de um filtro para escavadeira XE215")
-- A IA retorna peças compatíveis, sugestões de peças similares e compatibilidade entre modelos
+### 1. Habilitar Lovable Cloud (Supabase)
+- Criar tabela `parts` com todas as colunas da planilha: material, descrição, tempo de entrada, saldo, preço estimado, fornecedor, fabricante, modelo de máquina, categorias (mineração, linha amarela, perfuratriz, caminhão elétrico, guindaste)
+- Criar índices para busca eficiente por material, descrição e modelo
 
-### Dashboard de Estoque
-- Visão geral: valor total em estoque, peças por categoria, alertas de estoque parado (>2 anos)
-- Gráficos de distribuição por categoria, modelo e tempo de estoque
-- Importação de planilhas Excel + cadastro manual de peças
+### 2. Importar Todos os Dados da Planilha
+- Processar o Excel completo via script, extraindo todas as ~20.000 linhas
+- Tratar duplicatas (mesma peça aparece em linhas diferentes com modelos diferentes — consolidar como modelos compatíveis)
+- Inserir no banco de dados via migration com seed data, ou via edge function de importação
 
----
+### 3. Atualizar o Frontend
+- Substituir o import de `sample-parts.ts` por queries ao Supabase com paginação
+- Catálogo com busca server-side, filtros e scroll infinito ou paginação
+- Dashboard calculando KPIs direto do banco (totais reais, não amostra)
 
-## Fase 2 — CRM + Prospecção com IA
+### 4. Funcionalidade de Upload de Planilha
+- Permitir importar novas planilhas Excel para atualizar o estoque
+- Parsing client-side com `xlsx` (já instalado) + insert no Supabase
 
-### CRM de Clientes
-- Cadastro de clientes com dados de contato, localização (Brasil, Venezuela, Guiana), segmento (mineração, construção, agro)
-- Pipeline de vendas com etapas (Prospecto → Contato → Negociação → Fechado)
-- Histórico de interações e pedidos por cliente
+## Pré-requisito
+**Preciso que você habilite o Lovable Cloud** (botão no painel do projeto) para eu poder criar o banco de dados e importar os dados. Sem isso, não consigo armazenar 20.000 peças.
 
-### IA para Prospecção
-- Sugestões automáticas de clientes potenciais baseado no segmento e região
-- Chatbot para consultar: "quais clientes na Venezuela podem precisar de peças de mineração?"
-- Matching inteligente: peça em estoque → segmento → região → cliente potencial
+## Detalhes Técnicos
+- Tabela: `parts` com colunas tipadas (text, integer, numeric, boolean)
+- RLS habilitado com políticas de leitura pública e escrita para admin
+- Queries com `react-query` + cliente Supabase
+- Paginação de 50 itens por página no catálogo
 
----
-
-## Fase 3 — Pós-Venda + Controle Operacional
-
-### Controle de Pós-Venda
-- Registro de vendas realizadas com rastreamento de entrega
-- Acompanhamento de satisfação e suporte técnico
-- Alertas de recompra baseado no ciclo de vida da peça
-
-### Painel Operacional Unificado
-- Dashboard geral com KPIs: vendas do mês, estoque crítico, clientes ativos, pedidos pendentes
-- Sidebar com navegação para todos os módulos
-
----
-
-## Autenticação e Perfis
-- Login com email/senha
-- Perfis: Admin (acesso total), Vendedor (catálogo + CRM), Cliente (consulta de catálogo)
-
-## Design
-- Interface moderna com sidebar de navegação
-- Cores da marca XCMG (amarelo/preto)
-- Responsivo para desktop e tablet
-- Idioma: Português BR
-
-## Tecnologias
-- Lovable Cloud (Supabase) para banco de dados, autenticação e edge functions
-- Lovable AI para chatbot e sugestões inteligentes
-- Upload de Excel para importação de dados
