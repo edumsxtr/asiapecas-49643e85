@@ -1,86 +1,62 @@
 
 
-# Plano: CRUD Pesquisa de Mercado + Importação de Catálogo + Upload de Documentos para IA
+# Plano: Sistema de Prospecção IA com Modelo OpenAI GPT-5
 
-## Resumo
+## Sobre o modelo de IA
 
-Transformar a Pesquisa de Mercado no módulo central do sistema com CRUD completo (editar/deletar registros), criar funcionalidade de importação de novas peças via planilha, e permitir upload de documentos para a IA analisar.
+Boa notícia: o seu projeto já tem acesso aos modelos OpenAI através do Lovable AI, **sem precisar de API key separada**. Os modelos disponíveis incluem:
 
-## 1. CRUD Completo — Pesquisa de Mercado
+- **openai/gpt-5** — Raciocínio avançado, multimodal, contexto longo
+- **openai/gpt-5.2** — Último modelo, melhor para problemas complexos
+- **openai/gpt-5-mini** — Mais rápido, custo menor, boa performance
 
-### Hook `use-market-research.ts`
-- Adicionar `useUpdateMarketResearch` (editar registro existente)
-- Adicionar `useDeleteMarketResearch` (deletar registro)
+Vou usar o **openai/gpt-5.2** (o mais potente disponível) para o módulo de prospecção.
 
-### Página `MarketResearchPage.tsx`
-- Adicionar botão "Nova Pesquisa" que abre dialog (criar pesquisa avulsa, sem precisar ir no catálogo)
-- Edição inline: clicar no registro abre dialog preenchido para editar distribuidor, preço, prazo, disponibilidade
-- Botão deletar com confirmação (AlertDialog)
-- Filtros: por distribuidor, por período, por disponibilidade
-- Busca por texto
-- Coluna com nome da peça (join com parts via part_id)
-- KPI adicional: menor preço médio vs nosso preço médio (competitividade geral)
+---
 
-### Tab `MarketResearchTab.tsx`
-- Adicionar botões Editar e Deletar em cada linha da tabela
-- Dialog de edição reutilizando o formulário existente
+## Banco de Dados
 
-## 2. Importação de Catálogo (Novas Peças via Planilha)
+### Nova tabela `prospects`
+- `id`, `name`, `company`, `cnpj_cpf`, `email`, `phone`, `country` (BR/VE/GY), `state`, `city`, `segment`, `source` (ia/manual), `status` (novo/contatado/qualificado/negociação/convertido/descartado), `score` (0-100), `matched_parts` (text[]), `notes`, `ai_summary`, `created_at`, `updated_at`
 
-### Nova Edge Function `supabase/functions/import-catalog/index.ts`
-- Recebe CSV/JSON com lista de peças
-- Valida campos obrigatórios (material, description)
-- Insere peças novas (upsert por material — atualiza se já existe)
-- Retorna relatório: quantas inseridas, atualizadas, erros
+### Nova tabela `prospection_campaigns`
+- `id`, `name`, `target_country`, `target_states` (text[]), `target_segments` (text[]), `status`, `total_prospects`, `converted`, `notes`, `created_at`
 
-### Frontend: Componente de Import na página de Estoque ou Catálogo
-- Botão "Importar Planilha" no header do catálogo
-- Dialog com dropzone para upload de arquivo (.csv, .xlsx, .json)
-- Parse no frontend (Papa Parse para CSV, SheetJS para XLSX)
-- Preview dos dados antes de confirmar
-- Mapeamento de colunas: material, descrição, preço, estoque, modelo, fabricante
-- Barra de progresso durante importação
-- Relatório final: X inseridas, Y atualizadas, Z erros
+### Alterar tabela `customers`
+- Adicionar `country text DEFAULT 'BR'` e `source text DEFAULT 'manual'`
 
-## 3. Upload de Documentos para IA Analisar
+## Edge Function: `prospect-search/index.ts`
 
-### Storage Bucket
-- Criar bucket `documents` para armazenar arquivos enviados
+- Usa **openai/gpt-5.2** via Lovable AI Gateway (mesma URL, só muda o modelo)
+- Consulta estoque real (categorias, modelos, quantidades disponíveis)
+- Gera perfis de empresas potenciais por região (todos os estados BR + Venezuela + Guiana)
+- Retorna structured output via tool calling (nome, segmento, score, peças recomendadas, justificativa)
+- Salva automaticamente na tabela `prospects`
 
-### Nova Edge Function `supabase/functions/analyze-document/index.ts`
-- Recebe arquivo (texto extraído no frontend) + pergunta do usuário
-- Envia conteúdo para Lovable AI (gemini-2.5-pro) com system prompt contextualizado
-- Retorna análise estruturada
+## Nova Página: `/prospeccao`
 
-### Frontend: Upload no Assistente
-- Adicionar botão de upload (📎) no campo de input do AssistantPage
-- Aceitar: .csv, .xlsx, .pdf, .txt, .json, .doc
-- Para CSV/XLSX: parse no frontend e enviar dados como texto ao chat
-- Para PDF/TXT: extrair texto e enviar junto com a mensagem
-- Mostrar badge com nome do arquivo anexado
-- A IA recebe o conteúdo e responde com análise (identificar peças, preços, compatibilidade)
+- Filtros: País, Estado, Segmento (mineração/construção/logística/energia)
+- Botão "Buscar Prospects com IA" (GPT-5.2)
+- Tabela com prospects: Nome, Empresa, País/Estado, Score, Status, Peças Recomendadas
+- Pipeline visual: Novo → Contatado → Qualificado → Negociação → Convertido
+- Botão "Converter para Cliente" → copia para `customers`
+- KPIs: total por país, taxa de conversão, prospects por segmento
 
-## 4. Sincronização entre Módulos
+## Atualizar chat do assistente
 
-- Quando importar novas peças → invalidar queries de `parts`, `dashboard-stats`
-- Quando adicionar pesquisa de mercado → invalidar `market-research-overview` + dados do dashboard
-- O assistente IA já consulta todas as tabelas em tempo real (parts, sales, customers, after_sales) — adicionar também consulta a `market_research` na edge function do chat
-
-### Atualizar Edge Function `chat/index.ts`
-- Adicionar seção para buscar dados de `market_research` quando perguntarem sobre preços de concorrentes, competitividade, distribuidores
+- Trocar modelo do `chat/index.ts` também para **openai/gpt-5.2**
+- Trocar modelo do `analyze-document/index.ts` para **openai/gpt-5.2**
+- Trocar modelo do `part-research/index.ts` para **openai/gpt-5.2**
 
 ## Arquivos a criar/editar
 
-- `supabase/functions/import-catalog/index.ts` — nova edge function
-- `supabase/functions/analyze-document/index.ts` — nova edge function
-- `src/hooks/use-market-research.ts` — adicionar update + delete
-- `src/pages/MarketResearchPage.tsx` — CRUD completo + filtros
-- `src/components/catalog/MarketResearchTab.tsx` — editar/deletar
-- `src/components/catalog/ImportCatalogDialog.tsx` — novo componente
-- `src/pages/AssistantPage.tsx` — upload de documentos
-- `supabase/functions/chat/index.ts` — incluir market_research no contexto
-
-## Banco de Dados
-- Migration: criar bucket `documents` no storage
-- Sem alterações de schema nas tabelas existentes
+- **Migration**: CREATE TABLE `prospects`, `prospection_campaigns`, ALTER TABLE `customers`
+- `supabase/functions/prospect-search/index.ts` — nova edge function com GPT-5.2
+- `src/pages/ProspectionPage.tsx` — página completa
+- `src/hooks/use-prospects.ts` — CRUD + converter para cliente
+- `src/components/AppSidebar.tsx` — link "Prospecção"
+- `src/App.tsx` — nova rota
+- `supabase/functions/chat/index.ts` — trocar para openai/gpt-5.2
+- `supabase/functions/analyze-document/index.ts` — trocar para openai/gpt-5.2
+- `supabase/functions/part-research/index.ts` — trocar para openai/gpt-5.2
 
