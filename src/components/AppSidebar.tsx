@@ -35,6 +35,7 @@ const mainItems = [
 const crmItems = [
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
+  { title: "Novo Pedido", url: "/pedidos/novo", icon: ClipboardList },
   { title: "Pós-Venda", url: "/pos-venda", icon: Truck },
 ];
 
