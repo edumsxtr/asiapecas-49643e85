@@ -1,42 +1,32 @@
 
 
-# Plano: Assistente IA Treinado com Estoque Completo
+# Plano: Assistente IA Especialista com Respostas Organizadas e Perguntas Afuniladas
 
-## O que já existe
-- Edge function `chat/index.ts` com busca no catálogo (busca por texto na descrição/material/modelo, limite 20 resultados)
-- Chatbot flutuante no canto inferior direito (AIChatbot.tsx)
-- Rota `/assistente` aponta para ComingSoonPage
+## Problema Atual
+- O system prompt não instrui a IA a fazer perguntas de follow-up para afunilar a busca
+- As respostas vêm em texto corrido sem estrutura visual clara (tabelas, seções)
+- Não há instrução para o assistente agir como especialista XCMG profundo
+- O modelo atual (gemini-3-flash) é rápido mas menos preciso — trocar para gemini-2.5-pro para respostas mais inteligentes
 
-## O que falta
-O assistente atual faz busca simples por texto. Precisa ser melhorado para:
-1. **Identificar compatibilidade entre máquinas** — buscar peças por categoria e modelo, cruzar `compatible_models`
-2. **Conhecimento de vendas e clientes** — consultar tabelas `sales`, `customers`, `after_sales`
-3. **Respostas confiáveis baseadas nos dados reais** — trazer estatísticas do estoque, preços, tempo parado
-4. **Página dedicada** em vez de apenas o chat flutuante
+## Mudanças
 
-## Implementação
+### 1. Reescrever System Prompt (edge function `chat/index.ts`)
+Novo prompt com instruções detalhadas para:
+- **Perguntas afuniladas**: sempre que a pergunta for genérica, fazer 2-3 perguntas específicas antes de responder (ex: "Qual modelo da máquina?", "É para qual sistema: hidráulico, motor, transmissão?")
+- **Respostas organizadas**: usar tabelas markdown para listagem de peças, seções com headers, separadores visuais, resumo executivo no topo
+- **Especialista XCMG**: incluir conhecimento técnico sobre sistemas das máquinas (motor, hidráulico, transmissão, elétrico), ciclos de manutenção, peças de desgaste vs peças estruturais
+- **Consultor de vendas**: sugerir kits, peças complementares, alertar sobre peças que costumam falhar juntas
+- Usar modelo `google/gemini-2.5-pro` para respostas mais profundas
 
-### 1. Melhorar Edge Function `chat/index.ts`
-- Busca inteligente: além de texto livre, detectar intenção (compatibilidade, preço, estoque, venda)
-- Quando perguntar sobre compatibilidade: buscar todas as peças do mesmo `machine_model` e peças que têm o modelo em `compatible_models`
-- Quando perguntar sobre clientes/vendas: consultar tabelas `customers`, `sales`, `sale_items`, `after_sales`
-- Incluir estatísticas globais: total peças, valor total, peças paradas, peças críticas
-- Buscar peças relacionadas por categoria (mineração, linha amarela, etc.)
-- System prompt expandido com conhecimento XCMG: linhas de produtos, categorias, dicas de venda cruzada
+### 2. Melhorar CSS do chat (AssistantPage.tsx)
+- Melhorar renderização de tabelas markdown (bordas, padding, zebra striping)
+- Suporte a syntax highlighting em blocos de código
+- Seções colapsáveis para respostas longas
 
-### 2. Criar Página `/assistente` — Chat em tela cheia
-- Layout com sidebar (AppLayout) + área de chat ocupando toda a tela
-- Sugestões rápidas: "Peças para XE215", "Peças paradas há mais de 2 anos", "Compatibilidade filtro hidráulico", "Resumo de vendas"
-- Histórico de conversa na sessão
-- Indicadores visuais: quando menciona peça, mostrar código/preço inline
+### 3. Sugestões dinâmicas após cada resposta
+- Após cada resposta do assistente, mostrar 2-3 botões de follow-up contextual baseados no conteúdo da resposta
 
-### 3. Manter Chatbot Flutuante
-- O chat flutuante continua funcionando, mas usa a mesma edge function melhorada
-- Adicionar link "Abrir em tela cheia" que leva para `/assistente`
-
-## Arquivos a criar/editar
-- `supabase/functions/chat/index.ts` — reescrever com busca inteligente multi-tabela
-- `src/pages/AssistantPage.tsx` — nova página de chat em tela cheia
-- `src/components/chat/AIChatbot.tsx` — adicionar botão "tela cheia"
-- `src/App.tsx` — trocar rota `/assistente` de ComingSoonPage para AssistantPage
+## Arquivos a editar
+- `supabase/functions/chat/index.ts` — system prompt + modelo
+- `src/pages/AssistantPage.tsx` — CSS tabelas, sugestões dinâmicas, melhor UX
 
