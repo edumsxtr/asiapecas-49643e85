@@ -144,6 +144,7 @@ export function CatalogContent() {
       )}
 
       <PartDetailDialog part={selectedPart} onClose={() => setSelectedPart(null)} />
+      <ImportCatalogDialog open={showImport} onClose={() => setShowImport(false)} />
     </div>
   );
 }
