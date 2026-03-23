@@ -1,68 +1,31 @@
 
 
-# Plano: Corrigir Dados + Ferramenta de Pesquisa de Mercado + IA de Compatibilidade
+# Por que está demorando — e como resolver rápido
 
-## Parte 1: Executar Updates de Estoque (Dados)
+## O problema
+O banco tem **461k unidades** (meta: **498k**). A diferença de ~37k unidades precisa ser atualizada em ~15k registros. As tentativas anteriores falharam por:
+1. **Timeout do script Python** — 300s não foi suficiente para 77 chamadas HTTP sequenciais
+2. **Circuit breaker do banco** — muitas queries simultâneas
 
-O banco ainda tem valores desalinhados com a planilha original (faltam ~68k unidades e ~R$ 38M).
+## Solução: Uma única migration SQL
 
-- Processar o Excel com Python/pandas para calcular totais consolidados por material (somar saldos, usar maior preço)
-- Gerar e executar SQL UPDATEs em lotes de ~200 registros via insert tool (psql)
-- Validar que os totais chegam a ~498k unidades e ~R$ 205M
+Em vez de chamar a edge function 77 vezes, vou gerar **uma única migration SQL** com todos os 15k UPDATEs usando uma tabela temporária. Isso executa direto no banco, sem HTTP, sem timeouts.
 
-## Parte 2: Ferramenta de Pesquisa de Mercado
+### Passos
+1. Processar o Excel com Python e gerar um arquivo SQL com:
+   ```sql
+   CREATE TEMP TABLE _fix(material text, stock int, price numeric);
+   INSERT INTO _fix VALUES ('100000005',8,54.55), ... (15k valores);
+   UPDATE parts SET stock=f.stock, estimated_price=f.price 
+   FROM _fix f WHERE parts.material=f.material;
+   ```
+2. Executar via **migration tool** (roda direto no Postgres, sem limite de timeout HTTP)
+3. Validar os totais: ~498k unidades, ~R$ 205M
 
-Nova tabela e interface para rastrear preços de concorrentes por peça.
+### Depois dos updates
+4. Criar tabela `market_research` + RLS
+5. Implementar UI de pesquisa de mercado no detalhe da peça
+6. Edge function `part-research` com IA para compatibilidade
 
-### Banco de Dados
-- Criar tabela `market_research` com colunas:
-  - `part_id` (FK para parts), `distributor_name`, `price_found`, `delivery_days`, `payment_terms`, `availability` (em estoque/sob encomenda), `source_url`, `notes`, `researched_at`, `researched_by`
-- RLS: leitura pública, escrita para autenticados
-
-### Interface
-- Dentro do diálogo de detalhe da peça (`PartDetailDialog`), adicionar aba "Pesquisa de Mercado" mostrando:
-  - Tabela com preços encontrados em outros distribuidores
-  - Formulário para adicionar novo registro (distribuidor, preço, prazo, condições)
-  - Comparativo visual: nosso preço vs. mercado (maior/menor/média)
-  - Indicador de competitividade (se estamos acima ou abaixo da média)
-- Nova página `/pesquisa-mercado` no sidebar com visão consolidada:
-  - Peças sem pesquisa de preço realizada
-  - Peças onde nosso preço está acima da média do mercado
-  - Histórico de pesquisas recentes
-
-### Menu Lateral
-- Adicionar "Pesquisa de Mercado" no grupo "Ferramentas" do sidebar
-
-## Parte 3: IA para Compatibilidade e Detalhes de Peças
-
-Expandir o chatbot existente e a edge function `chat` para:
-
-### Edge Function `chat/index.ts`
-- Atualizar o system prompt para incluir instruções de:
-  - Identificar peças que servem em outras máquinas (usando `compatible_models` e similaridade de descrição)
-  - Fornecer detalhes técnicos sobre a peça quando perguntado
-  - Sugerir peças alternativas ou equivalentes do catálogo
-
-### Nova Edge Function `part-research`
-- Recebe um `material` (código da peça)
-- Usa Lovable AI para gerar informações enriquecidas:
-  - Função provável da peça baseada na descrição
-  - Máquinas compatíveis conhecidas (além das cadastradas)
-  - Especificações técnicas prováveis
-- Retorna JSON estruturado para exibir no detalhe da peça
-
-### Interface no Detalhe da Peça
-- Botão "Pesquisar com IA" no `PartDetailDialog` que chama a edge function e exibe:
-  - Descrição técnica expandida
-  - Lista de máquinas potencialmente compatíveis
-  - Sugestões de peças relacionadas do catálogo
-
-## Detalhes Técnicos
-
-- **Tabela**: `market_research` com FK para `parts.id`
-- **Migration**: CREATE TABLE + RLS policies
-- **Edge function**: `part-research` com Lovable AI (gemini-3-flash-preview)
-- **Componentes novos**: `MarketResearchTab`, `MarketResearchPage`, `PartAIResearch`
-- **Hooks**: `useMarketResearch(partId)`, `usePartAIResearch(partId)`
-- **Sidebar**: Novo item "Pesquisa de Mercado" com ícone Search
+Isso resolve em **1 passo** em vez de 77 chamadas HTTP.
 
