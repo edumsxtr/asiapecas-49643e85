@@ -12,6 +12,7 @@ import AfterSalesPage from "./pages/AfterSalesPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import MarketResearchPage from "./pages/MarketResearchPage";
 import AssistantPage from "./pages/AssistantPage";
+import NewOrderPage from "./pages/NewOrderPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
