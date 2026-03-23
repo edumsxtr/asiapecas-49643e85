@@ -6,6 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import CatalogPage from "./pages/CatalogPage";
 import StockPage from "./pages/StockPage";
+import CustomersPage from "./pages/CustomersPage";
+import SalesPage from "./pages/SalesPage";
+import AfterSalesPage from "./pages/AfterSalesPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import MarketResearchPage from "./pages/MarketResearchPage";
 import NotFound from "./pages/NotFound";
@@ -22,9 +25,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/catalogo" element={<CatalogPage />} />
           <Route path="/estoque" element={<StockPage />} />
-          <Route path="/clientes" element={<ComingSoonPage title="CRM - Clientes" />} />
-          <Route path="/vendas" element={<ComingSoonPage title="Vendas" />} />
-          <Route path="/pos-venda" element={<ComingSoonPage title="Pós-Venda" />} />
+          <Route path="/clientes" element={<CustomersPage />} />
+          <Route path="/vendas" element={<SalesPage />} />
+          <Route path="/pos-venda" element={<AfterSalesPage />} />
           <Route path="/pesquisa-mercado" element={<MarketResearchPage />} />
           <Route path="/assistente" element={<ComingSoonPage title="IA Assistente" />} />
           <Route path="/configuracoes" element={<ComingSoonPage title="Configurações" />} />

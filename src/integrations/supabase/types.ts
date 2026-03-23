@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      after_sales: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          description: string
+          id: string
+          priority: string
+          resolution: string | null
+          resolved_at: string | null
+          sale_id: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          description: string
+          id?: string
+          priority?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          sale_id?: string | null
+          status?: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          description?: string
+          id?: string
+          priority?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          sale_id?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "after_sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "after_sales_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          cnpj_cpf: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          segment: string | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          cnpj_cpf?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          segment?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          cnpj_cpf?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          segment?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       market_research: {
         Row: {
           availability: string | null
@@ -126,6 +228,95 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sale_items: {
+        Row: {
+          created_at: string
+          id: string
+          part_id: string | null
+          quantity: number
+          sale_id: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          part_id?: string | null
+          quantity?: number
+          sale_id: string
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          part_id?: string | null
+          quantity?: number
+          sale_id?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          id: string
+          notes: string | null
+          payment_method: string | null
+          payment_terms: string | null
+          sale_date: string
+          status: string
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          sale_date?: string
+          status?: string
+          total_amount?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          sale_date?: string
+          status?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
