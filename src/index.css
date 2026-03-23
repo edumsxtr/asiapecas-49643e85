@@ -107,3 +107,45 @@
     font-family: 'Space Grotesk', sans-serif;
   }
 }
+
+/* Assistant markdown styles */
+.assistant-markdown p { margin: 0.25rem 0; }
+.assistant-markdown ul, .assistant-markdown ol { margin-top: 0.25rem; }
+.assistant-markdown h3, .assistant-markdown h4 { margin-top: 0.75rem; margin-bottom: 0.25rem; font-weight: 600; }
+.assistant-markdown blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+.assistant-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.8rem;
+}
+.assistant-markdown th {
+  background: hsl(var(--primary) / 0.1);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid hsl(var(--border));
+}
+.assistant-markdown td {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid hsl(var(--border));
+}
+.assistant-markdown tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.5);
+}
+.assistant-markdown hr {
+  margin: 0.75rem 0;
+  border-color: hsl(var(--border));
+}
+.assistant-markdown code {
+  background: hsl(var(--muted));
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+}
