@@ -17,6 +17,7 @@ export function CatalogContent() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const [page, setPage] = useState(0);
+  const [showImport, setShowImport] = useState(false);
   const pageSize = 50;
 
   // Debounce search
