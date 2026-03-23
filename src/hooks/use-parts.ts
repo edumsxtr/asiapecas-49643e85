@@ -74,6 +74,7 @@ export function useParts({ search, category, page = 0, pageSize = 50 }: UseParts
 
 export interface DashboardStats {
   totalParts: number;
+  totalSkuRows: number;
   totalStock: number;
   totalValue: number;
   avgPrice: number;
@@ -81,6 +82,7 @@ export interface DashboardStats {
   minPrice: number;
   staleStock: number;
   staleValue: number;
+  staleUnits: number;
   lowStockHighValue: number;
   byCategory: { name: string; quantidade: number; units: number; value: number }[];
   byTime: { name: string; quantidade: number; units: number; value: number }[];

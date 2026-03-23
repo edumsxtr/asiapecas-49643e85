@@ -30,15 +30,13 @@ export function DashboardPage() {
 
   if (!stats) return null;
 
+  const stalePercent = stats.totalValue > 0 ? ((stats.staleValue / stats.totalValue) * 100).toFixed(1) : "0";
+
   const kpis = [
-    { label: "Peças Cadastradas", value: stats.totalParts.toLocaleString("pt-BR"), icon: Package, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Unidades em Estoque", value: stats.totalStock.toLocaleString("pt-BR"), icon: Boxes, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Valor Total Estoque", value: formatCompact(stats.totalValue), icon: DollarSign, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Preço Médio/Peça", value: formatBRL(stats.avgPrice), icon: BarChart3, color: "text-violet-500", bg: "bg-violet-500/10" },
-    { label: "Peça Mais Cara", value: formatBRL(stats.maxPrice), icon: ArrowUp, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { label: "Estoque Parado (>2a)", value: `${stats.staleStock.toLocaleString("pt-BR")} peças`, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
-    { label: "Valor Parado (>2a)", value: formatCompact(stats.staleValue), icon: ArrowDown, color: "text-red-400", bg: "bg-red-400/10" },
-    { label: "Críticos (baixo estoque)", value: stats.lowStockHighValue.toString(), icon: Cpu, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { label: "Total SKUs (linhas)", value: stats.totalSkuRows?.toLocaleString("pt-BR") ?? stats.totalParts.toLocaleString("pt-BR"), subtitle: `${stats.totalStock.toLocaleString("pt-BR")} unidades em estoque`, icon: Package, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Valor do Estoque", value: formatCompact(stats.totalValue), subtitle: `Preço médio: ${formatBRL(stats.avgPrice)}`, icon: DollarSign, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Capital Imobilizado (>2a)", value: formatCompact(stats.staleValue), subtitle: `${stalePercent}% do total · ${stats.staleStock.toLocaleString("pt-BR")} SKUs`, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
+    { label: "Estoque Crítico", value: stats.lowStockHighValue.toString(), subtitle: "Baixo estoque + alto valor (>R$ 50k)", icon: Cpu, color: "text-orange-500", bg: "bg-orange-500/10" },
   ];
 
   return (
