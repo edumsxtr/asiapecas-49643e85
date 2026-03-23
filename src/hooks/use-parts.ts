@@ -27,6 +27,12 @@ export function formatBRL(value: number): string {
   }).format(value);
 }
 
+export function formatCompact(value: number): string {
+  if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `R$ ${(value / 1_000).toFixed(0)}k`;
+  return formatBRL(value);
+}
+
 export function getActiveCategories(part: Part): string[] {
   return categoryKeys
     .filter((key) => part[key as keyof Part] === true)
@@ -66,40 +72,31 @@ export function useParts({ search, category, page = 0, pageSize = 50 }: UseParts
   });
 }
 
-export function usePartsStats() {
-  return useQuery({
-    queryKey: ["parts-stats"],
+export interface DashboardStats {
+  totalParts: number;
+  totalStock: number;
+  totalValue: number;
+  avgPrice: number;
+  maxPrice: number;
+  minPrice: number;
+  staleStock: number;
+  staleValue: number;
+  lowStockHighValue: number;
+  byCategory: { name: string; quantidade: number; units: number; value: number }[];
+  byTime: { name: string; quantidade: number; units: number; value: number }[];
+  byManufacturer: { name: string; quantidade: number; units: number; value: number }[];
+  topModels: { name: string; quantidade: number; units: number; value: number }[];
+  criticalParts: { material: string; description: string; stock: number; estimated_price: number; machine_model: string; last_entry_time: string }[];
+  staleParts: { material: string; description: string; stock: number; estimated_price: number; machine_model: string; total_value: number }[];
+}
+
+export function useDashboardStats() {
+  return useQuery<DashboardStats>({
+    queryKey: ["dashboard-stats"],
     queryFn: async () => {
-      const [totalRes, staleRes, catRes, timeRes] = await Promise.all([
-        supabase.from("parts").select("stock,estimated_price", { count: "exact" }),
-        supabase.from("parts").select("id", { count: "exact" }).eq("last_entry_time", "mais de 2 anos"),
-        Promise.all(
-          categoryKeys.map(async (key) => {
-            const { count } = await (supabase.from("parts").select("id", { count: "exact" }) as any).eq(key, true);
-            return { key, count: (count ?? 0) as number };
-          })
-        ),
-        Promise.all(
-          timeLabels.map(async (label) => {
-            const { count } = await supabase.from("parts").select("id", { count: "exact" }).eq("last_entry_time", label);
-            return { name: label, value: (count ?? 0) as number };
-          })
-        ),
-      ]);
-
-      const parts = totalRes.data ?? [];
-      const totalParts = totalRes.count ?? 0;
-      const totalStock = parts.reduce((acc, p) => acc + (p.stock ?? 0), 0);
-      const totalValue = parts.reduce((acc, p) => acc + (p.stock ?? 0) * (p.estimated_price ?? 0), 0);
-
-      return {
-        totalParts,
-        totalStock,
-        totalValue,
-        staleStock: staleRes.count ?? 0,
-        byCategory: catRes.map((c) => ({ name: categoryLabels[c.key], quantidade: c.count })),
-        byTime: timeRes,
-      };
+      const { data, error } = await supabase.rpc("get_dashboard_stats");
+      if (error) throw error;
+      return data as unknown as DashboardStats;
     },
     staleTime: 60_000,
   });
