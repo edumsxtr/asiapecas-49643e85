@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Grid3X3, List } from "lucide-react";
+import { Search, Grid3X3, List, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useParts, categoryLabels, categoryKeys, type Part } from "@/hooks/use-p
 import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
 import { PartDetailDialog } from "./PartDetailDialog";
+import { ImportCatalogDialog } from "./ImportCatalogDialog";
 
 export function CatalogContent() {
   const [search, setSearch] = useState("");
