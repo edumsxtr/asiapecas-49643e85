@@ -1,10 +1,10 @@
 import { AppLayout } from "@/components/AppLayout";
 import { DashboardPage } from "@/components/dashboard/DashboardPage";
 
-const Index = () => (
+const StockPage = () => (
   <AppLayout>
     <DashboardPage />
   </AppLayout>
 );
 
-export default Index;
+export default StockPage;
