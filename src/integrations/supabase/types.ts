@@ -68,6 +68,56 @@ export type Database = {
           },
         ]
       }
+      ai_compatibility_results: {
+        Row: {
+          compatible_machines: string[] | null
+          id: string
+          maintenance_tips: string | null
+          material: string
+          model_used: string | null
+          part_id: string
+          probable_function: string | null
+          related_parts: string[] | null
+          researched_at: string
+          technical_description: string | null
+          technical_specs: string[] | null
+        }
+        Insert: {
+          compatible_machines?: string[] | null
+          id?: string
+          maintenance_tips?: string | null
+          material: string
+          model_used?: string | null
+          part_id: string
+          probable_function?: string | null
+          related_parts?: string[] | null
+          researched_at?: string
+          technical_description?: string | null
+          technical_specs?: string[] | null
+        }
+        Update: {
+          compatible_machines?: string[] | null
+          id?: string
+          maintenance_tips?: string | null
+          material?: string
+          model_used?: string | null
+          part_id?: string
+          probable_function?: string | null
+          related_parts?: string[] | null
+          researched_at?: string
+          technical_description?: string | null
+          technical_specs?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_compatibility_results_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
