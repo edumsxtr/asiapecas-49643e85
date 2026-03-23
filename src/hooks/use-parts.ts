@@ -56,12 +56,12 @@ export function useParts({ search, category, page = 0, pageSize = 50 }: UseParts
       }
 
       if (category) {
-        query = query.eq(category, true);
+        query = (query as any).eq(category, true);
       }
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { parts: data as Part[], total: count ?? 0 };
+      return { parts: (data ?? []) as Part[], total: count ?? 0 };
     },
   });
 }
