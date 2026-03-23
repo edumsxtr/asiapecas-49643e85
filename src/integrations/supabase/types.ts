@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      parts: {
+        Row: {
+          compatible_models: string[] | null
+          created_at: string
+          description: string
+          estimated_price: number
+          id: string
+          is_caminhao_eletrico: boolean
+          is_guindaste: boolean
+          is_linha_amarela: boolean
+          is_mineracao: boolean
+          is_perfuratriz: boolean
+          last_entry_time: string | null
+          machine_model: string | null
+          manufacturer: string | null
+          material: string
+          stock: number
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          compatible_models?: string[] | null
+          created_at?: string
+          description: string
+          estimated_price?: number
+          id?: string
+          is_caminhao_eletrico?: boolean
+          is_guindaste?: boolean
+          is_linha_amarela?: boolean
+          is_mineracao?: boolean
+          is_perfuratriz?: boolean
+          last_entry_time?: string | null
+          machine_model?: string | null
+          manufacturer?: string | null
+          material: string
+          stock?: number
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          compatible_models?: string[] | null
+          created_at?: string
+          description?: string
+          estimated_price?: number
+          id?: string
+          is_caminhao_eletrico?: boolean
+          is_guindaste?: boolean
+          is_linha_amarela?: boolean
+          is_mineracao?: boolean
+          is_perfuratriz?: boolean
+          last_entry_time?: string | null
+          machine_model?: string | null
+          manufacturer?: string | null
+          material?: string
+          stock?: number
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
