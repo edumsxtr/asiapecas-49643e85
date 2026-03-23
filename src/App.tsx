@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import CatalogPage from "./pages/CatalogPage";
 import StockPage from "./pages/StockPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
+import MarketResearchPage from "./pages/MarketResearchPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
