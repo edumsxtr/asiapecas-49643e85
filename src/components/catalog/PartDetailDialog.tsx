@@ -1,12 +1,9 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { type Part, formatBRL, getActiveCategories } from "@/data/sample-parts";
+import { type Part, formatBRL, getActiveCategories } from "@/hooks/use-parts";
 import { Package, Clock, Layers, Truck } from "lucide-react";
 
 interface PartDetailDialogProps {
@@ -18,7 +15,7 @@ export function PartDetailDialog({ part, onClose }: PartDetailDialogProps) {
   if (!part) return null;
 
   const categories = getActiveCategories(part);
-  const totalValue = part.stock * part.estimatedPrice;
+  const totalValue = part.stock * part.estimated_price;
 
   return (
     <Dialog open={!!part} onOpenChange={() => onClose()}>
@@ -45,9 +42,9 @@ export function PartDetailDialog({ part, onClose }: PartDetailDialogProps) {
           <Separator />
 
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <InfoRow icon={<Layers className="h-4 w-4" />} label="Modelo" value={part.machineModel} />
-            <InfoRow icon={<Truck className="h-4 w-4" />} label="Fornecedor" value={part.supplier} />
-            <InfoRow icon={<Clock className="h-4 w-4" />} label="Última Entrada" value={part.lastEntryTime} />
+            <InfoRow icon={<Layers className="h-4 w-4" />} label="Modelo" value={part.machine_model ?? "—"} />
+            <InfoRow icon={<Truck className="h-4 w-4" />} label="Fornecedor" value={part.supplier ?? "—"} />
+            <InfoRow icon={<Clock className="h-4 w-4" />} label="Última Entrada" value={part.last_entry_time ?? "—"} />
             <InfoRow icon={<Package className="h-4 w-4" />} label="Estoque" value={part.stock.toLocaleString("pt-BR") + " un."} />
           </div>
 
@@ -56,7 +53,7 @@ export function PartDetailDialog({ part, onClose }: PartDetailDialogProps) {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-xs text-muted-foreground">Preço Unitário (c/ impostos)</p>
-              <p className="font-display font-bold text-lg text-foreground">{formatBRL(part.estimatedPrice)}</p>
+              <p className="font-display font-bold text-lg text-foreground">{formatBRL(part.estimated_price)}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Valor Total em Estoque</p>
@@ -64,7 +61,7 @@ export function PartDetailDialog({ part, onClose }: PartDetailDialogProps) {
             </div>
           </div>
 
-          {part.compatibleModels && part.compatibleModels.length > 1 && (
+          {part.compatible_models && part.compatible_models.length > 1 && (
             <>
               <Separator />
               <div>
@@ -72,10 +69,8 @@ export function PartDetailDialog({ part, onClose }: PartDetailDialogProps) {
                   Compatível com outros modelos
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {part.compatibleModels.map((model) => (
-                    <Badge key={model} variant="secondary" className="text-xs">
-                      {model}
-                    </Badge>
+                  {part.compatible_models.map((model) => (
+                    <Badge key={model} variant="secondary" className="text-xs">{model}</Badge>
                   ))}
                 </div>
               </div>

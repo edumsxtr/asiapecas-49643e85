@@ -56,7 +56,7 @@ export function useParts({ search, category, page = 0, pageSize = 50 }: UseParts
       }
 
       if (category) {
-        query = query.eq(category as any, true);
+        query = query.eq(category, true);
       }
 
       const { data, error, count } = await query;
