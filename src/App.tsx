@@ -13,6 +13,7 @@ import ComingSoonPage from "./pages/ComingSoonPage";
 import MarketResearchPage from "./pages/MarketResearchPage";
 import AssistantPage from "./pages/AssistantPage";
 import NewOrderPage from "./pages/NewOrderPage";
+import ProspectionPage from "./pages/ProspectionPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
