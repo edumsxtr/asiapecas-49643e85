@@ -1,18 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useSales, useCreateSale, useUpdateSaleStatus, type SaleInsert } from "@/hooks/use-sales";
-import { useCustomers } from "@/hooks/use-customers";
-import { Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useSales, useUpdateSaleStatus, useDeleteSale, type Sale } from "@/hooks/use-sales";
+import { Plus, Eye, Trash2 } from "lucide-react";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   orcamento: { label: "Orçamento", variant: "outline" },
@@ -21,47 +18,18 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
-type ItemRow = { part_id: string; material: string; description: string; quantity: number; unit_price: number };
-
 export default function SalesPage() {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("todos");
-  const [open, setOpen] = useState(false);
+  const [detailSale, setDetailSale] = useState<Sale | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { data: sales = [], isLoading } = useSales(statusFilter);
-  const { data: customers = [] } = useCustomers();
-  const createMut = useCreateSale();
   const updateStatus = useUpdateSaleStatus();
+  const deleteMut = useDeleteSale();
 
-  const [customerId, setCustomerId] = useState<string>("");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<ItemRow[]>([]);
-  const [partSearch, setPartSearch] = useState("");
-  const [partResults, setPartResults] = useState<any[]>([]);
-
-  const searchParts = async (q: string) => {
-    setPartSearch(q);
-    if (q.length < 2) { setPartResults([]); return; }
-    const { data } = await supabase.from("parts").select("id,material,description,estimated_price,stock")
-      .or(`material.ilike.%${q}%,description.ilike.%${q}%`).limit(10);
-    setPartResults(data || []);
-  };
-
-  const addItem = (part: any) => {
-    if (items.find(i => i.part_id === part.id)) return;
-    setItems(prev => [...prev, { part_id: part.id, material: part.material, description: part.description, quantity: 1, unit_price: part.estimated_price }]);
-    setPartSearch(""); setPartResults([]);
-  };
-
-  const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
-  const updateItem = (idx: number, field: string, value: number) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
-
-  const total = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-
-  const handleCreate = () => {
-    if (!customerId || items.length === 0) return;
-    createMut.mutate(
-      { customer_id: customerId, notes: notes || null, items: items.map(({ part_id, quantity, unit_price }) => ({ part_id, quantity, unit_price })) },
-      { onSuccess: () => { setOpen(false); setItems([]); setCustomerId(""); setNotes(""); } }
-    );
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteMut.mutate(deleteId, { onSuccess: () => setDeleteId(null) });
   };
 
   const totalMonth = sales.reduce((s, v) => s + v.total_amount, 0);
@@ -72,7 +40,7 @@ export default function SalesPage() {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-bold text-foreground">Vendas</h1>
-          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Venda</Button>
+          <Button onClick={() => navigate("/pedidos/novo")}><Plus className="h-4 w-4 mr-2" />Novo Pedido</Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -99,21 +67,25 @@ export default function SalesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>#</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Itens</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : sales.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma venda encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma venda encontrada</TableCell></TableRow>
                 ) : sales.map(sale => (
-                  <TableRow key={sale.id}>
+                  <TableRow key={sale.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailSale(sale)}>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {(sale as any).order_number ? `#${(sale as any).order_number}` : sale.id.slice(0, 6)}
+                    </TableCell>
                     <TableCell>{new Date(sale.sale_date).toLocaleDateString("pt-BR")}</TableCell>
                     <TableCell className="font-medium">{sale.customers?.name || "—"}</TableCell>
                     <TableCell>{sale.sale_items?.length || 0} itens</TableCell>
@@ -123,13 +95,21 @@ export default function SalesPage() {
                         {STATUS_MAP[sale.status]?.label || sale.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Select value={sale.status} onValueChange={v => updateStatus.mutate({ id: sale.id, status: v })}>
-                        <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => setDetailSale(sale)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Select value={sale.status} onValueChange={v => updateStatus.mutate({ id: sale.id, status: v })}>
+                          <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(sale.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -139,77 +119,85 @@ export default function SalesPage() {
         </Card>
       </div>
 
-      {/* New Sale Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label>Cliente *</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-                <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ""}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Adicionar Peças</Label>
-              <Input placeholder="Buscar por material ou descrição..." value={partSearch} onChange={e => searchParts(e.target.value)} />
-              {partResults.length > 0 && (
-                <div className="border rounded-md mt-1 max-h-40 overflow-y-auto bg-background">
-                  {partResults.map(p => (
-                    <div key={p.id} className="px-3 py-2 hover:bg-muted cursor-pointer text-sm flex justify-between" onClick={() => addItem(p)}>
-                      <span className="font-mono">{p.material}</span>
-                      <span className="text-muted-foreground truncate ml-2 flex-1">{p.description}</span>
-                      <span className="ml-2 font-medium">R$ {p.estimated_price.toLocaleString("pt-BR")}</span>
-                    </div>
-                  ))}
+      {/* Sale Detail Dialog */}
+      <Dialog open={!!detailSale} onOpenChange={(o) => !o && setDetailSale(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Detalhes da Venda {(detailSale as any)?.order_number ? `#${(detailSale as any).order_number}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {detailSale && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">Cliente</p>
+                  <p className="font-medium">{detailSale.customers?.name || "—"}</p>
+                  {detailSale.customers?.company && <p className="text-sm">{detailSale.customers.company}</p>}
                 </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={STATUS_MAP[detailSale.status]?.variant || "outline"} className="mt-1">
+                    {STATUS_MAP[detailSale.status]?.label || detailSale.status}
+                  </Badge>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">Data</p>
+                  <p className="font-medium">{new Date(detailSale.sale_date).toLocaleDateString("pt-BR")}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold text-primary">R$ {detailSale.total_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
+
+              {detailSale.payment_method && (
+                <p className="text-sm"><span className="text-muted-foreground">Pagamento:</span> {detailSale.payment_method} {detailSale.payment_terms ? `— ${detailSale.payment_terms}` : ""}</p>
+              )}
+              {detailSale.notes && <p className="text-sm"><span className="text-muted-foreground">Notas:</span> {detailSale.notes}</p>}
+
+              {detailSale.sale_items && detailSale.sale_items.length > 0 && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-center">Qtd</TableHead>
+                      <TableHead>Preço Unit.</TableHead>
+                      <TableHead>Subtotal</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detailSale.sale_items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-xs">{item.parts?.material || "—"}</TableCell>
+                        <TableCell className="text-xs">{item.parts?.description || "—"}</TableCell>
+                        <TableCell className="text-center">{item.quantity}</TableCell>
+                        <TableCell className="font-mono">R$ {item.unit_price.toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="font-mono font-medium">R$ {item.total_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </div>
-
-            {items.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Qtd</TableHead>
-                    <TableHead>Preço Unit.</TableHead>
-                    <TableHead>Subtotal</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-mono text-xs">{item.material}</TableCell>
-                      <TableCell className="text-xs truncate max-w-[150px]">{item.description}</TableCell>
-                      <TableCell><Input type="number" min={1} className="w-16 h-8" value={item.quantity} onChange={e => updateItem(idx, "quantity", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" min={0} step={0.01} className="w-24 h-8" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", +e.target.value)} /></TableCell>
-                      <TableCell className="font-mono">R$ {(item.quantity * item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                      <TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-right font-bold">Total:</TableCell>
-                    <TableCell className="font-mono font-bold text-primary">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableBody>
-              </Table>
-            )}
-
-            <div><Label>Observações</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={createMut.isPending || !customerId || items.length === 0}>
-              {createMut.isPending ? "Salvando..." : `Criar Venda — R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            </Button>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

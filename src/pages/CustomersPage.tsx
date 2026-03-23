@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useCustomers, useCreateCustomer, useDeleteCustomer, type CustomerInsert } from "@/hooks/use-customers";
-import { Users, Plus, Search, Trash2 } from "lucide-react";
+import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, type Customer, type CustomerInsert } from "@/hooks/use-customers";
+import { Plus, Search, Trash2, Pencil } from "lucide-react";
 
 const SEGMENTS = ["mineração", "construção", "logística", "energia", "geral"];
 
@@ -22,14 +23,33 @@ const emptyCustomer: CustomerInsert = {
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CustomerInsert>(emptyCustomer);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { data: customers = [], isLoading } = useCustomers(search);
   const createMut = useCreateCustomer();
+  const updateMut = useUpdateCustomer();
   const deleteMut = useDeleteCustomer();
 
-  const handleCreate = () => {
+  const openCreate = () => { setEditingId(null); setForm(emptyCustomer); setOpen(true); };
+  const openEdit = (c: Customer) => {
+    setEditingId(c.id);
+    setForm({ name: c.name, company: c.company, cnpj_cpf: c.cnpj_cpf, email: c.email, phone: c.phone, address: c.address, city: c.city, state: c.state, segment: c.segment, notes: c.notes });
+    setOpen(true);
+  };
+
+  const handleSave = () => {
     if (!form.name.trim()) return;
-    createMut.mutate(form, { onSuccess: () => { setOpen(false); setForm(emptyCustomer); } });
+    if (editingId) {
+      updateMut.mutate({ id: editingId, ...form }, { onSuccess: () => { setOpen(false); setEditingId(null); } });
+    } else {
+      createMut.mutate(form, { onSuccess: () => { setOpen(false); setForm(emptyCustomer); } });
+    }
+  };
+
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteMut.mutate(deleteId, { onSuccess: () => setDeleteId(null) });
   };
 
   const segmentCounts = customers.reduce<Record<string, number>>((acc, c) => {
@@ -44,15 +64,16 @@ export default function CustomersPage() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
 
+  const isPending = createMut.isPending || updateMut.isPending;
+
   return (
     <AppLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-2xl font-bold text-foreground">CRM - Clientes</h1>
-          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
         </div>
 
-        {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Clientes</CardTitle></CardHeader>
             <CardContent><p className="text-2xl font-bold">{customers.length}</p></CardContent></Card>
@@ -64,13 +85,11 @@ export default function CustomersPage() {
           ))}
         </div>
 
-        {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nome, empresa ou CNPJ..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        {/* Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -82,7 +101,7 @@ export default function CustomersPage() {
                   <TableHead>Segmento</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -98,10 +117,15 @@ export default function CustomersPage() {
                     <TableCell><Badge variant="outline" className="capitalize">{c.segment || "geral"}</Badge></TableCell>
                     <TableCell>{c.phone || "—"}</TableCell>
                     <TableCell>{c.email || "—"}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(c.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -111,10 +135,10 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      {/* New Customer Dialog */}
+      {/* Create/Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -142,10 +166,24 @@ export default function CustomersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={createMut.isPending}>{createMut.isPending ? "Salvando..." : "Salvar"}</Button>
+            <Button onClick={handleSave} disabled={isPending}>{isPending ? "Salvando..." : "Salvar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
