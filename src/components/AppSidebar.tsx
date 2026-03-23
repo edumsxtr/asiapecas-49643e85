@@ -7,6 +7,7 @@ import {
   Settings,
   TrendingUp,
   Truck,
+  Search,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -37,6 +38,7 @@ const crmItems = [
 ];
 
 const toolItems = [
+  { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
