@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      market_research: {
+        Row: {
+          availability: string | null
+          created_at: string
+          delivery_days: number | null
+          distributor_name: string
+          id: string
+          notes: string | null
+          part_id: string
+          payment_terms: string | null
+          price_found: number
+          researched_at: string
+          researched_by: string | null
+          source_url: string | null
+        }
+        Insert: {
+          availability?: string | null
+          created_at?: string
+          delivery_days?: number | null
+          distributor_name: string
+          id?: string
+          notes?: string | null
+          part_id: string
+          payment_terms?: string | null
+          price_found?: number
+          researched_at?: string
+          researched_by?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          availability?: string | null
+          created_at?: string
+          delivery_days?: number | null
+          distributor_name?: string
+          id?: string
+          notes?: string | null
+          part_id?: string
+          payment_terms?: string | null
+          price_found?: number
+          researched_at?: string
+          researched_by?: string | null
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_research_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parts: {
         Row: {
           compatible_models: string[] | null
