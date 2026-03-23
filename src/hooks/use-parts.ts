@@ -70,42 +70,36 @@ export function usePartsStats() {
   return useQuery({
     queryKey: ["parts-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_parts_stats" as any);
-      // Fallback: compute client-side from a summary query
-      if (error) {
-        // Get counts via multiple queries
-        const [totalRes, staleRes, catRes, timeRes] = await Promise.all([
-          supabase.from("parts").select("stock,estimated_price", { count: "exact" }),
-          supabase.from("parts").select("id", { count: "exact" }).eq("last_entry_time", "mais de 2 anos"),
-          Promise.all(
-            categoryKeys.map(async (key) => {
-              const { count } = await supabase.from("parts").select("id", { count: "exact" }).eq(key as any, true);
-              return { key, count: count ?? 0 };
-            })
-          ),
-          Promise.all(
-            timeLabels.map(async (label) => {
-              const { count } = await supabase.from("parts").select("id", { count: "exact" }).eq("last_entry_time", label);
-              return { name: label, value: count ?? 0 };
-            })
-          ),
-        ]);
+      const [totalRes, staleRes, catRes, timeRes] = await Promise.all([
+        supabase.from("parts").select("stock,estimated_price", { count: "exact" }),
+        supabase.from("parts").select("id", { count: "exact" }).eq("last_entry_time", "mais de 2 anos"),
+        Promise.all(
+          categoryKeys.map(async (key) => {
+            const { count } = await (supabase.from("parts").select("id", { count: "exact" }) as any).eq(key, true);
+            return { key, count: (count ?? 0) as number };
+          })
+        ),
+        Promise.all(
+          timeLabels.map(async (label) => {
+            const { count } = await supabase.from("parts").select("id", { count: "exact" }).eq("last_entry_time", label);
+            return { name: label, value: (count ?? 0) as number };
+          })
+        ),
+      ]);
 
-        const parts = totalRes.data ?? [];
-        const totalParts = totalRes.count ?? 0;
-        const totalStock = parts.reduce((acc, p) => acc + (p.stock ?? 0), 0);
-        const totalValue = parts.reduce((acc, p) => acc + (p.stock ?? 0) * (p.estimated_price ?? 0), 0);
+      const parts = totalRes.data ?? [];
+      const totalParts = totalRes.count ?? 0;
+      const totalStock = parts.reduce((acc, p) => acc + (p.stock ?? 0), 0);
+      const totalValue = parts.reduce((acc, p) => acc + (p.stock ?? 0) * (p.estimated_price ?? 0), 0);
 
-        return {
-          totalParts,
-          totalStock,
-          totalValue,
-          staleStock: staleRes.count ?? 0,
-          byCategory: catRes.map((c) => ({ name: categoryLabels[c.key], quantidade: c.count })),
-          byTime: timeRes,
-        };
-      }
-      return data;
+      return {
+        totalParts,
+        totalStock,
+        totalValue,
+        staleStock: staleRes.count ?? 0,
+        byCategory: catRes.map((c) => ({ name: categoryLabels[c.key], quantidade: c.count })),
+        byTime: timeRes,
+      };
     },
     staleTime: 60_000,
   });
