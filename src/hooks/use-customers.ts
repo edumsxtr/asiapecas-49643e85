@@ -20,7 +20,7 @@ export type Customer = {
   updated_at: string;
 };
 
-export type CustomerInsert = Omit<Customer, "id" | "created_at" | "updated_at">;
+export type CustomerInsert = Omit<Customer, "id" | "created_at" | "updated_at" | "country" | "source"> & { country?: string | null; source?: string | null };
 
 export function useCustomers(search?: string) {
   return useQuery({
