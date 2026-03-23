@@ -11,6 +11,7 @@ import SalesPage from "./pages/SalesPage";
 import AfterSalesPage from "./pages/AfterSalesPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import MarketResearchPage from "./pages/MarketResearchPage";
+import AssistantPage from "./pages/AssistantPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
