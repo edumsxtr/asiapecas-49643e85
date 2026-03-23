@@ -156,10 +156,8 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
             if (error) throw error;
             updated++;
           } else {
-            const { error } = await supabase.from("parts").insert([{
-              material: row.material,
-              ...partData,
-            }]);
+            partData.material = row.material;
+            const { error } = await supabase.from("parts").insert([partData as any]);
             if (error) throw error;
             inserted++;
           }
