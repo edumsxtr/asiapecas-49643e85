@@ -1,41 +1,43 @@
 
 
-# Importar Todos os Itens da Planilha (~20.000+ linhas)
+# Corrigir Dados e Alinhar com a Planilha Original
 
-## Situação Atual
-- A planilha contém **~20.436 linhas** de peças
-- O sistema atual tem apenas **12 peças hardcoded** em `sample-parts.ts`
-- **Não há banco de dados** configurado — sem Supabase
+## Problema Identificado
+A planilha original tem **20.436 linhas**, mas nosso banco tem apenas **15.298 registros**. Na importação anterior, linhas duplicadas (mesmo código de material com saldos diferentes) foram descartadas em vez de somadas. Resultado:
 
-## Problema
-20.000+ itens não podem ficar em um arquivo TypeScript estático. Isso travaria o navegador e tornaria o app inutilizável. Precisamos de um banco de dados.
+| Métrica | Planilha Real | Nosso Banco | Diferença |
+|---------|--------------|-------------|-----------|
+| SKUs (linhas) | 20.436 | 15.298 | -5.138 |
+| Unidades | 498.022 | 398.687 | -99.335 |
+| Valor Estoque | ~R$ 204.9M | R$ 153.5M | -R$ 51.4M |
 
-## Plano
+## Plano de Correção
 
-### 1. Habilitar Lovable Cloud (Supabase)
-- Criar tabela `parts` com todas as colunas da planilha: material, descrição, tempo de entrada, saldo, preço estimado, fornecedor, fabricante, modelo de máquina, categorias (mineração, linha amarela, perfuratriz, caminhão elétrico, guindaste)
-- Criar índices para busca eficiente por material, descrição e modelo
+### 1. Re-importar todos os dados da planilha
+- Processar as 20.436 linhas do Excel via script
+- Para materiais duplicados: **somar os saldos** e usar o **maior preço** (ou média ponderada)
+- Manter o material como identificador único, mas com estoque consolidado correto
+- Resultado esperado: 15.298 materiais únicos com **498.022 unidades** e **~R$ 204.9M** em valor
 
-### 2. Importar Todos os Dados da Planilha
-- Processar o Excel completo via script, extraindo todas as ~20.000 linhas
-- Tratar duplicatas (mesma peça aparece em linhas diferentes com modelos diferentes — consolidar como modelos compatíveis)
-- Inserir no banco de dados via migration com seed data, ou via edge function de importação
+### 2. Atualizar KPIs do Dashboard (estilo da imagem de referência)
+Reorganizar os 4 KPIs principais no topo para espelhar o layout mostrado:
+- **Total SKUs**: 20.436 (contagem de linhas originais) + subtítulo com unidades em estoque
+- **Valor do Estoque**: R$ 204.9M + preço médio
+- **Vendas 24/25**: placeholder (sem dados de vendas ainda, será preenchido com o CRM)
+- **Capital Imobilizado**: valor de estoque parado >2 anos + % do total + quantidade de SKUs
 
-### 3. Atualizar o Frontend
-- Substituir o import de `sample-parts.ts` por queries ao Supabase com paginação
-- Catálogo com busca server-side, filtros e scroll infinito ou paginação
-- Dashboard calculando KPIs direto do banco (totais reais, não amostra)
+### 3. Atualizar função get_dashboard_stats()
+- Recalcular todos os totais com os dados corrigidos
+- Adicionar campo `totalSkuRows` (20.436 — contagem de linhas originais da planilha)
+- Adicionar campo `capitalImobilizado` com % e contagem de SKUs parados
 
-### 4. Funcionalidade de Upload de Planilha
-- Permitir importar novas planilhas Excel para atualizar o estoque
-- Parsing client-side com `xlsx` (já instalado) + insert no Supabase
-
-## Pré-requisito
-**Preciso que você habilite o Lovable Cloud** (botão no painel do projeto) para eu poder criar o banco de dados e importar os dados. Sem isso, não consigo armazenar 20.000 peças.
+### 4. Manter todas as análises existentes
+- Gráficos por categoria, fabricante, modelo e tempo continuam funcionando
+- Tabelas de alertas (estoque crítico e parado) com dados atualizados
 
 ## Detalhes Técnicos
-- Tabela: `parts` com colunas tipadas (text, integer, numeric, boolean)
-- RLS habilitado com políticas de leitura pública e escrita para admin
-- Queries com `react-query` + cliente Supabase
-- Paginação de 50 itens por página no catálogo
+- Script Python para reprocessar o Excel e gerar SQL de UPDATE com saldos corrigidos
+- Migration para atualizar os registros existentes (UPDATE stock e estimated_price)
+- Atualização da RPC `get_dashboard_stats` para incluir novos KPIs
+- Refatoração visual dos cards de KPI no `DashboardPage.tsx`
 
