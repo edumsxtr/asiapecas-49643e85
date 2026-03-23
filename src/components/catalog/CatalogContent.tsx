@@ -45,11 +45,16 @@ export function CatalogContent() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Catálogo de Peças</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {total.toLocaleString("pt-BR")} peça(s) encontrada(s)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">Catálogo de Peças</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {total.toLocaleString("pt-BR")} peça(s) encontrada(s)
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setShowImport(true)}>
+          <Upload className="h-4 w-4 mr-1" /> Importar Planilha
+        </Button>
       </div>
 
       {/* Search + View Toggle */}
