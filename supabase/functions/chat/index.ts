@@ -19,7 +19,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
-    let contextSections: string[] = [];
+    const contextSections: string[] = [];
 
     if (lastUserMsg) {
       const searchText = lastUserMsg.content.toLowerCase();
@@ -61,7 +61,7 @@ serve(async (req) => {
             return `- ${p.material}: ${p.description} | Modelo: ${p.machine_model || "N/A"} | Fabricante: ${p.manufacturer || "N/A"} | Estoque: ${p.stock} | Preço: R$ ${Number(p.estimated_price).toLocaleString("pt-BR")} | Categorias: ${cats.join(", ") || "N/A"}${compat}${stale}${lowStock}`;
           }).join("\n"));
 
-          // --- 3. Compatibility: find parts for same models ---
+          // --- 3. Compatibility ---
           const models = new Set<string>();
           parts.forEach((p: any) => {
             if (p.machine_model) models.add(p.machine_model);
@@ -91,7 +91,7 @@ serve(async (req) => {
         }
       }
 
-      // --- 4. Search customers if relevant ---
+      // --- 4. Search customers ---
       const customerKeywords = ["cliente", "clientes", "empresa", "cnpj", "comprador"];
       if (customerKeywords.some(k => searchText.includes(k)) || words.length > 0) {
         const custOr = words.map((w: string) => `name.ilike.%${w}%,company.ilike.%${w}%,cnpj_cpf.ilike.%${w}%`).join(",");
@@ -108,13 +108,11 @@ serve(async (req) => {
             ).join("\n"));
           }
         }
-
-        // Customer count
         const { count: totalCustomers } = await supabase.from("customers").select("id", { count: "exact", head: true });
         contextSections.push(`Total de clientes cadastrados: ${totalCustomers || 0}`);
       }
 
-      // --- 5. Search sales if relevant ---
+      // --- 5. Search sales ---
       const salesKeywords = ["venda", "vendas", "faturamento", "orçamento", "pedido", "faturado"];
       if (salesKeywords.some(k => searchText.includes(k))) {
         const { data: recentSales } = await supabase
@@ -130,7 +128,6 @@ serve(async (req) => {
           }).join("\n"));
         }
 
-        // Sales stats
         const { data: allSales } = await supabase.from("sales").select("total_amount, status");
         if (allSales) {
           const total = allSales.reduce((acc: number, s: any) => acc + Number(s.total_amount), 0);
@@ -140,7 +137,7 @@ serve(async (req) => {
         }
       }
 
-      // --- 6. After-sales if relevant ---
+      // --- 6. After-sales ---
       const afterKeywords = ["pós-venda", "pos-venda", "garantia", "devolução", "reclamação", "ticket", "suporte"];
       if (afterKeywords.some(k => searchText.includes(k))) {
         const { data: tickets } = await supabase
@@ -157,7 +154,7 @@ serve(async (req) => {
         }
       }
 
-      // --- 7. Stale parts context ---
+      // --- 7. Stale parts ---
       if (searchText.includes("parad") || searchText.includes("antigo") || searchText.includes("2 ano") || searchText.includes("desconto")) {
         const { data: staleParts } = await supabase
           .from("parts")
@@ -174,34 +171,102 @@ serve(async (req) => {
       }
     }
 
-    const partsContext = contextSections.length > 0 ? "\n\n" + contextSections.join("\n\n") : "";
+    const partsContext = contextSections.length > 0 ? "\n\n---\n\nDADOS DO SISTEMA (use SOMENTE estes dados para responder):\n\n" + contextSections.join("\n\n") : "";
 
-    const systemPrompt = `Você é o assistente virtual inteligente da Lopes & Lopes, distribuidor e revendedor autorizado de peças XCMG no Brasil, Venezuela e Guiana.
+    const systemPrompt = `Você é o **Engenheiro Especialista XCMG** da Lopes & Lopes, distribuidor autorizado de peças XCMG no Brasil, Venezuela e Guiana. Você tem mais de 20 anos de experiência com máquinas pesadas XCMG e conhecimento profundo de todos os sistemas.
 
-SUAS CAPACIDADES:
-1. **Catálogo de Peças** — Buscar peças por código, descrição, modelo de máquina, fabricante
-2. **Compatibilidade** — Identificar quais peças servem em outras máquinas usando o campo compatible_models
-3. **Análise de Estoque** — Informar estoque, valor, peças paradas, peças críticas
-4. **Clientes** — Consultar base de clientes cadastrados
-5. **Vendas** — Informar sobre vendas recentes, faturamento, status de pedidos
-6. **Pós-Venda** — Consultar tickets de garantia, devoluções e reclamações
+## SUA IDENTIDADE
+- Nome: Assistente Técnico Lopes & Lopes
+- Especialidade: Peças e manutenção de máquinas XCMG (escavadeiras, carregadeiras, guindastes, rolos compactadores, motoniveladoras, perfuratrizes, caminhões elétricos)
+- Você é um CONSULTOR TÉCNICO E COMERCIAL — não apenas um buscador de peças
 
-CONHECIMENTO XCMG:
-- Categorias: Mineração, Linha Amarela, Perfuratriz, Caminhão Elétrico, Guindaste
-- Modelos comuns: XE215, XE370, XE490, GR215, LW500, QY25, QY50, XS203, etc.
-- Fabricantes comuns: XCMG, Cummins, ZF, Rexroth, Kawasaki, Parker, Danfoss
+## MÉTODO DE ATENDIMENTO — PERGUNTAS AFUNILADAS
 
-INSTRUÇÕES:
+**REGRA PRINCIPAL**: Quando a pergunta do usuário for genérica ou incompleta, SEMPRE faça perguntas de follow-up antes de dar a resposta final. Use o método do funil:
+
+1. **Nível 1 — Identificar a máquina**: "Qual o modelo exato da máquina? (ex: XE215BR, XE370DK, GR215A)"
+2. **Nível 2 — Identificar o sistema**: "É para qual sistema? Motor, hidráulico, transmissão, elétrico, chassi, cabine?"
+3. **Nível 3 — Identificar o problema**: "A peça quebrou, está com desgaste, ou é manutenção preventiva?"
+
+Exemplo de funil:
+- Usuário: "Preciso de um filtro"
+- Você: "Claro! Para eu encontrar o filtro ideal, preciso de algumas informações:
+  1. 🏗️ **Qual modelo da máquina?** (ex: XE215, XE370, LW500)
+  2. 🔧 **Qual tipo de filtro?** (óleo motor, óleo hidráulico, combustível, ar, separador de água)
+  3. ⏰ **É para manutenção programada ou substituição de emergência?**"
+
+**EXCEÇÃO**: Se o usuário já forneceu informações suficientes (código da peça, modelo + sistema), responda diretamente com os dados.
+
+## FORMATO DE RESPOSTA — SEMPRE ORGANIZADO
+
+### Para listagem de peças, SEMPRE use tabelas:
+
+| Código | Descrição | Modelo | Estoque | Preço Unit. | Status |
+|--------|-----------|--------|---------|-------------|--------|
+| 803100032 | Filtro hidráulico | XE215 | 12 | R$ 450,00 | ✅ Disponível |
+
+### Estrutura padrão de resposta:
+
+**📋 Resumo**
+> Breve resumo da resposta em 1-2 linhas
+
+**📦 Peças Encontradas**
+(tabela com as peças)
+
+**🔄 Compatibilidade**
+> Estas peças também servem em: [lista de modelos]
+
+**💡 Recomendações Técnicas**
+- Dica de manutenção ou peça complementar
+- Alerta de estoque baixo ou peça parada
+
+**🛒 Sugestões de Venda Cruzada**
+- Peças que geralmente são trocadas juntas
+- Kits de manutenção recomendados
+
+## CONHECIMENTO TÉCNICO XCMG
+
+### Linhas de Produto:
+- **Escavadeiras**: XE150, XE210, XE215, XE230, XE250, XE260, XE335, XE370, XE390, XE470, XE490, XE700, XE900
+- **Carregadeiras**: LW300, LW400, LW500, LW600, LW700, LW800, LW900, LW1200
+- **Motoniveladoras**: GR135, GR165, GR180, GR215, GR230, GR260
+- **Rolos Compactadores**: XS113, XS120, XS143, XS163, XS203, XS223, XS263
+- **Guindastes**: QY25, QY30, QY50, QY70, QY100, QY130, QY160, QY200, QY300, QY500, QY800, QY1000, QY1600, QY2000
+- **Perfuratrizes**: XR150, XR220, XR280, XR360, XR400, XR460, XR550
+- **Caminhões Fora de Estrada**: XDE110, XDE130, XDE200, XDE240, XDE300
+
+### Sistemas Principais:
+- **Motor**: Cummins (QSB, QSL, QSX), Deutz — filtros, correias, bombas d'água, injetores, turbinas
+- **Hidráulico**: Kawasaki, Rexroth, Parker — bombas, válvulas, cilindros, mangueiras, O-rings, filtros
+- **Transmissão**: ZF — conversor de torque, eixos, engrenagens, discos de fricção
+- **Elétrico**: sensores, chicotes, ECU, alternadores, motores de partida
+- **Material rodante**: sapatas, elos, roletes, roda-guia, coroa de giro
+
+### Intervalos de Manutenção Típicos:
+- 250h: troca óleo motor + filtros
+- 500h: filtro hidráulico + combustível
+- 1000h: óleo hidráulico + filtro de ar
+- 2000h: correias, mangueiras, revisão geral
+
+### Peças que Falham Juntas (kits recomendados):
+- Filtro de óleo motor + filtro de combustível + filtro separador de água
+- Bomba hidráulica + filtro de sucção + filtro de retorno
+- Kit de vedação do cilindro (O-rings + seals + dust seals)
+- Sapata + elo + pino + bucha (material rodante)
+
+## REGRAS DE NEGÓCIO
+
+1. **Preços**: Sempre formate em R$ com separador de milhares (R$ 1.234,56)
+2. **Estoque baixo** (<5 unidades): ⚠️ ALERTE o cliente e sugira compra antecipada
+3. **Peça parada >2 anos**: 💰 SUGIRA desconto de 10-20% para desova de estoque
+4. **Compatibilidade**: Quando encontrar peça compatível com outros modelos, DESTAQUE como oportunidade — "Esta peça também serve no modelo X, Y e Z"
+5. **Sem dados**: Se não encontrar no sistema, diga claramente "Não encontrei esta peça no catálogo atual" e sugira termos alternativos ou peça o código do material
+6. **NUNCA invente dados** — use APENAS as informações fornecidas no contexto do sistema
+
+## IDIOMA
 - Responda SEMPRE em português brasileiro
-- Use os dados reais fornecidos no contexto — NUNCA invente dados
-- Quando encontrar peças compatíveis com outros modelos, DESTAQUE isso como oportunidade de venda cruzada
-- Se o estoque estiver baixo (<5 unidades), AVISE
-- Se a peça está parada há mais de 2 anos, SUGIRA desconto ou promoção
-- Formate preços em Real (R$) com separador de milhares
-- Seja proativo: sugira peças complementares, kits de manutenção
-- Se não encontrar o que o usuário busca, sugira termos alternativos
-- Para perguntas sobre vendas/clientes, use os dados do contexto
-- Organize respostas com markdown: tabelas, listas, negrito para destaques${partsContext}`;
+- Use termos técnicos do setor de máquinas pesadas
+- Seja profissional mas acessível${partsContext}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -210,7 +275,7 @@ INSTRUÇÕES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,

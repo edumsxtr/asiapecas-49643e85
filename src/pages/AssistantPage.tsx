@@ -19,12 +19,30 @@ const SUGGESTIONS = [
   "Peças com estoque crítico (menos de 5 unidades)",
 ];
 
+const FOLLOW_UP_MAP: Record<string, string[]> = {
+  "filtro": ["Qual o intervalo de troca recomendado?", "Tem kit de filtros para revisão completa?", "Quais modelos usam o mesmo filtro?"],
+  "estoque": ["Quais peças estão com estoque zerado?", "Valor total do estoque parado?", "Top 10 peças mais caras em estoque"],
+  "compatib": ["Peças intercambiáveis entre escavadeiras?", "Filtros universais para linha XCMG?", "Peças de motor Cummins compatíveis"],
+  "venda": ["Qual o ticket médio das vendas?", "Clientes que mais compraram", "Vendas por status (orçamento vs faturado)"],
+  "parad": ["Sugestão de descontos para desova", "Quais modelos têm mais peças paradas?", "Valor total do capital imobilizado"],
+  default: ["Quais peças precisam reposição urgente?", "Resumo do catálogo por categoria", "Peças mais vendidas"],
+};
+
+function getFollowUps(content: string): string[] {
+  const lower = content.toLowerCase();
+  for (const [key, suggestions] of Object.entries(FOLLOW_UP_MAP)) {
+    if (key !== "default" && lower.includes(key)) return suggestions;
+  }
+  return FOLLOW_UP_MAP.default;
+}
+
 export default function AssistantPage() {
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Olá! Sou o assistente IA da **Lopes & Lopes**. Tenho acesso completo ao catálogo de peças XCMG, clientes, vendas e pós-venda.\n\nPosso ajudar com:\n- 🔍 Buscar peças por código, descrição ou modelo\n- 🔄 Identificar compatibilidade entre máquinas\n- 📊 Análise de estoque e preços\n- 💰 Consultar vendas e clientes\n- 🎫 Verificar tickets de pós-venda\n\nO que você precisa?" },
+    { role: "assistant", content: "Olá! Sou o **Assistente Técnico Lopes & Lopes**, especialista em peças XCMG.\n\nPosso ajudar com:\n- 🔍 **Buscar peças** por código, descrição ou modelo\n- 🔄 **Compatibilidade** entre máquinas\n- 📊 **Análise de estoque** e preços\n- 💰 **Vendas e clientes**\n- 🔧 **Consultoria técnica** sobre manutenção\n\n**Dica:** Quanto mais detalhes você fornecer (modelo da máquina, sistema, tipo de peça), mais precisa será minha resposta!\n\nComo posso ajudar?" },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [followUps, setFollowUps] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -32,7 +50,7 @@ export default function AssistantPage() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, followUps]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -47,6 +65,7 @@ export default function AssistantPage() {
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+    setFollowUps([]);
 
     let assistantSoFar = "";
 
@@ -107,6 +126,11 @@ export default function AssistantPage() {
           }
         }
       }
+
+      // Generate follow-up suggestions based on response
+      if (assistantSoFar) {
+        setFollowUps(getFollowUps(assistantSoFar));
+      }
     } catch (e: any) {
       console.error("Chat error:", e);
       toast.error(e.message || "Erro ao conectar com o assistente");
@@ -131,13 +155,13 @@ export default function AssistantPage() {
                     <Bot className="h-4 w-4 text-primary" />
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
+                <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-foreground"
                 }`}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:mt-1 [&>ol]:mt-1 [&>table]:text-xs">
+                    <div className="assistant-markdown prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
                   ) : (
@@ -162,7 +186,7 @@ export default function AssistantPage() {
               </div>
             )}
 
-            {/* Suggestions */}
+            {/* Initial Suggestions */}
             {showSuggestions && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
                 {SUGGESTIONS.map((s, i) => (
@@ -173,6 +197,21 @@ export default function AssistantPage() {
                     className="flex items-center gap-2 text-left text-sm px-4 py-3 rounded-lg border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
                   >
                     <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Dynamic Follow-up Suggestions */}
+            {!isLoading && followUps.length > 0 && !showSuggestions && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {followUps.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setFollowUps([]); send(s); }}
+                    className="text-xs px-3 py-2 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                  >
                     {s}
                   </button>
                 ))}
