@@ -11,6 +11,7 @@ import SalesPage from "./pages/SalesPage";
 import AfterSalesPage from "./pages/AfterSalesPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import MarketResearchPage from "./pages/MarketResearchPage";
+import AssistantPage from "./pages/AssistantPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,7 +30,7 @@ const App = () => (
           <Route path="/vendas" element={<SalesPage />} />
           <Route path="/pos-venda" element={<AfterSalesPage />} />
           <Route path="/pesquisa-mercado" element={<MarketResearchPage />} />
-          <Route path="/assistente" element={<ComingSoonPage title="IA Assistente" />} />
+          <Route path="/assistente" element={<AssistantPage />} />
           <Route path="/configuracoes" element={<ComingSoonPage title="Configurações" />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
