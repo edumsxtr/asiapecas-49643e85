@@ -57,6 +57,9 @@ export function DashboardPage() {
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{kpi.label}</p>
                   <p className="text-xl font-display font-bold mt-1 text-foreground">{kpi.value}</p>
+                  {"subtitle" in kpi && kpi.subtitle && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{kpi.subtitle}</p>
+                  )}
                 </div>
                 <div className={`h-10 w-10 rounded-lg ${kpi.bg} flex items-center justify-center ${kpi.color}`}>
                   <kpi.icon className="h-5 w-5" />
