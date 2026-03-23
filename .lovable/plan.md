@@ -1,42 +1,68 @@
 
 
-# Corrigir Dados do Estoque — Updates em Lote
+# Plano: Corrigir Dados + Ferramenta de Pesquisa de Mercado + IA de Compatibilidade
 
-## Situação Atual
-| Métrica | Banco Atual | Meta (Planilha) | Gap |
-|---------|------------|-----------------|-----|
-| Materiais únicos | 15.298 | 15.298 | ✅ OK |
-| Unidades | 429.347 | 498.022 | -68.675 |
-| Valor Total | R$ 166.8M | ~R$ 205M | -R$ 38M |
+## Parte 1: Executar Updates de Estoque (Dados)
 
-O problema: para materiais duplicados na planilha, o import original pegou apenas uma linha em vez de **somar os saldos** de todas as linhas.
+O banco ainda tem valores desalinhados com a planilha original (faltam ~68k unidades e ~R$ 38M).
 
-## Plano de Execução
+- Processar o Excel com Python/pandas para calcular totais consolidados por material (somar saldos, usar maior preço)
+- Gerar e executar SQL UPDATEs em lotes de ~200 registros via insert tool (psql)
+- Validar que os totais chegam a ~498k unidades e ~R$ 205M
 
-### 1. Reprocessar Excel via Python
-- Ler todas as 20.436 linhas do Excel com pandas
-- Para cada material único: **somar todos os Saldos** e usar o **maior Preço Estimado**
-- Gerar os comandos SQL de UPDATE para cada um dos 15.298 materiais
+## Parte 2: Ferramenta de Pesquisa de Mercado
 
-### 2. Executar Updates em Lotes via psql
-- Usar o insert tool (que suporta UPDATE) para aplicar as correções em lotes de ~500 registros
-- Validar após cada lote que os totais estão convergindo para os valores da planilha
+Nova tabela e interface para rastrear preços de concorrentes por peça.
 
-### 3. Validação Final
-- Query para confirmar: ~498k unidades e ~R$ 205M em valor total
-- Verificar que o dashboard reflete os KPIs corretos
+### Banco de Dados
+- Criar tabela `market_research` com colunas:
+  - `part_id` (FK para parts), `distributor_name`, `price_found`, `delivery_days`, `payment_terms`, `availability` (em estoque/sob encomenda), `source_url`, `notes`, `researched_at`, `researched_by`
+- RLS: leitura pública, escrita para autenticados
 
-### 4. Atualizar Dashboard
-- Adicionar campo `totalSkuRows` (20.436) ao `get_dashboard_stats()` para mostrar total de linhas da planilha
-- Atualizar o `DashboardPage.tsx` para exibir os 4 KPIs principais no estilo da referência:
-  - Total SKUs (20.436) com unidades em estoque
-  - Valor do Estoque (~R$ 205M)
-  - Capital Imobilizado (estoque parado >2 anos com % do total)
-  - Estoque Crítico
+### Interface
+- Dentro do diálogo de detalhe da peça (`PartDetailDialog`), adicionar aba "Pesquisa de Mercado" mostrando:
+  - Tabela com preços encontrados em outros distribuidores
+  - Formulário para adicionar novo registro (distribuidor, preço, prazo, condições)
+  - Comparativo visual: nosso preço vs. mercado (maior/menor/média)
+  - Indicador de competitividade (se estamos acima ou abaixo da média)
+- Nova página `/pesquisa-mercado` no sidebar com visão consolidada:
+  - Peças sem pesquisa de preço realizada
+  - Peças onde nosso preço está acima da média do mercado
+  - Histórico de pesquisas recentes
+
+### Menu Lateral
+- Adicionar "Pesquisa de Mercado" no grupo "Ferramentas" do sidebar
+
+## Parte 3: IA para Compatibilidade e Detalhes de Peças
+
+Expandir o chatbot existente e a edge function `chat` para:
+
+### Edge Function `chat/index.ts`
+- Atualizar o system prompt para incluir instruções de:
+  - Identificar peças que servem em outras máquinas (usando `compatible_models` e similaridade de descrição)
+  - Fornecer detalhes técnicos sobre a peça quando perguntado
+  - Sugerir peças alternativas ou equivalentes do catálogo
+
+### Nova Edge Function `part-research`
+- Recebe um `material` (código da peça)
+- Usa Lovable AI para gerar informações enriquecidas:
+  - Função provável da peça baseada na descrição
+  - Máquinas compatíveis conhecidas (além das cadastradas)
+  - Especificações técnicas prováveis
+- Retorna JSON estruturado para exibir no detalhe da peça
+
+### Interface no Detalhe da Peça
+- Botão "Pesquisar com IA" no `PartDetailDialog` que chama a edge function e exibe:
+  - Descrição técnica expandida
+  - Lista de máquinas potencialmente compatíveis
+  - Sugestões de peças relacionadas do catálogo
 
 ## Detalhes Técnicos
-- Python + pandas para processar o Excel e gerar SQL
-- psql insert tool para executar os UPDATEs (não migration)
-- Migration apenas para atualizar a função `get_dashboard_stats()` com novo campo `totalSkuRows`
-- Atualização do `DashboardPage.tsx` e `use-parts.ts` para os novos KPIs
+
+- **Tabela**: `market_research` com FK para `parts.id`
+- **Migration**: CREATE TABLE + RLS policies
+- **Edge function**: `part-research` com Lovable AI (gemini-3-flash-preview)
+- **Componentes novos**: `MarketResearchTab`, `MarketResearchPage`, `PartAIResearch`
+- **Hooks**: `useMarketResearch(partId)`, `usePartAIResearch(partId)`
+- **Sidebar**: Novo item "Pesquisa de Mercado" com ícone Search
 
