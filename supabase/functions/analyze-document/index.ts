@@ -39,7 +39,7 @@ Responda SEMPRE em português brasileiro.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "openai/gpt-5.2",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Documento "${fileName}":\n\n${content}\n\n${question ? `Pergunta do usuário: ${question}` : "Analise este documento e extraia todas as informações relevantes sobre peças, preços e compatibilidade."}` },

@@ -74,6 +74,7 @@ export type Database = {
           city: string | null
           cnpj_cpf: string | null
           company: string | null
+          country: string | null
           created_at: string
           email: string | null
           id: string
@@ -81,6 +82,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           segment: string | null
+          source: string | null
           state: string | null
           updated_at: string
         }
@@ -89,6 +91,7 @@ export type Database = {
           city?: string | null
           cnpj_cpf?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -96,6 +99,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           segment?: string | null
+          source?: string | null
           state?: string | null
           updated_at?: string
         }
@@ -104,6 +108,7 @@ export type Database = {
           city?: string | null
           cnpj_cpf?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -111,6 +116,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           segment?: string | null
+          source?: string | null
           state?: string | null
           updated_at?: string
         }
@@ -225,6 +231,108 @@ export type Database = {
           material?: string
           stock?: number
           supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prospection_campaigns: {
+        Row: {
+          converted: number | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          target_country: string
+          target_segments: string[] | null
+          target_states: string[] | null
+          total_prospects: number | null
+        }
+        Insert: {
+          converted?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          target_country?: string
+          target_segments?: string[] | null
+          target_states?: string[] | null
+          total_prospects?: number | null
+        }
+        Update: {
+          converted?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          target_country?: string
+          target_segments?: string[] | null
+          target_states?: string[] | null
+          total_prospects?: number | null
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          ai_summary: string | null
+          city: string | null
+          cnpj_cpf: string | null
+          company: string | null
+          country: string
+          created_at: string
+          email: string | null
+          id: string
+          matched_parts: string[] | null
+          name: string
+          notes: string | null
+          phone: string | null
+          score: number | null
+          segment: string | null
+          source: string
+          state: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          city?: string | null
+          cnpj_cpf?: string | null
+          company?: string | null
+          country?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          matched_parts?: string[] | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          score?: number | null
+          segment?: string | null
+          source?: string
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          city?: string | null
+          cnpj_cpf?: string | null
+          company?: string | null
+          country?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          matched_parts?: string[] | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          score?: number | null
+          segment?: string | null
+          source?: string
+          state?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []
