@@ -1,13 +1,8 @@
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { type Part, formatBRL, getActiveCategories } from "@/data/sample-parts";
+import { type Part, formatBRL, getActiveCategories } from "@/hooks/use-parts";
 
 interface PartTableProps {
   parts: Part[];
@@ -31,35 +26,22 @@ export function PartTable({ parts, onSelect }: PartTableProps) {
         </TableHeader>
         <TableBody>
           {parts.map((part) => (
-            <TableRow
-              key={part.id}
-              className="cursor-pointer"
-              onClick={() => onSelect(part)}
-            >
+            <TableRow key={part.id} className="cursor-pointer" onClick={() => onSelect(part)}>
               <TableCell className="font-mono text-xs">{part.material}</TableCell>
-              <TableCell className="max-w-[200px] truncate text-sm">
-                {part.description}
-              </TableCell>
+              <TableCell className="max-w-[200px] truncate text-sm">{part.description}</TableCell>
               <TableCell>
                 <div className="flex gap-1 flex-wrap">
                   {getActiveCategories(part).map((cat) => (
-                    <Badge key={cat} variant="outline" className="text-[10px] py-0">
-                      {cat}
-                    </Badge>
+                    <Badge key={cat} variant="outline" className="text-[10px] py-0">{cat}</Badge>
                   ))}
                 </div>
               </TableCell>
-              <TableCell className="text-xs">{part.machineModel}</TableCell>
+              <TableCell className="text-xs">{part.machine_model}</TableCell>
               <TableCell className="text-right">{part.stock.toLocaleString("pt-BR")}</TableCell>
-              <TableCell className="text-right text-sm font-medium">
-                {formatBRL(part.estimatedPrice)}
-              </TableCell>
+              <TableCell className="text-right text-sm font-medium">{formatBRL(part.estimated_price)}</TableCell>
               <TableCell>
-                <Badge
-                  variant={part.lastEntryTime === "mais de 2 anos" ? "destructive" : "secondary"}
-                  className="text-[10px]"
-                >
-                  {part.lastEntryTime}
+                <Badge variant={part.last_entry_time === "mais de 2 anos" ? "destructive" : "secondary"} className="text-[10px]">
+                  {part.last_entry_time}
                 </Badge>
               </TableCell>
             </TableRow>
