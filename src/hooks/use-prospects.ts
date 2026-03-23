@@ -82,8 +82,10 @@ export function useConvertToCustomer() {
         city: prospect.city,
         state: prospect.state,
         segment: prospect.segment,
+        country: prospect.country,
+        source: "ia",
         notes: `Convertido de prospect IA. Score: ${prospect.score}. ${prospect.ai_summary || ""}`,
-      });
+      } as any);
       if (custError) throw custError;
 
       const { error: updateError } = await supabase
