@@ -169,6 +169,25 @@ serve(async (req) => {
           ).join("\n"));
         }
       }
+
+      // --- 8. Market Research ---
+      const marketKeywords = ["pesquisa", "mercado", "concorrent", "competitiv", "distribuidor", "preço de mercado", "comparar preço"];
+      if (marketKeywords.some(k => searchText.includes(k))) {
+        const { data: marketData } = await supabase
+          .from("market_research")
+          .select("distributor_name, price_found, delivery_days, availability, payment_terms, parts(material, description, estimated_price)")
+          .order("researched_at", { ascending: false })
+          .limit(30);
+
+        if (marketData && marketData.length > 0) {
+          contextSections.push("📊 PESQUISA DE MERCADO:\n" + marketData.map((m: any) => {
+            const part = m.parts ? `${m.parts.material}: ${m.parts.description}` : "N/A";
+            const ourPrice = m.parts?.estimated_price || 0;
+            const diff = ourPrice > 0 ? (((Number(m.price_found) - ourPrice) / ourPrice) * 100).toFixed(1) : "N/A";
+            return `- ${part} | Distribuidor: ${m.distributor_name} | Preço: R$ ${Number(m.price_found).toLocaleString("pt-BR")} | Nosso: R$ ${Number(ourPrice).toLocaleString("pt-BR")} (${diff}%) | Prazo: ${m.delivery_days || "N/A"}d | Disp: ${m.availability || "N/A"}`;
+          }).join("\n"));
+        }
+      }
     }
 
     const partsContext = contextSections.length > 0 ? "\n\n---\n\nDADOS DO SISTEMA (use SOMENTE estes dados para responder):\n\n" + contextSections.join("\n\n") : "";
