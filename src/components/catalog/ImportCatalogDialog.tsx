@@ -23,6 +23,13 @@ interface ParsedRow {
   machine_model?: string;
   manufacturer?: string;
   supplier?: string;
+  last_entry_time?: string;
+  is_mineracao?: boolean;
+  is_linha_amarela?: boolean;
+  is_perfuratriz?: boolean;
+  is_caminhao_eletrico?: boolean;
+  is_guindaste?: boolean;
+  compatible_models?: string[];
 }
 
 type ImportResult = { inserted: number; updated: number; errors: string[] };
@@ -44,6 +51,13 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
     setResult(null);
   };
 
+  const parseBool = (val: any): boolean | undefined => {
+    if (val === undefined || val === null || val === "") return undefined;
+    if (typeof val === "boolean") return val;
+    const s = String(val).toLowerCase().trim();
+    return s === "true" || s === "1" || s === "sim" || s === "yes" || s === "x";
+  };
+
   const handleFile = (file: File) => {
     setFileName(file.name);
     const reader = new FileReader();
@@ -59,15 +73,27 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
           const sheet = wb.Sheets[wb.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json<any>(sheet);
 
-          parsed = json.map((row: any) => ({
-            material: String(row.material || row.Material || row.codigo || row.Código || row.MATERIAL || "").trim(),
-            description: String(row.description || row.Description || row.descricao || row.Descrição || row.DESCRICAO || row.DESCRIÇÃO || "").trim(),
-            estimated_price: parseFloat(row.estimated_price || row.preco || row.Preço || row.PRECO || row.price || 0) || 0,
-            stock: parseInt(row.stock || row.estoque || row.Estoque || row.ESTOQUE || row.qty || 0) || 0,
-            machine_model: String(row.machine_model || row.modelo || row.Modelo || row.MODELO || "").trim() || undefined,
-            manufacturer: String(row.manufacturer || row.fabricante || row.Fabricante || row.FABRICANTE || "").trim() || undefined,
-            supplier: String(row.supplier || row.fornecedor || row.Fornecedor || row.FORNECEDOR || "").trim() || undefined,
-          })).filter(r => r.material && r.description);
+          parsed = json.map((row: any) => {
+            const compatStr = String(row.compatible_models || row.modelos_compativeis || row.MODELOS_COMPATIVEIS || "").trim();
+            const compatModels = compatStr ? compatStr.split(/[;,]/).map((s: string) => s.trim()).filter(Boolean) : undefined;
+
+            return {
+              material: String(row.material || row.Material || row.codigo || row.Código || row.MATERIAL || "").trim(),
+              description: String(row.description || row.Description || row.descricao || row.Descrição || row.DESCRICAO || row.DESCRIÇÃO || "").trim(),
+              estimated_price: parseFloat(row.estimated_price || row.preco || row.Preço || row.PRECO || row.price || 0) || 0,
+              stock: parseInt(row.stock || row.estoque || row.Estoque || row.ESTOQUE || row.qty || 0) || 0,
+              machine_model: String(row.machine_model || row.modelo || row.Modelo || row.MODELO || "").trim() || undefined,
+              manufacturer: String(row.manufacturer || row.fabricante || row.Fabricante || row.FABRICANTE || "").trim() || undefined,
+              supplier: String(row.supplier || row.fornecedor || row.Fornecedor || row.FORNECEDOR || "").trim() || undefined,
+              last_entry_time: String(row.last_entry_time || row.tempo_entrada || row.TEMPO_ENTRADA || "").trim() || undefined,
+              is_mineracao: parseBool(row.is_mineracao || row.mineracao || row.MINERACAO),
+              is_linha_amarela: parseBool(row.is_linha_amarela || row.linha_amarela || row.LINHA_AMARELA),
+              is_perfuratriz: parseBool(row.is_perfuratriz || row.perfuratriz || row.PERFURATRIZ),
+              is_caminhao_eletrico: parseBool(row.is_caminhao_eletrico || row.caminhao_eletrico || row.CAMINHAO_ELETRICO),
+              is_guindaste: parseBool(row.is_guindaste || row.guindaste || row.GUINDASTE),
+              compatible_models: compatModels,
+            };
+          }).filter(r => r.material && r.description);
         }
 
         if (parsed.length === 0) {
@@ -101,6 +127,23 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
 
       for (const row of batch) {
         try {
+          // Build update/insert object with only defined fields
+          const partData: Record<string, any> = {
+            description: row.description,
+            estimated_price: row.estimated_price || 0,
+            stock: row.stock || 0,
+          };
+          if (row.machine_model) partData.machine_model = row.machine_model;
+          if (row.manufacturer) partData.manufacturer = row.manufacturer;
+          if (row.supplier) partData.supplier = row.supplier;
+          if (row.last_entry_time) partData.last_entry_time = row.last_entry_time;
+          if (row.is_mineracao !== undefined) partData.is_mineracao = row.is_mineracao;
+          if (row.is_linha_amarela !== undefined) partData.is_linha_amarela = row.is_linha_amarela;
+          if (row.is_perfuratriz !== undefined) partData.is_perfuratriz = row.is_perfuratriz;
+          if (row.is_caminhao_eletrico !== undefined) partData.is_caminhao_eletrico = row.is_caminhao_eletrico;
+          if (row.is_guindaste !== undefined) partData.is_guindaste = row.is_guindaste;
+          if (row.compatible_models) partData.compatible_models = row.compatible_models;
+
           // Check if exists
           const { data: existing } = await supabase
             .from("parts")
@@ -109,25 +152,13 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
             .maybeSingle();
 
           if (existing) {
-            const { error } = await supabase.from("parts").update({
-              description: row.description,
-              estimated_price: row.estimated_price || 0,
-              stock: row.stock || 0,
-              machine_model: row.machine_model || null,
-              manufacturer: row.manufacturer || null,
-              supplier: row.supplier || null,
-            }).eq("id", existing.id);
+            const { error } = await supabase.from("parts").update(partData).eq("id", existing.id);
             if (error) throw error;
             updated++;
           } else {
             const { error } = await supabase.from("parts").insert({
               material: row.material,
-              description: row.description,
-              estimated_price: row.estimated_price || 0,
-              stock: row.stock || 0,
-              machine_model: row.machine_model || null,
-              manufacturer: row.manufacturer || null,
-              supplier: row.supplier || null,
+              ...partData,
             });
             if (error) throw error;
             inserted++;
@@ -164,7 +195,7 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
             <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-medium">Arraste o arquivo aqui ou clique para selecionar</p>
             <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .csv, .xlsx, .xls, .json</p>
-            <p className="text-xs text-muted-foreground mt-2">Colunas esperadas: <strong>material</strong>, <strong>description</strong>, preco, estoque, modelo, fabricante</p>
+            <p className="text-xs text-muted-foreground mt-2">Colunas: <strong>material</strong>, <strong>description</strong>, preco, estoque, modelo, fabricante, mineracao, linha_amarela, etc.</p>
             <input ref={fileRef} type="file" className="hidden" accept=".csv,.xlsx,.xls,.json" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
           </div>
         )}
