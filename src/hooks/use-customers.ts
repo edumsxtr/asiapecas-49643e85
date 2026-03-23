@@ -14,11 +14,13 @@ export type Customer = {
   state: string | null;
   segment: string | null;
   notes: string | null;
+  country: string | null;
+  source: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export type CustomerInsert = Omit<Customer, "id" | "created_at" | "updated_at">;
+export type CustomerInsert = Omit<Customer, "id" | "created_at" | "updated_at" | "country" | "source"> & { country?: string | null; source?: string | null };
 
 export function useCustomers(search?: string) {
   return useQuery({
