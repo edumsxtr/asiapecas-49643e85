@@ -12,6 +12,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 export function AIChatbot() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Olá! Sou o assistente da **Lopes & Lopes**. Posso ajudar a encontrar peças XCMG no catálogo. Descreva o que você precisa!" },
