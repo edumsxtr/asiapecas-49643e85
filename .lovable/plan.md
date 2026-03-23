@@ -1,54 +1,42 @@
 
 
-# Plano: Implementar Clientes, Vendas e Pós-Venda
+# Plano: Assistente IA Treinado com Estoque Completo
 
-## Banco de Dados — 3 novas tabelas
+## O que já existe
+- Edge function `chat/index.ts` com busca no catálogo (busca por texto na descrição/material/modelo, limite 20 resultados)
+- Chatbot flutuante no canto inferior direito (AIChatbot.tsx)
+- Rota `/assistente` aponta para ComingSoonPage
 
-### `customers` (Clientes)
-- `id`, `name`, `company`, `cnpj_cpf`, `email`, `phone`, `address`, `city`, `state`, `segment` (mineração/construção/etc), `notes`, `created_at`, `updated_at`
-- RLS: leitura e escrita pública (sem auth implementado)
+## O que falta
+O assistente atual faz busca simples por texto. Precisa ser melhorado para:
+1. **Identificar compatibilidade entre máquinas** — buscar peças por categoria e modelo, cruzar `compatible_models`
+2. **Conhecimento de vendas e clientes** — consultar tabelas `sales`, `customers`, `after_sales`
+3. **Respostas confiáveis baseadas nos dados reais** — trazer estatísticas do estoque, preços, tempo parado
+4. **Página dedicada** em vez de apenas o chat flutuante
 
-### `sales` (Vendas)
-- `id`, `customer_id` (FK customers), `sale_date`, `status` (orçamento/confirmado/faturado/cancelado), `total_amount`, `payment_method`, `payment_terms`, `notes`, `created_at`
-- Tabela filha `sale_items`: `id`, `sale_id` (FK sales), `part_id` (FK parts), `quantity`, `unit_price`, `total_price`
-- RLS: leitura e escrita pública
+## Implementação
 
-### `after_sales` (Pós-Venda)
-- `id`, `sale_id` (FK sales), `customer_id` (FK customers), `type` (garantia/devolução/reclamação/suporte), `status` (aberto/em andamento/resolvido/fechado), `description`, `resolution`, `priority` (baixa/média/alta/urgente), `created_at`, `resolved_at`
-- RLS: leitura e escrita pública
+### 1. Melhorar Edge Function `chat/index.ts`
+- Busca inteligente: além de texto livre, detectar intenção (compatibilidade, preço, estoque, venda)
+- Quando perguntar sobre compatibilidade: buscar todas as peças do mesmo `machine_model` e peças que têm o modelo em `compatible_models`
+- Quando perguntar sobre clientes/vendas: consultar tabelas `customers`, `sales`, `sale_items`, `after_sales`
+- Incluir estatísticas globais: total peças, valor total, peças paradas, peças críticas
+- Buscar peças relacionadas por categoria (mineração, linha amarela, etc.)
+- System prompt expandido com conhecimento XCMG: linhas de produtos, categorias, dicas de venda cruzada
 
-## Páginas e Componentes
+### 2. Criar Página `/assistente` — Chat em tela cheia
+- Layout com sidebar (AppLayout) + área de chat ocupando toda a tela
+- Sugestões rápidas: "Peças para XE215", "Peças paradas há mais de 2 anos", "Compatibilidade filtro hidráulico", "Resumo de vendas"
+- Histórico de conversa na sessão
+- Indicadores visuais: quando menciona peça, mostrar código/preço inline
 
-### `/clientes` — CRM de Clientes
-- Listagem com busca por nome/CNPJ/empresa
-- Botão "Novo Cliente" abre dialog com formulário
-- Tabela com colunas: nome, empresa, CNPJ, segmento, telefone, email
-- Click na linha abre detalhe com histórico de compras e tickets pós-venda
-- KPIs: total clientes, novos este mês, por segmento
+### 3. Manter Chatbot Flutuante
+- O chat flutuante continua funcionando, mas usa a mesma edge function melhorada
+- Adicionar link "Abrir em tela cheia" que leva para `/assistente`
 
-### `/vendas` — Gestão de Vendas
-- Listagem de vendas com filtro por status e período
-- Botão "Nova Venda" com formulário: selecionar cliente, adicionar itens (busca peças do catálogo), quantidade, preço
-- Cálculo automático do total
-- Status visual com badges coloridos (orçamento=cinza, confirmado=azul, faturado=verde, cancelado=vermelho)
-- KPIs: total vendas mês, valor total, ticket médio, conversão orçamento→venda
-
-### `/pos-venda` — Gestão Pós-Venda
-- Listagem de tickets com filtro por tipo, status e prioridade
-- Botão "Novo Ticket" com formulário: selecionar cliente/venda, tipo, prioridade, descrição
-- Timeline de resolução
-- KPIs: tickets abertos, tempo médio resolução, por tipo
-
-## Sidebar
-- Já tem os links para `/clientes`, `/vendas`, `/pos-venda` — trocar de ComingSoonPage para as novas páginas
-
-## Hooks
-- `useCustomers()` — CRUD clientes
-- `useSales()` — CRUD vendas + items
-- `useAfterSales()` — CRUD tickets pós-venda
-
-## Detalhes Técnicos
-- Migration: CREATE TABLE customers, sales, sale_items, after_sales + RLS
-- ~6 novos componentes de página + dialogs de formulário
-- Reutiliza padrões existentes (Card, Table, Badge, Dialog, Form)
+## Arquivos a criar/editar
+- `supabase/functions/chat/index.ts` — reescrever com busca inteligente multi-tabela
+- `src/pages/AssistantPage.tsx` — nova página de chat em tela cheia
+- `src/components/chat/AIChatbot.tsx` — adicionar botão "tela cheia"
+- `src/App.tsx` — trocar rota `/assistente` de ComingSoonPage para AssistantPage
 
