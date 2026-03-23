@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Grid3X3, List } from "lucide-react";
+import { Search, Grid3X3, List, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useParts, categoryLabels, categoryKeys, type Part } from "@/hooks/use-p
 import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
 import { PartDetailDialog } from "./PartDetailDialog";
+import { ImportCatalogDialog } from "./ImportCatalogDialog";
 
 export function CatalogContent() {
   const [search, setSearch] = useState("");
@@ -16,6 +17,7 @@ export function CatalogContent() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const [page, setPage] = useState(0);
+  const [showImport, setShowImport] = useState(false);
   const pageSize = 50;
 
   // Debounce search
@@ -43,11 +45,16 @@ export function CatalogContent() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Catálogo de Peças</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {total.toLocaleString("pt-BR")} peça(s) encontrada(s)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">Catálogo de Peças</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {total.toLocaleString("pt-BR")} peça(s) encontrada(s)
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setShowImport(true)}>
+          <Upload className="h-4 w-4 mr-1" /> Importar Planilha
+        </Button>
       </div>
 
       {/* Search + View Toggle */}
@@ -137,6 +144,7 @@ export function CatalogContent() {
       )}
 
       <PartDetailDialog part={selectedPart} onClose={() => setSelectedPart(null)} />
+      <ImportCatalogDialog open={showImport} onClose={() => setShowImport(false)} />
     </div>
   );
 }
