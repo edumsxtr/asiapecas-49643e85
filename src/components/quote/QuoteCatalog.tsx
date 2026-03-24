@@ -33,6 +33,7 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" | "priceDesc";
+type ViewMode = "grid" | "list";
 
 export default function QuoteCatalog({ search, category, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
