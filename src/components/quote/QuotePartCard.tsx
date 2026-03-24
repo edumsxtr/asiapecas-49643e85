@@ -1,10 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, type LucideIcon } from "lucide-react";
+import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, Info, Sparkles, Loader2, type LucideIcon } from "lucide-react";
 import { type Lang, tr } from "./translations";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const ICON_KEYWORDS: [string[], LucideIcon, string][] = [
   [["filtro", "filter"], Filter, "text-blue-500"],
@@ -27,6 +29,13 @@ function getPartIcon(description: string): [LucideIcon, string] {
   return [Package, "text-muted-foreground/30"];
 }
 
+const AI_LABELS: Record<string, Record<string, string>> = {
+  researchAi: { pt: "Pesquisar com IA", en: "Research with AI", es: "Investigar con IA" },
+  researching: { pt: "Pesquisando...", en: "Researching...", es: "Investigando..." },
+  moreInfo: { pt: "Ver informações técnicas da IA", en: "View AI technical info", es: "Ver info técnica de IA" },
+  researchTip: { pt: "Clique para obter descrição técnica, compatibilidade e peças relacionadas via IA", en: "Click to get technical description, compatibility and related parts via AI", es: "Haga clic para obtener descripción técnica, compatibilidad y repuestos relacionados vía IA" },
+};
+
 interface QuotePartCardProps {
   part: {
     id: string;
@@ -48,6 +57,28 @@ export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAd
   const isReadyToShip = part.stock > 10;
   const isLastUnits = part.stock >= 1 && part.stock <= 5;
   const [PartIcon, iconColor] = useMemo(() => getPartIcon(part.description), [part.description]);
+  const [researching, setResearching] = useState(false);
+  const [justResearched, setJustResearched] = useState(false);
+
+  const handleResearch = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (researching) return;
+    setResearching(true);
+    try {
+      const { error } = await supabase.functions.invoke("part-research", {
+        body: { material: part.material },
+      });
+      if (error) throw error;
+      setJustResearched(true);
+      toast.success(lang === "en" ? "AI research complete!" : lang === "es" ? "¡Investigación IA completa!" : "Pesquisa IA concluída!");
+    } catch {
+      toast.error(lang === "en" ? "Research failed. Try again." : lang === "es" ? "Error en investigación." : "Erro na pesquisa. Tente novamente.");
+    } finally {
+      setResearching(false);
+    }
+  };
+
+  const showAi = hasAiData || justResearched;
 
   return (
     <Card className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border ${inCart ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"}`}>
@@ -56,16 +87,42 @@ export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAd
         <div className="flex items-center justify-between px-4 pt-4">
           <Badge className="bg-primary text-primary-foreground font-mono text-xs">{part.material}</Badge>
           <div className="flex items-center gap-1">
-            {hasAiData && (
+            {showAi ? (
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="outline" className="text-xs gap-1 border-green-500/40 text-green-600 bg-green-50">
-                      <ShieldCheck className="h-3 w-3" /> {tr("part.aiVerified", lang)}
-                    </Badge>
+                  <TooltipTrigger asChild>
+                    <button onClick={onViewDetail} className="cursor-pointer">
+                      <Badge variant="outline" className="text-xs gap-1 border-green-500/40 text-green-600 bg-green-50 animate-pulse">
+                        <ShieldCheck className="h-3 w-3" /> {tr("part.aiVerified", lang)}
+                      </Badge>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="text-xs">{aiPreview || tr("detail.aiResearch", lang)}</p>
+                    <p className="text-xs font-medium mb-1">{AI_LABELS.moreInfo[lang]}</p>
+                    {aiPreview && <p className="text-xs text-muted-foreground line-clamp-3">{aiPreview}</p>}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleResearch}
+                      disabled={researching}
+                      className="cursor-pointer"
+                    >
+                      <Badge variant="outline" className="text-xs gap-1 border-amber-400/60 text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors">
+                        {researching ? (
+                          <><Loader2 className="h-3 w-3 animate-spin" /> {AI_LABELS.researching[lang]}</>
+                        ) : (
+                          <><Sparkles className="h-3 w-3" /> {AI_LABELS.researchAi[lang]}</>
+                        )}
+                      </Badge>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">{AI_LABELS.researchTip[lang]}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -113,7 +170,8 @@ export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAd
         {/* Actions */}
         <div className="px-4 pb-4 pt-2 flex gap-2">
           <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={onViewDetail}>
-            <Eye className="h-3.5 w-3.5" /> {tr("part.details", lang)}
+            {showAi ? <Info className="h-3.5 w-3.5 text-primary" /> : <Eye className="h-3.5 w-3.5" />}
+            {tr("part.details", lang)}
           </Button>
           <Button
             size="sm"
