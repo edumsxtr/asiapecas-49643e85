@@ -61,8 +61,6 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Fetch filter options
-  const cleanChinese = (s: string) => s.replace(/[\u4e00-\u9fff\u3400-\u4dbf]+[-\s]*/g, "").trim();
-
   const { data: filterOptions } = useQuery({
     queryKey: ["quote-filter-options"],
     queryFn: async () => {
@@ -70,21 +68,9 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
         supabase.from("parts").select("manufacturer").gt("stock", 0).not("manufacturer", "is", null),
         supabase.from("parts").select("machine_model").gt("stock", 0).not("machine_model", "is", null),
       ]);
-      // Build maps: cleaned display name → original db value
-      const mfrRaw = [...new Set((mfr.data || []).map((r: any) => r.manufacturer).filter(Boolean))];
-      const mdlRaw = [...new Set((mdl.data || []).map((r: any) => r.machine_model).filter(Boolean))];
-
-      const mfrMap: Record<string, string> = {};
-      mfrRaw.forEach(v => { const clean = cleanChinese(v); if (clean) mfrMap[clean] = v; });
-      const mdlMap: Record<string, string> = {};
-      mdlRaw.forEach(v => { const clean = cleanChinese(v); if (clean) mdlMap[clean] = v; });
-
-      return {
-        manufacturers: Object.keys(mfrMap).sort(),
-        models: Object.keys(mdlMap).sort(),
-        mfrMap,
-        mdlMap,
-      };
+      const manufacturers = [...new Set((mfr.data || []).map((r: any) => r.manufacturer).filter(Boolean))].sort();
+      const models = [...new Set((mdl.data || []).map((r: any) => r.machine_model).filter(Boolean))].sort();
+      return { manufacturers, models };
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -108,14 +94,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
       if (category && CATEGORY_MAP[category]) {
         query = query.eq(CATEGORY_MAP[category], true);
       }
-      if (manufacturer !== "all") {
-        const dbVal = filterOptions?.mfrMap?.[manufacturer] || manufacturer;
-        query = query.eq("manufacturer", dbVal);
-      }
-      if (model !== "all") {
-        const dbVal = filterOptions?.mdlMap?.[model] || model;
-        query = query.eq("machine_model", dbVal);
-      }
+      if (manufacturer !== "all") query = query.eq("manufacturer", manufacturer);
+      if (model !== "all") query = query.eq("machine_model", model);
       if (availability === "ready") query = query.gt("stock", 10);
       if (availability === "low") query = query.lte("stock", 10);
       if (partCategory) query = query.eq("part_category", partCategory);
