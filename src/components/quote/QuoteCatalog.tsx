@@ -176,6 +176,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
     setModel("all");
     setAvailability("all");
     setSort("relevance");
+    if (onPartCategoryChange && partCategory) onPartCategoryChange(partCategory);
   };
 
   const FilterPanel = () => (
