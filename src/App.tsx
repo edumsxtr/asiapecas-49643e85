@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/contexts/CartContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import CatalogPage from "./pages/CatalogPage";
 import StockPage from "./pages/StockPage";
@@ -17,6 +19,8 @@ import NewOrderPage from "./pages/NewOrderPage";
 import ProspectionPage from "./pages/ProspectionPage";
 import ReportPage from "./pages/ReportPage";
 import QuotePage from "./pages/QuotePage";
+import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,28 +28,35 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <CartProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/catalogo" element={<CatalogPage />} />
-            <Route path="/estoque" element={<StockPage />} />
-            <Route path="/clientes" element={<CustomersPage />} />
-            <Route path="/vendas" element={<SalesPage />} />
-            <Route path="/pos-venda" element={<AfterSalesPage />} />
-            <Route path="/pedidos/novo" element={<NewOrderPage />} />
-            <Route path="/prospeccao" element={<ProspectionPage />} />
-            <Route path="/pesquisa-mercado" element={<MarketResearchPage />} />
-            <Route path="/assistente" element={<AssistantPage />} />
-            <Route path="/relatorio" element={<ReportPage />} />
-            <Route path="/cotacao" element={<QuotePage />} />
-            <Route path="/configuracoes" element={<ComingSoonPage title="Configurações" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/cotacao" element={<QuotePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+              {/* Protected routes */}
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
+              <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
+              <Route path="/clientes" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
+              <Route path="/vendas" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
+              <Route path="/pos-venda" element={<ProtectedRoute><AfterSalesPage /></ProtectedRoute>} />
+              <Route path="/pedidos/novo" element={<ProtectedRoute><NewOrderPage /></ProtectedRoute>} />
+              <Route path="/prospeccao" element={<ProtectedRoute><ProspectionPage /></ProtectedRoute>} />
+              <Route path="/pesquisa-mercado" element={<ProtectedRoute><MarketResearchPage /></ProtectedRoute>} />
+              <Route path="/assistente" element={<ProtectedRoute><AssistantPage /></ProtectedRoute>} />
+              <Route path="/relatorio" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
+              <Route path="/configuracoes" element={<ProtectedRoute><ComingSoonPage title="Configurações" /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </CartProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

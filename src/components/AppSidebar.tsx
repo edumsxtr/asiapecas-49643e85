@@ -12,10 +12,13 @@ import {
   Radar,
   FileBarChart,
   FileText,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import eliteLogo from "@/assets/elite-logo.png";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
