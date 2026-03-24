@@ -12,10 +12,13 @@ import {
   Radar,
   FileBarChart,
   FileText,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import eliteLogo from "@/assets/elite-logo.png";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -56,6 +59,13 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   const renderItems = (items: typeof mainItems) =>
     items.map((item) => (
@@ -121,7 +131,16 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border px-4 py-3">
+      <SidebarFooter className="border-t border-sidebar-border px-4 py-3 space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          className="w-full justify-start text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10"
+        >
+          <LogOut className="h-4 w-4 mr-2 shrink-0" />
+          {!collapsed && <span>Sair</span>}
+        </Button>
         {!collapsed && (
           <p className="text-[10px] text-sidebar-foreground/30">
             v1.0 · Fase 1
