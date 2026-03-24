@@ -19,6 +19,7 @@ import NewOrderPage from "./pages/NewOrderPage";
 import ProspectionPage from "./pages/ProspectionPage";
 import ReportPage from "./pages/ReportPage";
 import QuotePage from "./pages/QuotePage";
+import TrainingPage from "./pages/TrainingPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
