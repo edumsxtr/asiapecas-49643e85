@@ -98,8 +98,8 @@ export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAd
         </div>
 
         {/* Icon area */}
-        <div className="flex items-center justify-center py-5">
-          <Package className="h-14 w-14 text-muted-foreground/15 group-hover:text-primary/20 transition-colors" />
+        <div className="flex items-center justify-center py-5 bg-muted/30 mx-4 rounded-lg group-hover:bg-primary/5 transition-colors">
+          <PartIcon className={`h-12 w-12 ${iconColor} opacity-60 group-hover:opacity-100 transition-opacity`} />
         </div>
 
         {/* Description */}
