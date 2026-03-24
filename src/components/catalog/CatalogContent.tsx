@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Search, Grid3X3, List, Upload, Filter, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Grid3X3, List, Upload, Filter, X, Brain, ShoppingCart, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParts, categoryLabels, categoryKeys, priceRanges, timeLabels, useDistinctValues, type Part } from "@/hooks/use-parts";
+import { useBatchAIResearch } from "@/hooks/use-batch-ai-research";
+import { useCart } from "@/contexts/CartContext";
 import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
 import { PartDetailDialog } from "./PartDetailDialog";
@@ -13,6 +17,7 @@ import { ImportCatalogDialog } from "./ImportCatalogDialog";
 import { ExportCatalogButton } from "./ExportCatalogButton";
 
 export function CatalogContent() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -31,6 +36,8 @@ export function CatalogContent() {
 
   const { data: manufacturers } = useDistinctValues("manufacturer");
   const { data: models } = useDistinctValues("machine_model");
+  const { progress, startBatch, stop } = useBatchAIResearch();
+  const { count: cartCount } = useCart();
 
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = (value: string) => {
@@ -68,12 +75,37 @@ export function CatalogContent() {
           <p className="text-sm text-muted-foreground mt-1">{total.toLocaleString("pt-BR")} peça(s)</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={progress.running ? stop : startBatch}
+            disabled={false}
+            className="gap-1"
+          >
+            {progress.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+            {progress.running ? "Parar IA" : "Pesquisar Todas com IA"}
+          </Button>
           <ExportCatalogButton />
           <Button variant="outline" onClick={() => setShowImport(true)}>
             <Upload className="h-4 w-4 mr-1" /> Importar
           </Button>
         </div>
       </div>
+
+      {/* AI Batch Progress */}
+      {progress.running && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-foreground font-medium">
+              Pesquisa IA em andamento — Lote {progress.currentBatch}/{progress.totalBatches}
+            </span>
+            <span className="text-muted-foreground">
+              {progress.processed} processadas · {progress.skipped} existentes · {progress.errors} erros
+            </span>
+          </div>
+          <Progress value={progress.totalBatches > 0 ? (progress.currentBatch / progress.totalBatches) * 100 : 0} />
+        </div>
+      )}
 
       {/* Search + Filter Toggle + View */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -191,6 +223,21 @@ export function CatalogContent() {
           <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
           <span className="text-sm text-muted-foreground">Página {page + 1} de {totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Próxima</Button>
+        </div>
+      )}
+
+      {/* Floating Cart */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            size="lg"
+            className="rounded-full shadow-lg gap-2 h-14 px-6"
+            onClick={() => navigate("/pedidos/novo")}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            <span className="font-bold">{cartCount}</span>
+            <span className="hidden sm:inline">itens no pedido</span>
+          </Button>
         </div>
       )}
 

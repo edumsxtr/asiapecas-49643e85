@@ -35,10 +35,22 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
   const updatePart = useUpdatePart();
   const { data: similarParts } = useSimilarParts(part.description);
   const { data: partSales } = usePartSales(part.id);
+  const { addItem } = useCart();
 
   const categories = getActiveCategories(part);
   const totalValue = part.stock * part.estimated_price;
   const filteredSimilar = (similarParts || []).filter(p => p.id !== part.id);
+
+  const handleAddToCart = () => {
+    addItem({
+      part_id: part.id,
+      material: part.material,
+      description: part.description,
+      unit_price: part.estimated_price,
+      stock: part.stock,
+    });
+    toast.success("Adicionado ao pedido");
+  };
 
   const handleUpdate = () => {
     updatePart.mutate({
