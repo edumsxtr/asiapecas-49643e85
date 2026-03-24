@@ -15,6 +15,7 @@ import { useCreateSale } from "@/hooks/use-sales";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ShoppingCart, Plus, Trash2, Search, Check, UserPlus } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
 
 type CartItem = {
   part_id: string;
