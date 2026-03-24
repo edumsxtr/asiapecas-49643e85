@@ -241,6 +241,7 @@ export type Database = {
           machine_model: string | null
           manufacturer: string | null
           material: string
+          part_category: string | null
           reviewed_at: string | null
           stock: number
           supplier: string | null
@@ -261,6 +262,7 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material: string
+          part_category?: string | null
           reviewed_at?: string | null
           stock?: number
           supplier?: string | null
@@ -281,6 +283,7 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material?: string
+          part_category?: string | null
           reviewed_at?: string | null
           stock?: number
           supplier?: string | null
