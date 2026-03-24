@@ -134,7 +134,7 @@ serve(async (req) => {
             maintenance_tips: analysis.maintenance_tips || "",
             related_parts: analysis.related_parts || [],
             researched_at: new Date().toISOString(),
-            model_used: "google/gemini-2.5-flash-lite",
+            model_used: "google/gemini-3-flash-preview",
           }, { onConflict: "material" });
           processed++;
         } else {
