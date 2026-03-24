@@ -42,12 +42,28 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
       if (search.length >= 2) {
         q = q.or(`material.ilike.%${search}%,description.ilike.%${search}%,machine_model.ilike.%${search}%`);
       }
-      if (category && CATEGORY_MAP[category]) {
-        q = q.eq(CATEGORY_MAP[category], true as any);
-      }
 
       q = q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      const { data: parts, count } = await q;
+      const { data: allParts, count } = await q;
+      
+      // Filter by category client-side to avoid deep type issue
+      let parts = allParts || [];
+      if (category && CATEGORY_MAP[category]) {
+        // Re-query with category filter
+        let q2 = supabase
+          .from("parts")
+          .select("id, material, description, machine_model, stock, manufacturer, estimated_price", { count: "exact" })
+          .gt("stock", 0)
+          .eq(CATEGORY_MAP[category] as any, true)
+          .order("stock", { ascending: false });
+        if (search.length >= 2) {
+          q2 = q2.or(`material.ilike.%${search}%,description.ilike.%${search}%,machine_model.ilike.%${search}%`);
+        }
+        q2 = q2.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const res = await q2;
+        parts = res.data || [];
+        return { parts, count: res.count || 0, aiIds: [] as string[] };
+      }
       
       // Check which parts have AI data
       const ids = (parts || []).map(p => p.id);
