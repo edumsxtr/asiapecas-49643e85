@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -120,12 +120,86 @@ export interface DashboardStats {
   staleValue: number;
   staleUnits: number;
   lowStockHighValue: number;
+  totalSales: number;
+  totalSalesValue: number;
+  openTickets: number;
+  totalProspects: number;
+  hotProspects: number;
+  totalCustomers: number;
+  recentSales: { id: string; order_number: number; total_amount: number; status: string; sale_date: string; customer_name: string }[];
+  salesByMonth: { month: string; count: number; value: number }[];
+  neverSoldCount: number;
+  duplicateCount: number;
   byCategory: { name: string; quantidade: number; units: number; value: number }[];
   byTime: { name: string; quantidade: number; units: number; value: number }[];
   byManufacturer: { name: string; quantidade: number; units: number; value: number }[];
   topModels: { name: string; quantidade: number; units: number; value: number }[];
   criticalParts: { material: string; description: string; stock: number; estimated_price: number; machine_model: string; last_entry_time: string }[];
   staleParts: { material: string; description: string; stock: number; estimated_price: number; machine_model: string; total_value: number }[];
+}
+
+export function useDuplicateParts() {
+  return useQuery({
+    queryKey: ["duplicate-parts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("find_duplicate_parts");
+      if (error) throw error;
+      return (data ?? []) as { material_a: string; description_a: string; stock_a: number; price_a: number; material_b: string; description_b: string; stock_b: number; price_b: number }[];
+    },
+    staleTime: 300_000,
+  });
+}
+
+export function useSimilarParts(description: string) {
+  return useQuery({
+    queryKey: ["similar-parts", description],
+    queryFn: async () => {
+      const words = description.split(/\s+/).filter(w => w.length > 3).slice(0, 3);
+      if (words.length === 0) return [];
+      const q = words.map(w => `description.ilike.%${w}%`).join(",");
+      const { data, error } = await supabase
+        .from("parts")
+        .select("id,material,description,stock,estimated_price,machine_model")
+        .or(q)
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!description && description.length > 3,
+    staleTime: 300_000,
+  });
+}
+
+export function useUpdatePart() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (update: { id: string; stock?: number; estimated_price?: number; machine_model?: string; reviewed_at?: string }) => {
+      const { id, ...fields } = update;
+      const { error } = await supabase.from("parts").update(fields).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parts"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+}
+
+export function usePartSales(partId: string) {
+  return useQuery({
+    queryKey: ["part-sales", partId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sale_items")
+        .select("id, quantity, unit_price, total_price, sale_id, sales(id, order_number, sale_date, status, customers(name))")
+        .eq("part_id", partId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!partId,
+  });
 }
 
 export function useDashboardStats() {
