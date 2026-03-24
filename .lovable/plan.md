@@ -1,66 +1,74 @@
 
 
-# Plano: Mobile Responsivo + Treinamento de Equipe sobre Estoque
+# Plano: IA Avançada para Categorização + Catálogo por Categoria de Peças
 
-## Parte 1: Seletor de idioma no mobile do portal `/cotacao`
+## Problema Atual
 
-**Problema**: O seletor de idiomas (PT/EN/ES) e a navegacao estao dentro de `hidden md:flex` no header — invisivel no mobile.
+1. As peças são categorizadas apenas por 5 flags booleanas (mineração, linha amarela, etc.) que representam **tipo de máquina**, não **tipo de peça**
+2. Não existe categorização por **função da peça** (filtros, rolamentos, vedações, motor, hidráulica, etc.)
+3. No catálogo do cliente, não há navegação por tipo de peça — apenas por tipo de máquina
+4. O modelo de IA atual (batch) usa `gemini-2.5-flash-lite` (o mais básico) para análise
 
-**Solucao**: Adicionar menu hamburger no mobile com:
-- Links de navegacao (Pecas, Como Funciona, FAQ)
-- Seletor de idioma com bandeiras (PT/EN/ES)
-- Botao WhatsApp
-- Sheet/drawer lateral que abre ao clicar no icone de menu
+## O que vou fazer
 
-### Arquivo: `src/pages/QuotePage.tsx`
-- Adicionar botao hamburger visivel apenas no mobile (`md:hidden`)
-- Usar Sheet do shadcn para menu lateral mobile
-- Mover seletor de idioma e nav links para dentro do Sheet
-- Manter nav desktop como esta (hidden md:flex)
+### 1. Nova coluna `part_category` na tabela `parts`
 
-## Parte 2: Pagina de Treinamento de Equipe (`/treinamento`)
+Migration para adicionar:
+- `part_category TEXT` — categoria funcional da peça (ex: "Filtros", "Vedações", "Motor", "Hidráulica", "Elétrica", "Estrutural", "Transmissão", "Freios", "Refrigeração", "Acessórios")
 
-Nova pagina interna (protegida) com conteudo de treinamento focado no estoque, baseado no plano de negocios da Elite Pecas XCMG.
+### 2. Edge Function `categorize-parts` com modelo avançado
 
-### Conteudo do treinamento (cards interativos com abas):
+Nova edge function que usa `google/gemini-3-flash-preview` (modelo mais capaz e rápido) para:
+- Analisar a descrição da peça e classificar em uma das categorias predefinidas
+- Processar em lote (batch de até 50 peças por chamada)
+- Salvar a categoria diretamente na tabela `parts`
+- Usar tool calling para output estruturado garantido
 
-**Aba 1 — Conhecimento do Estoque**
-- Como funciona a classificacao por categorias (Mineracao, Linha Amarela, Perfuratriz, Guindaste, Caminhao Eletrico)
-- O que significam as metricas: giro de estoque, capital parado, estoque critico
-- Como interpretar o dashboard e agir sobre pecas paradas ha mais de 2 anos
+Categorias predefinidas:
+- Filtros (óleo, ar, combustível, hidráulico)
+- Vedações e Retentores
+- Motor e Componentes
+- Sistema Hidráulico
+- Sistema Elétrico
+- Estrutural e Chassi
+- Transmissão
+- Freios
+- Refrigeração
+- Rolamentos e Buchas
+- Acessórios e Outros
 
-**Aba 2 — Processo de Vendas**
-- Fluxo: Cotacao → Orcamento → Pedido → Faturamento → Entrega
-- Como usar o portal do cliente (`/cotacao`) para receber pedidos
-- Como converter prospects em clientes
+### 3. Atualizar `part-research` para usar modelo mais avançado
 
-**Aba 3 — Atendimento ao Cliente**
-- Regioes atendidas: Brasil, Venezuela, Guiana
-- Segmentos: mineracao, construcao civil, infraestrutura
-- Como usar o pos-venda para fidelizar
+Trocar de `openai/gpt-5.2` para `google/gemini-2.5-pro` (melhor para análise técnica complexa). Também salvar a `part_category` ao analisar individualmente.
 
-**Aba 4 — Ferramentas do Sistema**
-- Tour rapido por cada modulo (Dashboard, Catalogo, Estoque, Vendas, Prospeccao)
-- Dicas de produtividade: atalhos, filtros, pesquisa IA
+### 4. Atualizar `batch-ai-research` para usar modelo melhor
 
-### Interatividade:
-- Cards com icones e descricoes
-- Checklist de progresso (localStorage) — "Marcar como lido"
-- Quiz rapido ao final de cada aba (3 perguntas multipla escolha)
-- Barra de progresso geral do treinamento
+Trocar de `gemini-2.5-flash-lite` para `google/gemini-3-flash-preview` e incluir categorização no mesmo fluxo.
 
-## Parte 3: Link no Sidebar
+### 5. Navegação por categoria de peça no catálogo do cliente
 
-Adicionar item "Treinamento" no grupo "Ferramentas" do sidebar com icone `GraduationCap`.
+No `QuoteCatalog.tsx`:
+- Adicionar filtro por **categoria de peça** no sidebar (com ícones e contagem)
+- Seção visual com cards de categoria no topo (tipo "departamentos" de e-commerce)
+- Chips de categoria clicáveis acima do grid
+
+No `QuoteHero.tsx`:
+- Adicionar segunda fileira de categorias funcionais abaixo das categorias de máquina
+
+### 6. Trigger automático de categorização
+
+Ao importar estoque (via `import-catalog` ou `bulk-update-stock`), chamar a categorização automaticamente para peças novas sem `part_category`.
 
 ## Arquivos a criar/editar
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/pages/QuotePage.tsx` | Editar — menu hamburger mobile com seletor de idioma |
-| `src/pages/TrainingPage.tsx` | Criar — pagina de treinamento com 4 abas, quiz, checklist |
-| `src/components/AppSidebar.tsx` | Editar — adicionar link "Treinamento" |
-| `src/App.tsx` | Editar — rota `/treinamento` protegida |
-
-Sem alteracoes no banco de dados.
+| Migration SQL | Adicionar coluna `part_category` à tabela `parts` |
+| `supabase/functions/categorize-parts/index.ts` | Criar — batch categorização com IA avançada |
+| `supabase/functions/part-research/index.ts` | Editar — modelo mais avançado + salvar categoria |
+| `supabase/functions/batch-ai-research/index.ts` | Editar — modelo melhor + incluir categorização |
+| `src/components/quote/QuoteCatalog.tsx` | Editar — filtro por categoria de peça, seção de categorias visual |
+| `src/components/quote/QuoteHero.tsx` | Editar — chips de categoria funcional |
+| `src/components/quote/translations.ts` | Editar — nomes das categorias em PT/EN/ES |
+| `src/hooks/use-parts.ts` | Editar — suporte a filtro por `part_category` |
 
