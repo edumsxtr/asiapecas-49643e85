@@ -22,6 +22,7 @@ const LANG_FLAGS: { lang: Lang; label: string }[] = [
 export default function QuotePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [partCategory, setPartCategory] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lang, setLang] = useState<Lang>("pt");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
