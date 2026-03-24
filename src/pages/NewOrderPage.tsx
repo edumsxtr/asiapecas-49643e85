@@ -34,10 +34,27 @@ export default function NewOrderPage() {
   const { data: customers = [] } = useCustomers();
   const createSale = useCreateSale();
   const createCustomer = useCreateCustomer();
+  const globalCart = useCart();
 
   const [step, setStep] = useState(1);
   const [customerId, setCustomerId] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Load items from global cart on mount
+  useEffect(() => {
+    if (globalCart.items.length > 0 && cart.length === 0) {
+      setCart(globalCart.items.map(i => ({
+        part_id: i.part_id,
+        material: i.material,
+        description: i.description,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        stock: i.stock,
+      })));
+      globalCart.clearCart();
+      setStep(2); // Skip to items step if cart has items
+    }
+  }, []);
   const [partSearch, setPartSearch] = useState("");
   const [partResults, setPartResults] = useState<any[]>([]);
   const [notes, setNotes] = useState("");
