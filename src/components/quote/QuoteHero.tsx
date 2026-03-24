@@ -1,5 +1,7 @@
-import { Search, Pickaxe, Construction, Drill, Container, Truck } from "lucide-react";
+import { Search, Pickaxe, Construction, Drill, Container, Truck, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { type Lang, tr } from "./translations";
 
 const categories = [
@@ -19,6 +21,15 @@ interface QuoteHeroProps {
 }
 
 export default function QuoteHero({ search, onSearchChange, onCategoryClick, activeCategory, lang }: QuoteHeroProps) {
+  const { data: stats } = useQuery({
+    queryKey: ["hero-stats"],
+    queryFn: async () => {
+      const { count } = await supabase.from("parts").select("id", { count: "exact", head: true }).gt("stock", 0);
+      return { totalParts: count || 0 };
+    },
+    staleTime: 60_000,
+  });
+
   return (
     <section className="relative bg-secondary text-secondary-foreground overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary to-primary/20" />
@@ -30,6 +41,12 @@ export default function QuoteHero({ search, onSearchChange, onCategoryClick, act
           <p className="text-lg md:text-xl text-secondary-foreground/70 max-w-2xl mx-auto">
             {tr("hero.subtitle", lang)}
           </p>
+          {stats && stats.totalParts > 0 && (
+            <div className="flex items-center justify-center gap-2 text-primary font-semibold">
+              <Package className="h-5 w-5" />
+              <span className="text-lg">{stats.totalParts.toLocaleString("pt-BR")}+ {tr("hero.stats", lang)}</span>
+            </div>
+          )}
         </div>
 
         <div className="max-w-2xl mx-auto relative">

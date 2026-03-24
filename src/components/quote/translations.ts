@@ -12,6 +12,7 @@ const t = {
   "hero.title": { pt: "Peças Originais", en: "Original Parts", es: "Repuestos Originales" },
   "hero.subtitle": { pt: "Distribuidor autorizado — Brasil, Venezuela, Guiana", en: "Authorized distributor — Brazil, Venezuela, Guyana", es: "Distribuidor autorizado — Brasil, Venezuela, Guyana" },
   "hero.search": { pt: "Buscar peça por código, descrição ou modelo de máquina...", en: "Search part by code, description or machine model...", es: "Buscar repuesto por código, descripción o modelo de máquina..." },
+  "hero.stats": { pt: "peças disponíveis em estoque", en: "parts available in stock", es: "repuestos disponibles en stock" },
   "cat.mineracao": { pt: "Mineração", en: "Mining", es: "Minería" },
   "cat.linha_amarela": { pt: "Linha Amarela", en: "Construction", es: "Línea Amarilla" },
   "cat.perfuratriz": { pt: "Perfuratriz", en: "Drilling", es: "Perforadora" },
@@ -26,6 +27,28 @@ const t = {
   "how.step2.desc": { pt: "Adicione as peças desejadas ao carrinho de cotação", en: "Add desired parts to the quote cart", es: "Agregue los repuestos deseados al carrito de cotización" },
   "how.step3.title": { pt: "Receba sua Cotação", en: "Get Your Quote", es: "Reciba su Cotización" },
   "how.step3.desc": { pt: "Envie o pedido e nossa equipe responde em até 24h", en: "Submit the order and our team responds within 24h", es: "Envíe el pedido y nuestro equipo responde en 24h" },
+
+  // Catalog filters
+  "filter.title": { pt: "Filtros", en: "Filters", es: "Filtros" },
+  "filter.manufacturer": { pt: "Fabricante", en: "Manufacturer", es: "Fabricante" },
+  "filter.allManufacturers": { pt: "Todos os fabricantes", en: "All manufacturers", es: "Todos los fabricantes" },
+  "filter.model": { pt: "Modelo de Máquina", en: "Machine Model", es: "Modelo de Máquina" },
+  "filter.allModels": { pt: "Todos os modelos", en: "All models", es: "Todos los modelos" },
+  "filter.availability": { pt: "Disponibilidade", en: "Availability", es: "Disponibilidad" },
+  "filter.all": { pt: "Todos", en: "All", es: "Todos" },
+  "filter.readyToShip": { pt: "Pronta Entrega", en: "Ready to Ship", es: "Entrega Inmediata" },
+  "filter.onDemand": { pt: "Sob Consulta", en: "On Demand", es: "Bajo Consulta" },
+  "filter.clear": { pt: "Limpar Filtros", en: "Clear Filters", es: "Limpiar Filtros" },
+  "filter.activeFilters": { pt: "filtros ativos", en: "active filters", es: "filtros activos" },
+
+  // Sort
+  "sort.label": { pt: "Ordenar por", en: "Sort by", es: "Ordenar por" },
+  "sort.relevance": { pt: "Relevância", en: "Relevance", es: "Relevancia" },
+  "sort.stockDesc": { pt: "Maior estoque", en: "Highest stock", es: "Mayor stock" },
+  "sort.nameAsc": { pt: "Nome A-Z", en: "Name A-Z", es: "Nombre A-Z" },
+  "sort.newest": { pt: "Mais recentes", en: "Newest", es: "Más recientes" },
+  "sort.priceAsc": { pt: "Menor preço", en: "Lowest price", es: "Menor precio" },
+  "sort.priceDesc": { pt: "Maior preço", en: "Highest price", es: "Mayor precio" },
 
   // Catalog
   "catalog.found": { pt: "peças encontradas", en: "parts found", es: "repuestos encontrados" },
@@ -42,6 +65,9 @@ const t = {
   "part.unavailable": { pt: "Indisponível", en: "Unavailable", es: "No disponible" },
   "part.units": { pt: "un.", en: "units", es: "uds." },
   "part.noModel": { pt: "Modelo não especificado", en: "Model not specified", es: "Modelo no especificado" },
+  "part.readyToShip": { pt: "Pronta Entrega", en: "Ready to Ship", es: "Entrega Inmediata" },
+  "part.lastUnits": { pt: "Últimas unidades!", en: "Last units!", es: "¡Últimas unidades!" },
+  "part.aiVerified": { pt: "Verificado por IA", en: "AI Verified", es: "Verificado por IA" },
 
   // Part detail
   "detail.techDesc": { pt: "Descrição Técnica", en: "Technical Description", es: "Descripción Técnica" },
