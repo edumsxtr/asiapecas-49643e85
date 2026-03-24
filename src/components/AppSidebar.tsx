@@ -13,6 +13,7 @@ import {
   FileBarChart,
   FileText,
   LogOut,
+  GraduationCap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import eliteLogo from "@/assets/elite-logo.png";
