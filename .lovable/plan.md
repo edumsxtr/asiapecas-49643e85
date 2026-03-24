@@ -1,54 +1,73 @@
 
 
-# Plano: Portal Multilíngue (PT/EN/ES) + Limpeza de Caracteres Chineses
+# Plano: Catálogo do Cliente com Técnicas Avançadas de E-commerce
 
-## Diagnóstico
+## Objetivo
+Transformar o portal `/cotacao` num catálogo que prende a atenção do cliente, incentiva exploração e maximiza conversão usando técnicas comprovadas de e-commerce.
 
-- O portal do cliente (`/cotacao`) está 100% em português
-- Existem **3 peças** no banco com caracteres chineses nas descrições (ex: `海绵` = "esponja", `（` = parêntese full-width)
-- O portal atende Brasil, Venezuela e Guiana — precisa de inglês e espanhol
+## Melhorias
 
-## O que vou fazer
+### 1. Filtros Avançados no Catálogo (QuoteCatalog)
 
-### 1. Sistema de idiomas no portal (i18n leve)
+Sidebar lateral com filtros persistentes:
+- **Por fabricante**: dropdown com contagem de peças por fabricante
+- **Por modelo de máquina**: dropdown agrupado
+- **Por disponibilidade**: "Pronta Entrega" vs "Sob Consulta"
+- **Busca por código exato**: campo separado para quem já sabe o material
+- **Limpar filtros**: botão visível quando há filtros ativos
+- **Contagem de resultados** atualizada em tempo real
 
-Criar um dicionário de traduções (PT/EN/ES) sem dependência externa. Um seletor de idioma no header do portal (bandeiras BR/US/ES).
+### 2. Técnicas de E-commerce no QuotePartCard
 
-Todas as strings do portal serão traduzidas:
-- Hero: título, subtítulo, placeholder de busca, nomes de categorias
-- "Como Funciona": títulos e descrições dos 3 passos
-- Cards de peças: "Detalhes", "Cotar", "Adicionado", "Indisponível"
-- Carrinho: labels do formulário, botões, mensagens
-- FAQ: perguntas e respostas em 3 idiomas
-- Footer: textos institucionais
-- Chat: mensagem inicial e placeholder
+- **"Pronta Entrega"**: badge verde pulsante quando stock > 10
+- **"Últimas unidades!"**: badge vermelha quando stock entre 1-5 (escassez)
+- **"Compatibilidade verificada por IA"**: selo de confiança no card quando tem dados IA
+- **Hover com preview rápido**: ao passar o mouse, mostra descrição técnica da IA em tooltip
+- **Animação de entrada**: cards aparecem com fade-in escalonado (stagger)
+- **"Peças populares"**: seção no topo com as 4 peças mais vendidas (cross com sale_items)
+- **"Vistos recentemente"**: barra fixa inferior com últimos 5 itens clicados (localStorage)
 
-### 2. Limpeza de caracteres chineses no banco
+### 3. Seção "Peças Populares" e "Recomendados"
 
-Migration SQL para:
-- Substituir `海绵` por "ESPONJA" nas 2 peças (material 310202069 e 310202070)
-- Substituir `（` por `(` e `）` por `)` em todas as descrições
+Antes do grid principal, 2 carrosséis horizontais:
+- **"Mais Cotados"**: query nas peças que mais aparecem em `quote_requests.items`
+- **"Novidades em Estoque"**: peças adicionadas recentemente (ordered by created_at)
+- Cards menores, scroll horizontal, clicáveis
 
-### 3. Arquivos a criar/editar
+### 4. Ordenação Visível
+
+Dropdown de ordenação acima do grid:
+- Relevância (padrão)
+- Maior estoque
+- Nome A-Z
+- Adicionados recentemente
+
+### 5. Contador de Urgência e Social Proof
+
+- **"X pessoas cotaram esta peça"**: contador baseado em quote_requests (contagem real)
+- **"Estoque atualizado hoje"**: timestamp da última importação
+- **Barra de progresso do carrinho**: "Adicione mais X peças para cotação especial"
+
+### 6. Mobile Otimizado
+
+- Filtros em sheet/drawer lateral (botão "Filtros" flutuante)
+- Cards em 1 coluna com layout compacto
+- Carrinho como bottom sheet
+- Busca com sugestões autocomplete
+
+## Traduções
+
+Todas as novas strings serão adicionadas ao `translations.ts` em PT/EN/ES.
+
+## Arquivos a criar/editar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/quote/translations.ts` | Criar — dicionário PT/EN/ES com todas as strings |
-| `src/pages/QuotePage.tsx` | Editar — estado de idioma + seletor no header + passar idioma aos componentes |
-| `src/components/quote/QuoteHero.tsx` | Editar — usar traduções |
-| `src/components/quote/QuoteCatalog.tsx` | Editar — usar traduções |
-| `src/components/quote/QuotePartCard.tsx` | Editar — usar traduções |
-| `src/components/quote/QuotePartDetail.tsx` | Editar — usar traduções |
-| `src/components/quote/QuoteCart.tsx` | Editar — usar traduções |
-| `src/components/quote/QuoteFAQ.tsx` | Editar — FAQs em 3 idiomas |
-| `src/components/quote/QuoteFooter.tsx` | Editar — usar traduções |
-| `src/components/quote/QuoteChat.tsx` | Editar — mensagem inicial + placeholder por idioma |
-| Migration SQL | Limpar caracteres chineses das descrições |
+| `src/components/quote/QuoteCatalog.tsx` | Reescrever — sidebar filtros, ordenação, seções populares, social proof |
+| `src/components/quote/QuotePartCard.tsx` | Editar — badges escassez, pronta entrega, hover preview, animação |
+| `src/components/quote/translations.ts` | Editar — novas strings (filtros, ordenação, urgência) |
+| `src/pages/QuotePage.tsx` | Editar — passar novos estados de filtro ao catálogo |
+| `src/components/quote/QuoteHero.tsx` | Editar — adicionar stats ("15.000+ peças disponíveis") |
 
-### Detalhes técnicos
-
-- O dicionário será um objeto `Record<Lang, Record<string, string>>` com chaves semânticas
-- O seletor de idioma será 3 botões com bandeira/código (PT, EN, ES) no header
-- As descrições das peças ficam em português (dados do banco) — apenas a interface muda de idioma
-- O chat da IA receberá instrução do idioma selecionado para responder no mesmo idioma
+Nenhuma alteração no banco de dados.
 
