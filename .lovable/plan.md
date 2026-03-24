@@ -1,65 +1,54 @@
 
 
-# Plano: Prospecção Completa — Contatos Reais + Peças Sugeridas + Interface Interativa
+# Plano: Portal Multilíngue (PT/EN/ES) + Limpeza de Caracteres Chineses
 
-## Problema Atual
+## Diagnóstico
 
-1. A IA gera prospects sem telefone/email — campos ficam vazios
-2. A tabela mostra apenas "X peças" sem detalhar quais
-3. Falta interatividade: não dá para ver detalhes, peças sugeridas, ou agir rapidamente
-4. O resumo da IA fica escondido no dialog de edição
+- O portal do cliente (`/cotacao`) está 100% em português
+- Existem **3 peças** no banco com caracteres chineses nas descrições (ex: `海绵` = "esponja", `（` = parêntese full-width)
+- O portal atende Brasil, Venezuela e Guiana — precisa de inglês e espanhol
 
 ## O que vou fazer
 
-### 1. Atualizar Edge Function `prospect-search`
+### 1. Sistema de idiomas no portal (i18n leve)
 
-Alterar o prompt e o schema da tool call para a IA retornar:
-- **Telefone** (formato do país, ex: +55 11 9xxxx-xxxx)
-- **Email** (email comercial provável, ex: contato@empresa.com.br)
-- **CNPJ** (quando disponível/estimável)
-- **Peças recomendadas** com descrição (não só código): ex: "860132921 - Filtro de óleo hidráulico"
-- **Justificativa por peça**: por que aquela peça é relevante para o prospect
+Criar um dicionário de traduções (PT/EN/ES) sem dependência externa. Um seletor de idioma no header do portal (bandeiras BR/US/ES).
 
-Adicionar esses campos no schema da function tool e salvar no banco.
+Todas as strings do portal serão traduzidas:
+- Hero: título, subtítulo, placeholder de busca, nomes de categorias
+- "Como Funciona": títulos e descrições dos 3 passos
+- Cards de peças: "Detalhes", "Cotar", "Adicionado", "Indisponível"
+- Carrinho: labels do formulário, botões, mensagens
+- FAQ: perguntas e respostas em 3 idiomas
+- Footer: textos institucionais
+- Chat: mensagem inicial e placeholder
 
-### 2. Redesign da Página de Prospecção
+### 2. Limpeza de caracteres chineses no banco
 
-**Cards de prospect** em vez de tabela pura — cada prospect vira um card expandível:
-- Header: Nome, Empresa, Score (barra visual colorida), Status (seletor inline)
-- Corpo expandido ao clicar:
-  - Contato: telefone clicável (tel:), email clicável (mailto:), WhatsApp (link direto)
-  - Localização: Cidade/Estado/País com bandeira
-  - Resumo IA: texto completo da análise
-  - **Peças Recomendadas**: lista visual com código, descrição, estoque atual, preço — cada uma com botão "Montar Orçamento"
-  - Botões de ação: Editar, Converter para Cliente, WhatsApp, Descartar
+Migration SQL para:
+- Substituir `海绵` por "ESPONJA" nas 2 peças (material 310202069 e 310202070)
+- Substituir `（` por `(` e `）` por `)` em todas as descrições
 
-**Pipeline visual** no topo: colunas Kanban simplificadas (Novo → Contatado → Qualificado → Negociação → Convertido) com contagem e drag visual (badges clicáveis para filtrar)
-
-### 3. Dialog de Detalhes do Prospect
-
-Ao clicar no prospect, abre dialog completo com:
-- Todas as informações de contato (tel, email, WhatsApp, CNPJ)
-- Mapa de localização conceitual (estado/cidade)
-- Peças recomendadas com cards visuais (material, descrição, estoque, preço)
-- Botão "Montar Orçamento" que adiciona as peças ao carrinho e redireciona para `/pedidos/novo`
-- Timeline de interações (histórico de mudanças de status)
-- Campo de notas editável inline
-
-### 4. Ações Rápidas na Listagem
-
-- Botão WhatsApp direto na linha (abre `wa.me/{phone}` com mensagem pré-formatada)
-- Botão Email direto (abre mailto com assunto pré-preenchido)
-- Botão "Ver Peças" que expande inline as peças sugeridas
-
-## Banco de Dados
-
-Sem alteração de schema — os campos `phone`, `email`, `cnpj_cpf`, `matched_parts`, `ai_summary` já existem na tabela `prospects`. Apenas a IA vai passar a preenchê-los.
-
-## Arquivos a criar/editar
+### 3. Arquivos a criar/editar
 
 | Arquivo | Ação |
 |---------|------|
-| `supabase/functions/prospect-search/index.ts` | Atualizar prompt + schema para incluir telefone, email, CNPJ, peças detalhadas |
-| `src/pages/ProspectionPage.tsx` | Redesign completo: cards expandíveis, pipeline visual, ações rápidas (WhatsApp/Email), dialog detalhado com peças recomendadas |
-| `src/hooks/use-prospects.ts` | Sem mudança (schema já suporta os campos) |
+| `src/components/quote/translations.ts` | Criar — dicionário PT/EN/ES com todas as strings |
+| `src/pages/QuotePage.tsx` | Editar — estado de idioma + seletor no header + passar idioma aos componentes |
+| `src/components/quote/QuoteHero.tsx` | Editar — usar traduções |
+| `src/components/quote/QuoteCatalog.tsx` | Editar — usar traduções |
+| `src/components/quote/QuotePartCard.tsx` | Editar — usar traduções |
+| `src/components/quote/QuotePartDetail.tsx` | Editar — usar traduções |
+| `src/components/quote/QuoteCart.tsx` | Editar — usar traduções |
+| `src/components/quote/QuoteFAQ.tsx` | Editar — FAQs em 3 idiomas |
+| `src/components/quote/QuoteFooter.tsx` | Editar — usar traduções |
+| `src/components/quote/QuoteChat.tsx` | Editar — mensagem inicial + placeholder por idioma |
+| Migration SQL | Limpar caracteres chineses das descrições |
+
+### Detalhes técnicos
+
+- O dicionário será um objeto `Record<Lang, Record<string, string>>` com chaves semânticas
+- O seletor de idioma será 3 botões com bandeira/código (PT, EN, ES) no header
+- As descrições das peças ficam em português (dados do banco) — apenas a interface muda de idioma
+- O chat da IA receberá instrução do idioma selecionado para responder no mesmo idioma
 
