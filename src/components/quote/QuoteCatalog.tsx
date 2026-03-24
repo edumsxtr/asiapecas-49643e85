@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye, Filter, Cog, Zap, Wrench, Droplets, Disc, Snowflake, CircleDot, Box } from "lucide-react";
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
 import { type Lang, tr } from "./translations";
@@ -17,6 +17,8 @@ type CartItem = { material: string; description: string; quantity: number };
 interface QuoteCatalogProps {
   search: string;
   category: string | null;
+  partCategory?: string | null;
+  onPartCategoryChange?: (key: string) => void;
   cartItems: CartItem[];
   onAddToCart: (part: any) => void;
   lang: Lang;
@@ -32,10 +34,23 @@ const CATEGORY_MAP: Record<string, string> = {
   caminhao_eletrico: "is_caminhao_eletrico",
 };
 
+const PART_CATEGORIES = [
+  { key: "Filtros", icon: Filter },
+  { key: "Vedações e Retentores", icon: Disc },
+  { key: "Motor e Componentes", icon: Cog },
+  { key: "Sistema Hidráulico", icon: Droplets },
+  { key: "Sistema Elétrico", icon: Zap },
+  { key: "Estrutural e Chassi", icon: Box },
+  { key: "Transmissão", icon: Wrench },
+  { key: "Rolamentos e Buchas", icon: CircleDot },
+  { key: "Refrigeração", icon: Snowflake },
+  { key: "Acessórios e Outros", icon: Box },
+];
+
 type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" | "priceDesc";
 type ViewMode = "grid" | "list";
 
-export default function QuoteCatalog({ search, category, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
+export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
@@ -61,12 +76,12 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
   });
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [search, category, manufacturer, model, availability, sort]);
+  useEffect(() => { setPage(0); }, [search, category, partCategory, manufacturer, model, availability, sort]);
 
-  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all"].filter(Boolean).length;
+  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory].filter(Boolean).length;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["quote-parts", search, category, page, manufacturer, model, availability, sort],
+    queryKey: ["quote-parts", search, category, partCategory, page, manufacturer, model, availability, sort],
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
@@ -83,6 +98,7 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
       if (model !== "all") query = query.eq("machine_model", model);
       if (availability === "ready") query = query.gt("stock", 10);
       if (availability === "low") query = query.lte("stock", 10);
+      if (partCategory) query = query.eq("part_category", partCategory);
 
       // Sort
       switch (sort) {
@@ -160,6 +176,7 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
     setModel("all");
     setAvailability("all");
     setSort("relevance");
+    if (onPartCategoryChange && partCategory) onPartCategoryChange(partCategory);
   };
 
   const FilterPanel = () => (
@@ -192,6 +209,31 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
           ))}
         </div>
       </div>
+
+      {/* Part Category */}
+      {onPartCategoryChange && (
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">{tr("filter.partCategory", lang)}</label>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => { if (partCategory && onPartCategoryChange) onPartCategoryChange(partCategory); }}
+              className={`text-left text-xs px-3 py-2 rounded-md transition-colors ${!partCategory ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"}`}
+            >
+              {tr("filter.allCategories", lang)}
+            </button>
+            {PART_CATEGORIES.map(cat => (
+              <button
+                key={cat.key}
+                onClick={() => onPartCategoryChange(cat.key)}
+                className={`flex items-center gap-2 text-left text-xs px-3 py-2 rounded-md transition-colors ${partCategory === cat.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"}`}
+              >
+                <cat.icon className="h-3.5 w-3.5" />
+                {tr(`pcat.${cat.key}` as any, lang)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Manufacturer */}
       <div className="space-y-2">

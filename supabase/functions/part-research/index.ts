@@ -81,7 +81,7 @@ Responda em JSON com esta estrutura exata:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5.2",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: "Você é um especialista técnico em equipamentos XCMG. Responda SEMPRE em JSON válido." },
           { role: "user", content: prompt },
@@ -155,7 +155,7 @@ Responda em JSON com esta estrutura exata:
         maintenance_tips: analysis.maintenance_tips || "",
         related_parts: analysis.related_parts || [],
         researched_at: new Date().toISOString(),
-        model_used: "openai/gpt-5.2",
+        model_used: "google/gemini-2.5-pro",
       };
 
       const { error: upsertError } = await supabase
@@ -164,6 +164,25 @@ Responda em JSON com esta estrutura exata:
 
       if (upsertError) {
         console.error("Failed to save AI result:", upsertError);
+      }
+
+      // Also save part_category if we can infer it
+      if (analysis.probable_function) {
+        const CATEGORIES = ["Filtros","Vedações e Retentores","Motor e Componentes","Sistema Hidráulico","Sistema Elétrico","Estrutural e Chassi","Transmissão","Freios","Refrigeração","Rolamentos e Buchas","Acessórios e Outros"];
+        const func = analysis.probable_function.toLowerCase();
+        let cat = "Acessórios e Outros";
+        if (/filtr/i.test(func)) cat = "Filtros";
+        else if (/veda|retent|anel|oring|junta/i.test(func)) cat = "Vedações e Retentores";
+        else if (/motor|pistão|biela|válvula.*motor|cabeçote/i.test(func)) cat = "Motor e Componentes";
+        else if (/hidráulic|cilindro|bomba.*hidráulic|mangueira/i.test(func)) cat = "Sistema Hidráulico";
+        else if (/elétr|sensor|relé|alternador|motor.*arranque|chicote/i.test(func)) cat = "Sistema Elétrico";
+        else if (/estrutur|chassi|cabine|caçamba|braço|lança/i.test(func)) cat = "Estrutural e Chassi";
+        else if (/transmiss|engrenag|eixo|diferencial|embreag/i.test(func)) cat = "Transmissão";
+        else if (/freio|pastilha|disco.*freio|sapata/i.test(func)) cat = "Freios";
+        else if (/refriger|radiad|ventilad|termostato/i.test(func)) cat = "Refrigeração";
+        else if (/rolament|bucha|mancal/i.test(func)) cat = "Rolamentos e Buchas";
+
+        await supabase.from("parts").update({ part_category: cat }).eq("material", part.material);
       }
     } catch (saveErr) {
       console.error("Error saving AI result:", saveErr);

@@ -40,6 +40,21 @@ const t = {
   "filter.onDemand": { pt: "Sob Consulta", en: "On Demand", es: "Bajo Consulta" },
   "filter.clear": { pt: "Limpar Filtros", en: "Clear Filters", es: "Limpiar Filtros" },
   "filter.activeFilters": { pt: "filtros ativos", en: "active filters", es: "filtros activos" },
+  "filter.partCategory": { pt: "Tipo de Peça", en: "Part Type", es: "Tipo de Repuesto" },
+  "filter.allCategories": { pt: "Todas as categorias", en: "All categories", es: "Todas las categorías" },
+
+  // Part categories
+  "pcat.Filtros": { pt: "Filtros", en: "Filters", es: "Filtros" },
+  "pcat.Vedações e Retentores": { pt: "Vedações e Retentores", en: "Seals & Retainers", es: "Sellos y Retenes" },
+  "pcat.Motor e Componentes": { pt: "Motor e Componentes", en: "Engine & Components", es: "Motor y Componentes" },
+  "pcat.Sistema Hidráulico": { pt: "Sistema Hidráulico", en: "Hydraulic System", es: "Sistema Hidráulico" },
+  "pcat.Sistema Elétrico": { pt: "Sistema Elétrico", en: "Electrical System", es: "Sistema Eléctrico" },
+  "pcat.Estrutural e Chassi": { pt: "Estrutural e Chassi", en: "Structure & Chassis", es: "Estructura y Chasis" },
+  "pcat.Transmissão": { pt: "Transmissão", en: "Transmission", es: "Transmisión" },
+  "pcat.Freios": { pt: "Freios", en: "Brakes", es: "Frenos" },
+  "pcat.Refrigeração": { pt: "Refrigeração", en: "Cooling", es: "Refrigeración" },
+  "pcat.Rolamentos e Buchas": { pt: "Rolamentos e Buchas", en: "Bearings & Bushings", es: "Rodamientos y Bujes" },
+  "pcat.Acessórios e Outros": { pt: "Acessórios e Outros", en: "Accessories & Other", es: "Accesorios y Otros" },
 
   // Sort
   "sort.label": { pt: "Ordenar por", en: "Sort by", es: "Ordenar por" },

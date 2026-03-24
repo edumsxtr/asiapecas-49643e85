@@ -22,6 +22,7 @@ const LANG_FLAGS: { lang: Lang; label: string }[] = [
 export default function QuotePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [partCategory, setPartCategory] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lang, setLang] = useState<Lang>("pt");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -142,6 +143,8 @@ export default function QuotePage() {
         onSearchChange={setSearch}
         onCategoryClick={handleCategoryClick}
         activeCategory={category}
+        onPartCategoryClick={(key) => setPartCategory(prev => prev === key ? null : key)}
+        activePartCategory={partCategory}
         lang={lang}
       />
 
@@ -172,6 +175,8 @@ export default function QuotePage() {
         <QuoteCatalog
           search={search}
           category={category}
+          partCategory={partCategory}
+          onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)}
           cartItems={cartItems}
           onAddToCart={addToCart}
           lang={lang}
