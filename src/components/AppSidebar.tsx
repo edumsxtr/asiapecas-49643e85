@@ -14,6 +14,7 @@ import {
   FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import eliteLogo from "@/assets/elite-logo.png";
 import { useLocation } from "react-router-dom";
 import {
   Sidebar,
