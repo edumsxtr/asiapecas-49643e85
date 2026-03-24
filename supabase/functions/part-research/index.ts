@@ -81,7 +81,7 @@ Responda em JSON com esta estrutura exata:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5.2",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: "Você é um especialista técnico em equipamentos XCMG. Responda SEMPRE em JSON válido." },
           { role: "user", content: prompt },
