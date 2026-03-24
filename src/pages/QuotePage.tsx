@@ -175,6 +175,8 @@ export default function QuotePage() {
         <QuoteCatalog
           search={search}
           category={category}
+          partCategory={partCategory}
+          onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)}
           cartItems={cartItems}
           onAddToCart={addToCart}
           lang={lang}

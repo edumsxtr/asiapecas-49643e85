@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye, Filter, Cog, Zap, Wrench, Droplets, Disc, Snowflake, CircleDot, Box } from "lucide-react";
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
 import { type Lang, tr } from "./translations";
@@ -17,6 +17,8 @@ type CartItem = { material: string; description: string; quantity: number };
 interface QuoteCatalogProps {
   search: string;
   category: string | null;
+  partCategory?: string | null;
+  onPartCategoryChange?: (key: string) => void;
   cartItems: CartItem[];
   onAddToCart: (part: any) => void;
   lang: Lang;
@@ -31,6 +33,19 @@ const CATEGORY_MAP: Record<string, string> = {
   guindaste: "is_guindaste",
   caminhao_eletrico: "is_caminhao_eletrico",
 };
+
+const PART_CATEGORIES = [
+  { key: "Filtros", icon: Filter },
+  { key: "Vedações e Retentores", icon: Disc },
+  { key: "Motor e Componentes", icon: Cog },
+  { key: "Sistema Hidráulico", icon: Droplets },
+  { key: "Sistema Elétrico", icon: Zap },
+  { key: "Estrutural e Chassi", icon: Box },
+  { key: "Transmissão", icon: Wrench },
+  { key: "Rolamentos e Buchas", icon: CircleDot },
+  { key: "Refrigeração", icon: Snowflake },
+  { key: "Acessórios e Outros", icon: Box },
+];
 
 type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" | "priceDesc";
 type ViewMode = "grid" | "list";
