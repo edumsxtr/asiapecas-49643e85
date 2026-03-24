@@ -1,9 +1,31 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye, Brain, Package, Zap, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, type LucideIcon } from "lucide-react";
 import { type Lang, tr } from "./translations";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMemo } from "react";
+
+const ICON_KEYWORDS: [string[], LucideIcon, string][] = [
+  [["filtro", "filter"], Filter, "text-blue-500"],
+  [["engrenagem", "gear", "eixo", "rolamento", "bearing"], Cog, "text-zinc-500"],
+  [["disco", "brake", "freio", "disk"], Disc, "text-orange-500"],
+  [["parafuso", "bolt", "porca", "nut", "arruela", "washer"], Wrench, "text-slate-500"],
+  [["combustivel", "fuel", "tanque", "tank", "bomba", "pump"], Fuel, "text-amber-600"],
+  [["cabo", "cable", "fio", "wire", "chicote", "harness"], Cable, "text-purple-500"],
+  [["sensor", "modulo", "module", "eletron", "electr", "ecu", "placa"], CircuitBoard, "text-emerald-500"],
+  [["ventilador", "fan", "radiador", "radiator", "cooler"], Fan, "text-cyan-500"],
+  [["manometro", "gauge", "pressao", "pressure", "valvula", "valve"], Gauge, "text-red-500"],
+  [["martelo", "hammer", "pino", "pin", "bucha", "bushing"], Hammer, "text-stone-500"],
+];
+
+function getPartIcon(description: string): [LucideIcon, string] {
+  const lower = description.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const [keywords, icon, color] of ICON_KEYWORDS) {
+    if (keywords.some(k => lower.includes(k))) return [icon, color];
+  }
+  return [Package, "text-muted-foreground/30"];
+}
 
 interface QuotePartCardProps {
   part: {
@@ -25,6 +47,7 @@ interface QuotePartCardProps {
 export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAdd, onViewDetail, lang }: QuotePartCardProps) {
   const isReadyToShip = part.stock > 10;
   const isLastUnits = part.stock >= 1 && part.stock <= 5;
+  const [PartIcon, iconColor] = useMemo(() => getPartIcon(part.description), [part.description]);
 
   return (
     <Card className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border ${inCart ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"}`}>
@@ -75,8 +98,8 @@ export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAd
         </div>
 
         {/* Icon area */}
-        <div className="flex items-center justify-center py-5">
-          <Package className="h-14 w-14 text-muted-foreground/15 group-hover:text-primary/20 transition-colors" />
+        <div className="flex items-center justify-center py-5 bg-muted/30 mx-4 rounded-lg group-hover:bg-primary/5 transition-colors">
+          <PartIcon className={`h-12 w-12 ${iconColor} opacity-60 group-hover:opacity-100 transition-opacity`} />
         </div>
 
         {/* Description */}
