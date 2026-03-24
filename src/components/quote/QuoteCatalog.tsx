@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye } from "lucide-react";
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
 import { type Lang, tr } from "./translations";
@@ -31,6 +33,7 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" | "priceDesc";
+type ViewMode = "grid" | "list";
 
 export default function QuoteCatalog({ search, category, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
@@ -40,6 +43,7 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
   const [model, setModel] = useState<string>("all");
   const [availability, setAvailability] = useState<string>("all");
   const [sort, setSort] = useState<SortOption>("relevance");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Fetch filter options
   const { data: filterOptions } = useQuery({
@@ -245,6 +249,16 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
             </div>
 
             <div className="flex items-center gap-2">
+              {/* View mode toggle */}
+              <div className="flex items-center border rounded-md">
+                <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="h-9 w-9 p-0" onClick={() => setViewMode("grid")}>
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="h-9 w-9 p-0" onClick={() => setViewMode("list")}>
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+
               {/* Sort */}
               <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
                 <SelectTrigger className="h-9 text-xs w-[160px]">
@@ -294,12 +308,12 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
 
           {/* Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-2"}>
               {Array.from({ length: 9 }).map((_, i) => (
-                <Skeleton key={i} className="h-72 rounded-xl" />
+                <Skeleton key={i} className={viewMode === "grid" ? "h-72 rounded-xl" : "h-14 rounded-lg"} />
               ))}
             </div>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {data?.parts.map((part: any) => (
                 <QuotePartCard
@@ -313,6 +327,62 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
                   lang={lang}
                 />
               ))}
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[120px]">{lang === "pt" ? "Código" : lang === "en" ? "Code" : "Código"}</TableHead>
+                    <TableHead>{lang === "pt" ? "Descrição" : lang === "en" ? "Description" : "Descripción"}</TableHead>
+                    <TableHead className="hidden md:table-cell">{lang === "pt" ? "Modelo" : lang === "en" ? "Model" : "Modelo"}</TableHead>
+                    <TableHead className="text-right">{lang === "pt" ? "Estoque" : lang === "en" ? "Stock" : "Stock"}</TableHead>
+                    <TableHead className="text-right w-[140px]">{lang === "pt" ? "Ações" : lang === "en" ? "Actions" : "Acciones"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data?.parts.map((part: any) => {
+                    const desc = getDescription(part);
+                    const isInCart = inCartMaterials.has(part.material);
+                    return (
+                      <TableRow key={part.id} className="hover:bg-muted/50">
+                        <TableCell className="font-mono text-xs font-semibold text-primary">{part.material}</TableCell>
+                        <TableCell className="text-sm max-w-[300px] truncate">
+                          {desc}
+                          {data.aiMap[part.id] && <Badge variant="outline" className="ml-2 text-[10px] border-emerald-500/30 text-emerald-600">IA ✓</Badge>}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{part.machine_model || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          {part.stock > 10 ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">{part.stock} {tr("part.units", lang)}</Badge>
+                          ) : part.stock > 0 ? (
+                            <Badge variant="destructive" className="text-xs">{part.stock} {tr("part.units", lang)}</Badge>
+                          ) : (
+                            <Badge variant="secondary">{tr("part.unavailable", lang)}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setDetailPart({ ...part, description: desc })}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant={isInCart ? "secondary" : "default"}
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              disabled={isInCart}
+                              onClick={() => onAddToCart({ ...part, description: desc })}
+                            >
+                              <ShoppingCart className="h-3 w-3" />
+                              {isInCart ? tr("part.added", lang) : tr("part.quote", lang)}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
 

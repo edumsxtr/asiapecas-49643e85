@@ -60,7 +60,7 @@ export function DashboardPage() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">Dashboard de Gestão</h1>
-        <p className="text-sm text-muted-foreground mt-1">Visão integrada — Lopes & Lopes XCMG</p>
+        <p className="text-sm text-muted-foreground mt-1">Visão integrada — Elite Peças XCMG</p>
       </div>
 
       {/* KPIs */}

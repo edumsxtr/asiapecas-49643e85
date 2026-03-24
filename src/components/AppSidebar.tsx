@@ -14,6 +14,7 @@ import {
   FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import eliteLogo from "@/assets/elite-logo.png";
 import { useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -77,16 +78,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <span className="font-display font-bold text-primary-foreground text-sm">LL</span>
-          </div>
+          <img src={eliteLogo} alt="Elite Peças XCMG" className="h-9 w-auto rounded-lg shrink-0" />
           {!collapsed && (
             <div className="overflow-hidden">
               <p className="font-display font-bold text-sm text-sidebar-foreground truncate">
-                Lopes & Lopes
+                Elite Peças XCMG
               </p>
               <p className="text-[10px] text-sidebar-foreground/60 uppercase tracking-wider">
-                XCMG Peças
+                Distribuidor XCMG
               </p>
             </div>
           )}
