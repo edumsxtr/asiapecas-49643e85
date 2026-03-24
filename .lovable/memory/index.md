@@ -1,0 +1,1 @@
+Brand: Elite Peças XCMG (formerly Lopes & Lopes). Logo: src/assets/elite-logo.png. WhatsApp: 559597400928. Colors: yellow (HSL 45 100% 50%) and black. Fonts: Space Grotesk (headings), Inter (body). Sidebar layout with dark sidebar. Language: Portuguese BR. Portal multilíngue PT/EN/ES em /cotacao.

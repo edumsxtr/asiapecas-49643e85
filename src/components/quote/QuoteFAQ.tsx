@@ -24,7 +24,7 @@ export default function QuoteFAQ({ lang }: { lang: Lang }) {
 
         <div className="text-center">
           <a
-            href="https://wa.me/5500000000000"
+            href="https://wa.me/559597400928?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20especialista%20XCMG"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-[hsl(142,71%,45%)] text-white px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
