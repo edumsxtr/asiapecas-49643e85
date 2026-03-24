@@ -210,6 +210,31 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
         </div>
       </div>
 
+      {/* Part Category */}
+      {onPartCategoryChange && (
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">{tr("filter.partCategory", lang)}</label>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => { if (partCategory && onPartCategoryChange) onPartCategoryChange(partCategory); }}
+              className={`text-left text-xs px-3 py-2 rounded-md transition-colors ${!partCategory ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"}`}
+            >
+              {tr("filter.allCategories", lang)}
+            </button>
+            {PART_CATEGORIES.map(cat => (
+              <button
+                key={cat.key}
+                onClick={() => onPartCategoryChange(cat.key)}
+                className={`flex items-center gap-2 text-left text-xs px-3 py-2 rounded-md transition-colors ${partCategory === cat.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"}`}
+              >
+                <cat.icon className="h-3.5 w-3.5" />
+                {tr(`pcat.${cat.key}` as any, lang)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Manufacturer */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-muted-foreground">{tr("filter.manufacturer", lang)}</label>
