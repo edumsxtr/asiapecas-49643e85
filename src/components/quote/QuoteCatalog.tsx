@@ -50,7 +50,7 @@ const PART_CATEGORIES = [
 type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" | "priceDesc";
 type ViewMode = "grid" | "list";
 
-export default function QuoteCatalog({ search, category, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
+export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
