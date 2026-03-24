@@ -1,60 +1,49 @@
 
 
-# Plano: Sincronizar Catálogo Completo + Salvar Pesquisas IA + Exportar Planilha
+# Plano: Sincronizar Estoque com Planilha Completa (20.436 linhas → 498k unidades → R$ 204M+)
 
 ## Diagnóstico
 
-| Dado | Planilha | Banco Atual | Gap |
-|------|----------|-------------|-----|
-| Linhas | 20.436 | 15.298 | 5.138 linhas a mais na planilha |
-| Materiais únicos | ~15.298 | 15.298 | Os mesmos materiais, mas a planilha tem **duplicatas** (mesmo material em modelos/estoques diferentes) |
+A planilha tem **20.436 linhas**, mas muitos materiais aparecem repetidos com estoques diferentes. Exemplo real:
 
-A planilha tem o mesmo material repetido com estoques e modelos diferentes (ex: `272102015` aparece 2x com stock 45 e 20). O banco tem 1 registro por material. Os totais diferem porque a planilha soma os estoques de linhas duplicadas.
+| Material | Linhas na planilha | Estoque planilha (soma) | Estoque no banco |
+|----------|-------------------|------------------------|-----------------|
+| 860132921 | 3x (386+380+348) | **1.114** | 386 (só 1a linha) |
+| 272102015 | 2x (45+20) | **65** | 85 (parece ok) |
+| 453101366 | 2x (279+204) | **483** | 484 (ok) |
 
-## O que vou fazer
+**O problema**: a importação original não somou os estoques das linhas duplicadas de forma consistente. Resultado: faltam ~36k unidades e ~R$ 16M em valor.
 
-### 1. Importar planilha completa via script SQL
-- Processar o Excel, agrupar por material (somando estoques de linhas duplicadas)
-- Atualizar stock e estimated_price de todos os 15.298 materiais
-- Para materiais com múltiplos modelos na planilha, concatenar os modelos no campo `compatible_models`
-- Gerar uma migration com todos os UPDATEs usando tabela temporária (executa direto no banco, sem timeout)
+| Métrica | Planilha (correto) | Banco atual | Gap |
+|---------|-------------------|-------------|-----|
+| Materiais únicos | ~15.298 | 15.298 | OK |
+| Unidades totais | ~498.000 | 461.669 | -36.331 |
+| Valor total | ~R$ 204M+ | R$ 188M | -R$ 16M |
 
-### 2. Nova tabela `ai_compatibility_results` — salvar pesquisas da IA
-- Campos: `id`, `part_id` (FK parts), `material`, `compatible_machines` (text[]), `technical_description`, `probable_function`, `technical_specs` (text[]), `maintenance_tips`, `related_parts` (text[]), `researched_at`, `model_used`
-- Quando o usuário clicar "Pesquisar com IA" na aba de compatibilidade, o resultado é salvo automaticamente nesta tabela
-- Na próxima vez que abrir a mesma peça, mostra o resultado salvo (com opção de "Atualizar pesquisa")
+## Solução
 
-### 3. Atualizar edge function `part-research`
-- Após receber resposta da IA, salvar resultado na tabela `ai_compatibility_results`
-- Se já existe resultado salvo para aquele material, atualizar
+### 1. Script de correção via psql
+- Ler a planilha completa (20.436 linhas) com Python/pandas
+- Agrupar por material, **somar estoques** de todas as linhas duplicadas
+- Para preço: usar a **média ponderada** (ou o maior preço quando houver variação)
+- Para `compatible_models`: **concatenar** todos os modelos únicos das linhas duplicadas
+- Gerar SQL de UPDATE em massa e executar direto no banco
 
-### 4. Atualizar componente `PartAIResearch.tsx`
-- Ao abrir, verificar se já existe pesquisa salva para a peça
-- Se sim, mostrar resultado salvo com data + botão "Atualizar Pesquisa"
-- Se não, mostrar botão "Pesquisar com IA" como hoje
+### 2. Execução
+- Processar o arquivo `Peças_Valor_estimado.xlsx` com pandas
+- Gerar updates em batches de 500 via `psql`
+- Verificar totais finais: deve bater ~498k unidades e ~R$ 204M+
 
-### 5. Atualizar hook `use-part-ai-research.ts`
-- Adicionar query para buscar pesquisa salva da tabela `ai_compatibility_results`
-- Adicionar mutação para salvar/atualizar resultado
+### 3. Validação
+- Query de verificação final comparando totais do banco com totais da planilha
+- Se houver materiais na planilha que não existem no banco, inserir como novos
 
-### 6. Exportação de planilha consolidada
-- Novo botão "Exportar Catálogo" no header do catálogo (ao lado de "Importar Planilha")
-- Exporta XLSX com todas as peças + colunas de compatibilidade IA (se pesquisadas)
-- Colunas: Material, Descrição, Estoque, Preço, Modelo, Fabricante, Categorias, Tempo Entrada, **Máquinas Compatíveis (IA)**, **Descrição Técnica (IA)**, **Data Pesquisa IA**
+## Detalhes Técnicos
+- Usar `psql` com INSERT access para inserir novos materiais (se existirem)
+- Para updates, criar migration SQL com tabela temporária
+- O script roda fora do app, direto no banco — sem timeout de edge function
 
-### 7. Incluir pesquisas IA no contexto do chat
-- Atualizar `chat/index.ts` para consultar `ai_compatibility_results` quando relevante
-
-## Banco de Dados
-- Migration: CREATE TABLE `ai_compatibility_results` + RLS pública
-- Migration: UPDATE em massa de stock/price via tabela temporária (dados da planilha)
-
-## Arquivos a criar/editar
-- **Migration SQL**: nova tabela + updates de estoque
-- `supabase/functions/part-research/index.ts` — salvar resultado no banco
-- `src/hooks/use-part-ai-research.ts` — buscar resultado salvo + salvar
-- `src/components/catalog/PartAIResearch.tsx` — mostrar resultado salvo
-- `src/components/catalog/CatalogContent.tsx` — botão "Exportar Catálogo"
-- `src/components/catalog/ExportCatalogButton.tsx` — novo componente de exportação
-- `supabase/functions/chat/index.ts` — incluir ai_compatibility_results no contexto
+## Arquivos
+- Nenhum arquivo do projeto precisa mudar — é apenas correção de dados no banco
+- Após correção, os dashboards e catálogo refletirão automaticamente os valores corretos
 
