@@ -6,8 +6,9 @@ import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
-import { Search, ClipboardList, Send } from "lucide-react";
+import { Search, ClipboardList, Send, MessageCircle } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
+import eliteLogo from "@/assets/elite-logo.png";
 
 type CartItem = { material: string; description: string; quantity: number };
 
