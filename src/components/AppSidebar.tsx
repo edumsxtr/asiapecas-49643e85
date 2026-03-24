@@ -131,7 +131,16 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border px-4 py-3">
+      <SidebarFooter className="border-t border-sidebar-border px-4 py-3 space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          className="w-full justify-start text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10"
+        >
+          <LogOut className="h-4 w-4 mr-2 shrink-0" />
+          {!collapsed && <span>Sair</span>}
+        </Button>
         {!collapsed && (
           <p className="text-[10px] text-sidebar-foreground/30">
             v1.0 · Fase 1
