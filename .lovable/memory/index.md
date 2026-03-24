@@ -1,1 +1,8 @@
-Brand: Elite Peças XCMG (formerly Lopes & Lopes). Logo: src/assets/elite-logo.png. WhatsApp: 559597400928. Colors: yellow (HSL 45 100% 50%) and black. Fonts: Space Grotesk (headings), Inter (body). Sidebar layout with dark sidebar. Language: Portuguese BR. Portal multilíngue PT/EN/ES em /cotacao.
+# Memory: index.md
+
+XCMG parts management system for Elite Peças XCMG. Brand colors: yellow (HSL 45 100% 50%) and black. Fonts: Space Grotesk (headings), Inter (body). Sidebar layout with dark sidebar. Language: Portuguese BR.
+
+Company: Elite Peças XCMG. WhatsApp: 5595974009289. Logo: src/assets/elite-logo.png.
+Portal público: /cotacao (sem login). Sistema interno: protegido com auth.
+AI models: gemini-2.5-pro (part-research), gemini-3-flash-preview (batch + categorize).
+Part categories column: part_category TEXT on parts table (Filtros, Vedações, Motor, Hidráulica, etc).
