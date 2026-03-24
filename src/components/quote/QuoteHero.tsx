@@ -1,10 +1,10 @@
-import { Search, Pickaxe, Construction, Drill, Container, Truck, Package } from "lucide-react";
+import { Search, Pickaxe, Construction, Drill, Container, Truck, Package, Filter, Cog, Zap, Wrench, Droplets, Disc, Snowflake, CircleDot, Box } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, tr } from "./translations";
 
-const categories = [
+const machineCategories = [
   { icon: Pickaxe, key: "mineracao" },
   { icon: Construction, key: "linha_amarela" },
   { icon: Drill, key: "perfuratriz" },
@@ -12,15 +12,29 @@ const categories = [
   { icon: Truck, key: "caminhao_eletrico" },
 ] as const;
 
+const partCategories = [
+  { icon: Filter, key: "Filtros" },
+  { icon: Disc, key: "Vedações e Retentores" },
+  { icon: Cog, key: "Motor e Componentes" },
+  { icon: Droplets, key: "Sistema Hidráulico" },
+  { icon: Zap, key: "Sistema Elétrico" },
+  { icon: Box, key: "Estrutural e Chassi" },
+  { icon: Wrench, key: "Transmissão" },
+  { icon: CircleDot, key: "Rolamentos e Buchas" },
+  { icon: Snowflake, key: "Refrigeração" },
+] as const;
+
 interface QuoteHeroProps {
   search: string;
   onSearchChange: (val: string) => void;
   onCategoryClick: (key: string) => void;
   activeCategory: string | null;
+  onPartCategoryClick?: (key: string) => void;
+  activePartCategory?: string | null;
   lang: Lang;
 }
 
-export default function QuoteHero({ search, onSearchChange, onCategoryClick, activeCategory, lang }: QuoteHeroProps) {
+export default function QuoteHero({ search, onSearchChange, onCategoryClick, activeCategory, onPartCategoryClick, activePartCategory, lang }: QuoteHeroProps) {
   const { data: stats } = useQuery({
     queryKey: ["hero-stats"],
     queryFn: async () => {
@@ -59,22 +73,53 @@ export default function QuoteHero({ search, onSearchChange, onCategoryClick, act
           />
         </div>
 
-        <div className="flex flex-wrap justify-center gap-3 pt-2">
-          {categories.map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => onCategoryClick(cat.key)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
-                activeCategory === cat.key
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "bg-secondary-foreground/10 text-secondary-foreground/80 hover:bg-primary/20 hover:text-primary"
-              }`}
-            >
-              <cat.icon className="h-4 w-4" />
-              {tr(`cat.${cat.key}` as any, lang)}
-            </button>
-          ))}
+        {/* Machine categories */}
+        <div className="space-y-2">
+          <p className="text-xs text-secondary-foreground/50 uppercase tracking-wider font-medium">
+            {lang === "pt" ? "Por tipo de máquina" : lang === "en" ? "By machine type" : "Por tipo de máquina"}
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {machineCategories.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => onCategoryClick(cat.key)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+                  activeCategory === cat.key
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-secondary-foreground/10 text-secondary-foreground/80 hover:bg-primary/20 hover:text-primary"
+                }`}
+              >
+                <cat.icon className="h-4 w-4" />
+                {tr(`cat.${cat.key}` as any, lang)}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Part type categories */}
+        {onPartCategoryClick && (
+          <div className="space-y-2">
+            <p className="text-xs text-secondary-foreground/50 uppercase tracking-wider font-medium">
+              {lang === "pt" ? "Por tipo de peça" : lang === "en" ? "By part type" : "Por tipo de repuesto"}
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {partCategories.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => onPartCategoryClick(cat.key)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all ${
+                    activePartCategory === cat.key
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "bg-secondary-foreground/10 text-secondary-foreground/70 hover:bg-primary/20 hover:text-primary"
+                  }`}
+                >
+                  <cat.icon className="h-3.5 w-3.5" />
+                  {tr(`pcat.${cat.key}` as any, lang)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
