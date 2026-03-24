@@ -1,30 +1,85 @@
 
 
-# Plano: Separar botões flutuantes + Corrigir WhatsApp
+# Plano: Autenticação + Separação Portal Público vs Sistema Interno
 
-## Problema
+## Situação Atual
 
-1. **Sobreposição**: O botão do WhatsApp e o botão do carrinho estão ambos em `fixed bottom-6 right-6 z-50` — ficam sobrepostos, causando cliques errados
-2. **Número WhatsApp incorreto**: O link usa `559597400928` (faltando dígito). O correto é `5595974009289` (55 + 95 + 974009289)
+- `/cotacao` — portal do cliente (deve continuar **público**, sem login)
+- Todas as outras rotas (`/`, `/catalogo`, `/estoque`, `/clientes`, `/vendas`, etc.) — sistema operacional interno, atualmente **sem proteção nenhuma**
+- Dados sensíveis de clientes, vendas, prospects estão acessíveis a qualquer pessoa que acesse as URLs
+- Não existe autenticação no sistema
 
-## Solução
+## O que vou fazer
 
-### 1. Reposicionar botões flutuantes
+### 1. Página de Login (`/login`)
 
-- **Carrinho**: manter `bottom-6 right-6` (posição principal)
-- **WhatsApp**: mover para `bottom-24 right-6` (acima do carrinho, com espaço)
-- **Chat IA**: já está em `bottom-6 left-6` (sem conflito)
+- Formulário com email + senha (design com cores da marca Elite Peças)
+- Opções: Login e Cadastro (com abas)
+- Validação de email obrigatória (sem auto-confirm — o usuário precisa verificar o email)
+- Página de recuperação de senha (`/reset-password`)
+- Logo Elite Peças no topo
 
-### 2. Corrigir número WhatsApp em todos os lugares
+### 2. Contexto de Autenticação (`AuthContext`)
 
-Trocar `559597400928` por `5595974009289` em:
-- `QuotePage.tsx` (header + botão flutuante)
-- `QuoteFAQ.tsx` (botão "Fale com especialista")
+- Provider que escuta `onAuthStateChange` do backend
+- Verifica sessão ativa
+- Expõe `user`, `loading`, `signIn`, `signUp`, `signOut`
 
-## Arquivos a editar
+### 3. Componente de Rota Protegida (`ProtectedRoute`)
+
+- Wrapper que verifica se há usuário autenticado
+- Se não autenticado, redireciona para `/login`
+- Mostra loading enquanto verifica sessão
+
+### 4. Separação de Rotas no `App.tsx`
+
+**Rotas públicas** (sem login):
+- `/cotacao` — portal do cliente
+- `/login` — login/cadastro
+- `/reset-password` — redefinir senha
+
+**Rotas protegidas** (exigem login):
+- `/` — Dashboard
+- `/catalogo`, `/estoque`, `/clientes`, `/vendas`, `/pos-venda`
+- `/pedidos/novo`, `/prospeccao`, `/pesquisa-mercado`
+- `/assistente`, `/relatorio`, `/configuracoes`
+
+### 5. Botão Logout no Sidebar
+
+- Adicionar botão "Sair" no rodapé do sidebar
+- Ao clicar, faz logout e redireciona para `/login`
+
+### 6. RLS — Proteger dados sensíveis
+
+As tabelas `customers`, `sales`, `prospects`, `after_sales` atualmente permitem acesso público (SELECT/INSERT/UPDATE/DELETE para `{public}`). Vou restringir para apenas usuários autenticados:
+
+- `customers` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `sales` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `sale_items` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `prospects` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `after_sales` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `prospection_campaigns` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `market_research` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
+- `stock_imports` / `stock_import_items` — apenas `authenticated`
+
+Tabelas que continuam públicas:
+- `parts` — SELECT público (o portal do cliente precisa ler)
+- `quote_requests` — INSERT público (cliente envia cotação sem login)
+- `ai_compatibility_results` — SELECT público (portal do cliente usa)
+
+## Arquivos a criar/editar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/QuotePage.tsx` | Mover WhatsApp para `bottom-24`, corrigir número |
-| `src/components/quote/QuoteFAQ.tsx` | Corrigir número do WhatsApp |
+| `src/pages/LoginPage.tsx` | Criar — login/cadastro com email+senha |
+| `src/pages/ResetPasswordPage.tsx` | Criar — redefinir senha |
+| `src/contexts/AuthContext.tsx` | Criar — provider de autenticação |
+| `src/components/ProtectedRoute.tsx` | Criar — wrapper de rota protegida |
+| `src/App.tsx` | Editar — envolver rotas internas com ProtectedRoute |
+| `src/components/AppSidebar.tsx` | Editar — adicionar botão Sair |
+| Migration SQL | Atualizar RLS — restringir tabelas sensíveis para `authenticated` |
+
+## Banco de Dados
+
+Migration para atualizar as policies RLS das tabelas sensíveis, trocando `{public}` por `{authenticated}` em SELECT/INSERT/UPDATE/DELETE.
 
