@@ -52,6 +52,7 @@ const toolItems = [
   { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
   { title: "Relatório Executivo", url: "/relatorio", icon: FileBarChart },
   { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
+  { title: "Treinamento", url: "/treinamento", icon: GraduationCap },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
