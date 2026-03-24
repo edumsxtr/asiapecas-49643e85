@@ -9,6 +9,7 @@ import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
 import { PartDetailDialog } from "./PartDetailDialog";
 import { ImportCatalogDialog } from "./ImportCatalogDialog";
+import { ExportCatalogButton } from "./ExportCatalogButton";
 
 export function CatalogContent() {
   const [search, setSearch] = useState("");
@@ -52,9 +53,12 @@ export function CatalogContent() {
             {total.toLocaleString("pt-BR")} peça(s) encontrada(s)
           </p>
         </div>
-        <Button variant="outline" onClick={() => setShowImport(true)}>
-          <Upload className="h-4 w-4 mr-1" /> Importar Planilha
-        </Button>
+        <div className="flex gap-2">
+          <ExportCatalogButton />
+          <Button variant="outline" onClick={() => setShowImport(true)}>
+            <Upload className="h-4 w-4 mr-1" /> Importar Planilha
+          </Button>
+        </div>
       </div>
 
       {/* Search + View Toggle */}

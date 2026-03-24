@@ -143,6 +143,32 @@ Responda em JSON com esta estrutura exata:
     // Add related parts from our catalog
     analysis.catalog_related = relatedParts.slice(0, 5);
 
+    // Save/update AI result to ai_compatibility_results table
+    try {
+      const upsertData = {
+        part_id: part.id,
+        material: part.material,
+        compatible_machines: analysis.compatible_machines || [],
+        technical_description: analysis.technical_description || "",
+        probable_function: analysis.probable_function || "",
+        technical_specs: analysis.technical_specs || [],
+        maintenance_tips: analysis.maintenance_tips || "",
+        related_parts: analysis.related_parts || [],
+        researched_at: new Date().toISOString(),
+        model_used: "openai/gpt-5.2",
+      };
+
+      const { error: upsertError } = await supabase
+        .from("ai_compatibility_results")
+        .upsert(upsertData, { onConflict: "material" });
+
+      if (upsertError) {
+        console.error("Failed to save AI result:", upsertError);
+      }
+    } catch (saveErr) {
+      console.error("Error saving AI result:", saveErr);
+    }
+
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

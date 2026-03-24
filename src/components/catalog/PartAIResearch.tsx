@@ -2,7 +2,7 @@ import { usePartAIResearch } from "@/hooks/use-part-ai-research";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Brain, Loader2, Cpu, Wrench, Cog } from "lucide-react";
+import { Brain, Loader2, Cpu, Wrench, Cog, RefreshCw, Clock } from "lucide-react";
 import { formatBRL } from "@/hooks/use-parts";
 
 interface Props {
@@ -10,16 +10,37 @@ interface Props {
 }
 
 export function PartAIResearch({ material }: Props) {
-  const { research, loading, analysis, clear } = usePartAIResearch();
+  const { research, loading, analysis, savedResult, loadingSaved, clear } = usePartAIResearch(material);
 
-  if (!analysis && !loading) {
+  // Use fresh analysis if available, otherwise use saved result
+  const displayData = analysis || (savedResult ? {
+    technical_description: savedResult.technical_description,
+    probable_function: savedResult.probable_function,
+    compatible_machines: savedResult.compatible_machines || [],
+    technical_specs: savedResult.technical_specs || [],
+    maintenance_tips: savedResult.maintenance_tips,
+    related_parts: savedResult.related_parts || [],
+    catalog_related: undefined,
+  } : null);
+
+  const isSavedOnly = !analysis && !!savedResult;
+
+  if (loadingSaved) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!displayData && !loading) {
     return (
       <div className="flex flex-col items-center py-6 gap-3">
         <Brain className="h-10 w-10 text-muted-foreground/40" />
         <p className="text-sm text-muted-foreground text-center">
           Use IA para obter informações técnicas, compatibilidade e sugestões de peças relacionadas.
         </p>
-        <Button onClick={() => research(material)} size="sm">
+        <Button onClick={research} size="sm">
           <Brain className="h-4 w-4 mr-1" /> Pesquisar com IA
         </Button>
       </div>
@@ -35,16 +56,28 @@ export function PartAIResearch({ material }: Props) {
     );
   }
 
-  if (!analysis) return null;
+  if (!displayData) return null;
 
   return (
     <div className="space-y-4">
+      {isSavedOnly && savedResult && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/50 rounded px-3 py-2">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            Pesquisado em {new Date(savedResult.researched_at).toLocaleDateString("pt-BR")}
+          </div>
+          <Button variant="ghost" size="sm" onClick={research} className="h-6 text-xs gap-1">
+            <RefreshCw className="h-3 w-3" /> Atualizar
+          </Button>
+        </div>
+      )}
+
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Cpu className="h-4 w-4 text-primary" />
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descrição Técnica</p>
         </div>
-        <p className="text-sm text-foreground">{analysis.technical_description}</p>
+        <p className="text-sm text-foreground">{displayData.technical_description}</p>
       </div>
 
       <div>
@@ -52,38 +85,38 @@ export function PartAIResearch({ material }: Props) {
           <Cog className="h-4 w-4 text-primary" />
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Função</p>
         </div>
-        <p className="text-sm text-foreground">{analysis.probable_function}</p>
+        <p className="text-sm text-foreground">{displayData.probable_function}</p>
       </div>
 
       <Separator />
 
-      {analysis.compatible_machines?.length > 0 && (
+      {displayData.compatible_machines?.length > 0 && (
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
             Máquinas Compatíveis (IA)
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {analysis.compatible_machines.map((m) => (
+            {displayData.compatible_machines.map((m) => (
               <Badge key={m} variant="secondary" className="text-xs">{m}</Badge>
             ))}
           </div>
         </div>
       )}
 
-      {analysis.technical_specs?.length > 0 && (
+      {displayData.technical_specs?.length > 0 && (
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
             Especificações Técnicas
           </p>
           <ul className="text-sm space-y-1">
-            {analysis.technical_specs.map((s, i) => (
+            {displayData.technical_specs.map((s, i) => (
               <li key={i} className="text-foreground">• {s}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {analysis.maintenance_tips && (
+      {displayData.maintenance_tips && (
         <>
           <Separator />
           <div>
@@ -91,12 +124,12 @@ export function PartAIResearch({ material }: Props) {
               <Wrench className="h-4 w-4 text-primary" />
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Manutenção</p>
             </div>
-            <p className="text-sm text-foreground">{analysis.maintenance_tips}</p>
+            <p className="text-sm text-foreground">{displayData.maintenance_tips}</p>
           </div>
         </>
       )}
 
-      {analysis.catalog_related && analysis.catalog_related.length > 0 && (
+      {analysis?.catalog_related && analysis.catalog_related.length > 0 && (
         <>
           <Separator />
           <div>
