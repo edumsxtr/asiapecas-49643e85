@@ -241,6 +241,7 @@ export type Database = {
           machine_model: string | null
           manufacturer: string | null
           material: string
+          reviewed_at: string | null
           stock: number
           supplier: string | null
           updated_at: string
@@ -260,6 +261,7 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material: string
+          reviewed_at?: string | null
           stock?: number
           supplier?: string | null
           updated_at?: string
@@ -279,6 +281,7 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material?: string
+          reviewed_at?: string | null
           stock?: number
           supplier?: string | null
           updated_at?: string
@@ -585,6 +588,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_duplicate_parts: {
+        Args: never
+        Returns: {
+          description_a: string
+          description_b: string
+          material_a: string
+          material_b: string
+          price_a: number
+          price_b: number
+          stock_a: number
+          stock_b: number
+        }[]
+      }
       get_dashboard_stats: { Args: never; Returns: Json }
     }
     Enums: {
