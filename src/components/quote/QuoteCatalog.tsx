@@ -81,7 +81,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory].filter(Boolean).length;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["quote-parts", search, category, page, manufacturer, model, availability, sort],
+    queryKey: ["quote-parts", search, category, partCategory, page, manufacturer, model, availability, sort],
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
