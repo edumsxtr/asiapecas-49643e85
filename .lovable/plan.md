@@ -1,73 +1,58 @@
 
 
-# Plano: Catálogo do Cliente com Técnicas Avançadas de E-commerce
+# Plano: Rebranding para Elite Peças XCMG + Info Institucional + WhatsApp
 
-## Objetivo
-Transformar o portal `/cotacao` num catálogo que prende a atenção do cliente, incentiva exploração e maximiza conversão usando técnicas comprovadas de e-commerce.
+## O que muda
 
-## Melhorias
+A empresa agora se chama **Elite Peças XCMG**. A logo enviada (fundo amarelo, ícone azul/amarelo) será adicionada ao projeto. O número de WhatsApp é **95 9 7400-9289** (55 95 974009289).
 
-### 1. Filtros Avançados no Catálogo (QuoteCatalog)
+## Implementação
 
-Sidebar lateral com filtros persistentes:
-- **Por fabricante**: dropdown com contagem de peças por fabricante
-- **Por modelo de máquina**: dropdown agrupado
-- **Por disponibilidade**: "Pronta Entrega" vs "Sob Consulta"
-- **Busca por código exato**: campo separado para quem já sabe o material
-- **Limpar filtros**: botão visível quando há filtros ativos
-- **Contagem de resultados** atualizada em tempo real
+### 1. Copiar logo para o projeto
+- Salvar `user-uploads://image-2.png` em `src/assets/elite-logo.png`
+- Usar como `import` nos componentes
 
-### 2. Técnicas de E-commerce no QuotePartCard
+### 2. Atualizar Header do Portal (`QuotePage.tsx`)
+- Trocar "LL" / "Lopes & Lopes" pela imagem da logo Elite Peças
+- Atualizar link WhatsApp para `https://wa.me/559597400928`
+- Botão WhatsApp verde flutuante fixo no canto inferior direito (separado do chat IA)
 
-- **"Pronta Entrega"**: badge verde pulsante quando stock > 10
-- **"Últimas unidades!"**: badge vermelha quando stock entre 1-5 (escassez)
-- **"Compatibilidade verificada por IA"**: selo de confiança no card quando tem dados IA
-- **Hover com preview rápido**: ao passar o mouse, mostra descrição técnica da IA em tooltip
-- **Animação de entrada**: cards aparecem com fade-in escalonado (stagger)
-- **"Peças populares"**: seção no topo com as 4 peças mais vendidas (cross com sale_items)
-- **"Vistos recentemente"**: barra fixa inferior com últimos 5 itens clicados (localStorage)
+### 3. Atualizar Hero (`QuoteHero.tsx`)
+- Manter estrutura, trocar textos de referência à marca
 
-### 3. Seção "Peças Populares" e "Recomendados"
+### 4. Atualizar Footer (`QuoteFooter.tsx`)
+- Logo Elite Peças em vez de "LL"
+- Nome: "Elite Peças XCMG"
+- Texto institucional: distribuidor de peças XCMG, atuação Brasil/Venezuela/Guiana
+- Contato real: WhatsApp 95 9 7400-9289
+- Email placeholder: contato@elitepecas.com.br
 
-Antes do grid principal, 2 carrosséis horizontais:
-- **"Mais Cotados"**: query nas peças que mais aparecem em `quote_requests.items`
-- **"Novidades em Estoque"**: peças adicionadas recentemente (ordered by created_at)
-- Cards menores, scroll horizontal, clicáveis
+### 5. Atualizar traduções (`translations.ts`)
+- Trocar todas as referências "Lopes & Lopes" por "Elite Peças"
+- Atualizar `footer.about` com texto institucional do plano de negócios
+- Atualizar `chat.title` e `chat.greeting` com novo nome
 
-### 4. Ordenação Visível
+### 6. Chat IA (`QuoteChat.tsx`)
+- Trocar título para "Assistente Elite Peças"
 
-Dropdown de ordenação acima do grid:
-- Relevância (padrão)
-- Maior estoque
-- Nome A-Z
-- Adicionados recentemente
+### 7. FAQ (`QuoteFAQ.tsx`)
+- Botão WhatsApp aponta para número correto
 
-### 5. Contador de Urgência e Social Proof
+### 8. Botão WhatsApp flutuante
+- Adicionar em `QuotePage.tsx` um botão verde fixo no canto inferior direito com ícone WhatsApp
+- Link: `https://wa.me/559597400928` com mensagem pré-preenchida "Olá, gostaria de informações sobre peças XCMG"
 
-- **"X pessoas cotaram esta peça"**: contador baseado em quote_requests (contagem real)
-- **"Estoque atualizado hoje"**: timestamp da última importação
-- **Barra de progresso do carrinho**: "Adicione mais X peças para cotação especial"
-
-### 6. Mobile Otimizado
-
-- Filtros em sheet/drawer lateral (botão "Filtros" flutuante)
-- Cards em 1 coluna com layout compacto
-- Carrinho como bottom sheet
-- Busca com sugestões autocomplete
-
-## Traduções
-
-Todas as novas strings serão adicionadas ao `translations.ts` em PT/EN/ES.
-
-## Arquivos a criar/editar
+## Arquivos a editar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/quote/QuoteCatalog.tsx` | Reescrever — sidebar filtros, ordenação, seções populares, social proof |
-| `src/components/quote/QuotePartCard.tsx` | Editar — badges escassez, pronta entrega, hover preview, animação |
-| `src/components/quote/translations.ts` | Editar — novas strings (filtros, ordenação, urgência) |
-| `src/pages/QuotePage.tsx` | Editar — passar novos estados de filtro ao catálogo |
-| `src/components/quote/QuoteHero.tsx` | Editar — adicionar stats ("15.000+ peças disponíveis") |
+| `src/assets/elite-logo.png` | Criar — copiar logo |
+| `src/pages/QuotePage.tsx` | Editar — header com logo, WhatsApp flutuante |
+| `src/components/quote/QuoteHero.tsx` | Editar — referências de marca |
+| `src/components/quote/QuoteFooter.tsx` | Editar — logo, nome, contato, institucional |
+| `src/components/quote/QuoteChat.tsx` | Editar — título do assistente |
+| `src/components/quote/QuoteFAQ.tsx` | Editar — link WhatsApp correto |
+| `src/components/quote/translations.ts` | Editar — trocar "Lopes & Lopes" por "Elite Peças" em PT/EN/ES |
 
-Nenhuma alteração no banco de dados.
+Sem alterações no banco de dados.
 
