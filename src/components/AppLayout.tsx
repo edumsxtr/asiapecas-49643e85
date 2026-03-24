@@ -12,7 +12,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             <div className="h-5 w-px bg-border" />
             <h2 className="font-display text-sm font-semibold text-foreground truncate">
-              Sistema de Gestão XCMG
+              Elite Peças XCMG — Sistema de Gestão
             </h2>
           </header>
           <main className="flex-1 overflow-auto">
