@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Package, ShoppingCart, Users, Wrench, CheckCircle2, XCircle,
-  HardHat, Mountain, Drill, Crane, Truck, BarChart3, TrendingDown,
+  HardHat, Mountain, Drill, Construction, Truck, BarChart3, TrendingDown,
   AlertTriangle, FileText, Radar, MessageSquare, Search, ClipboardList,
   Globe, Award, Lightbulb, Target,
 } from "lucide-react";
