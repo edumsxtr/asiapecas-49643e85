@@ -1,57 +1,67 @@
 
 
-# Plano: Relatório Executivo + Explicação 20k vs 15k + Alinhamento com Plano de Negócios
+# Plano: Pesquisa IA em Massa + Catálogo Interativo + Carrinho Integrado + Portal do Cliente
 
-## Por que 15.298 e não 20.436
+## 4 Grandes Entregas
 
-A planilha tem **20.436 linhas**, mas muitos materiais se repetem (mesmo código, modelos diferentes). Ao agrupar por código de material, restam **~15.298 materiais únicos**. Os estoques das linhas repetidas são somados. Isso precisa ser explicado claramente no app.
+### 1. Pesquisa IA em Massa (Batch) — Todas as 15k peças pré-pesquisadas
 
-## O que vou fazer
+**Edge Function `batch-ai-research/index.ts`**:
+- Recebe um lote de materiais (50 por vez)
+- Para cada peça sem pesquisa salva em `ai_compatibility_results`, chama a IA (gemini-2.5-flash para velocidade e custo)
+- Salva resultados automaticamente
+- Controle de rate limit com delay entre chamadas
 
-### 1. Nova página `/relatorio` — Relatório Executivo Interativo
+**Botão no Catálogo**: "Pesquisar Todas com IA" que dispara a pesquisa em lotes (50 peças por request, com progresso visual). Ao terminar, cada peça já tem dados de compatibilidade, descrição técnica e peças relacionadas prontos para consulta instantânea.
 
-Uma página estilo apresentação corporativa que explica toda a operação, conectada ao plano de negócios. Seções:
+**Hook `use-batch-ai-research.ts`**: Gerencia a fila de lotes, progresso, e status.
 
-**Slide 1 — Visão Geral da Empresa**
-- Nome: Lopes & Lopes — Distribuidor XCMG
-- Missão, segmentos atendidos (Mineração, Linha Amarela, Perfuratriz, Caminhão Elétrico, Guindaste)
-- Mercados: Brasil (todos os estados), Venezuela, Guiana
+### 2. Catálogo mais Interativo e Responsivo
 
-**Slide 2 — Inventário: 20.436 linhas → 15.298 materiais únicos**
-- Card explicativo com infográfico: "A planilha original contém 20.436 registros. Muitos materiais aparecem em múltiplas linhas (diferentes modelos de máquina, filiais ou lotes). Ao consolidar por código de material, existem 15.298 materiais únicos."
-- Tabela exemplo: mostrar um material que aparece 2-3x na planilha com estoques diferentes
-- Totais consolidados: ~498k unidades, ~R$ 205M+
-- Dados puxados em tempo real do banco
+- **PartCard**: Adicionar botão "Adicionar ao Pedido" (ícone carrinho) direto no card, sem precisar abrir o dialog
+- **Indicador de IA**: Badge verde "IA ✓" no card quando a peça já tem pesquisa salva em `ai_compatibility_results`
+- **Quick preview**: Hover no card mostra tooltip com descrição técnica da IA (se disponível)
+- **Responsividade**: Grid adapta de 1 a 4 colunas, cards com layout compacto em mobile
+- **Busca otimizada**: Quando a peça tem dados de IA, incluir `compatible_machines` na busca (JOIN com `ai_compatibility_results`)
 
-**Slide 3 — Análise por Categoria**
-- Gráficos de categorias (Mineração, Linha Amarela, etc.) com valores e percentuais
+### 3. Montar Pedido/Orçamento direto do Catálogo
 
-**Slide 4 — Análise por Tempo de Estoque**
-- Capital parado > 2 anos, giro de estoque
+- **Carrinho flutuante**: Botão fixo no canto inferior direito com badge de quantidade
+- **Estado global do carrinho**: Context/Zustand para compartilhar entre Catálogo e Pedido
+- **Fluxo**: Catálogo → Adicionar peças → Clique no carrinho → Abre `/pedidos/novo` com itens preenchidos
+- **No PartDetailDialog**: Botão "Adicionar ao Orçamento" ao lado de Editar/Revisar
 
-**Slide 5 — Estrutura de Vendas**
-- Pipeline: Prospecção IA → Prospect → Cliente → Orçamento → Venda → Pós-venda
-- KPIs de vendas, clientes, tickets
+### 4. Portal do Cliente (separado do vendedor)
 
-**Slide 6 — Expansão Internacional**
-- Mapa conceitual: estados BR + Venezuela + Guiana
-- Prospects por país/região
+**Nova rota `/cotacao`** — Página pública onde o CLIENTE acessa:
+- Catálogo simplificado (sem preços internos, sem edição)
+- Busca por código, descrição, modelo
+- Filtros por categoria e modelo de máquina
+- Botão "Solicitar Cotação" em cada peça
+- Formulário: Nome, Empresa, CNPJ, Email, Telefone, Lista de peças desejadas + quantidades
+- Ao enviar, cria registro em nova tabela `quote_requests` com status "pendente"
+- Vendedor vê as cotações pendentes na área de Vendas
 
-**Slide 7 — Plano de Ação**
-- Próximos passos alinhados ao plano de negócios
-- Metas de conversão, redução de estoque parado
+**Nova tabela `quote_requests`**:
+- `id`, `customer_name`, `company`, `cnpj_cpf`, `email`, `phone`, `items` (jsonb — array de {material, quantity}), `status` (pendente/respondido/convertido), `notes`, `created_at`
 
-### 2. Atualizar Dashboard
-- Adicionar card "Relatório Executivo" com link para `/relatorio`
-- Mostrar claramente "15.298 materiais únicos (de 20.436 linhas na planilha)"
-
-### 3. Sidebar
-- Adicionar link "Relatório" no menu
+## Banco de Dados
+- CREATE TABLE `quote_requests` com RLS pública (clientes não autenticados podem inserir)
+- Sem alteração nas tabelas existentes
 
 ## Arquivos a criar/editar
 
-- `src/pages/ReportPage.tsx` — nova página com relatório estilo apresentação
-- `src/App.tsx` — adicionar rota `/relatorio`
-- `src/components/AppSidebar.tsx` — adicionar link "Relatório"
-- `src/components/dashboard/DashboardPage.tsx` — ajustar label de SKUs para explicar 20k vs 15k
+| Arquivo | Ação |
+|---------|------|
+| `supabase/functions/batch-ai-research/index.ts` | Criar — pesquisa IA em lote |
+| `src/hooks/use-batch-ai-research.ts` | Criar — gerencia pesquisa em massa |
+| `src/contexts/CartContext.tsx` | Criar — carrinho global |
+| `src/pages/QuotePage.tsx` | Criar — portal do cliente |
+| `src/components/catalog/PartCard.tsx` | Editar — botão carrinho + badge IA |
+| `src/components/catalog/CatalogContent.tsx` | Editar — botão "Pesquisar Todas" + carrinho flutuante |
+| `src/components/catalog/PartDetailDialog.tsx` | Editar — botão "Adicionar ao Orçamento" |
+| `src/pages/NewOrderPage.tsx` | Editar — ler itens do CartContext |
+| `src/App.tsx` | Editar — rota `/cotacao` + CartProvider |
+| `src/pages/SalesPage.tsx` | Editar — tab/seção "Cotações Recebidas" |
+| Migration SQL | Criar — tabela `quote_requests` |
 
