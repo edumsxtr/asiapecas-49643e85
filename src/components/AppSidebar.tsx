@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Radar,
   FileBarChart,
+  FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
