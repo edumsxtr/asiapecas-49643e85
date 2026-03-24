@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ const CATEGORY_MAP: Record<string, string> = {
 export default function QuoteCatalog({ search, category, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["quote-parts", search, category, page],
@@ -71,6 +72,53 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
     },
   });
 
+  // Translate descriptions when language changes
+  useEffect(() => {
+    if (!data?.parts || data.parts.length === 0 || lang === "pt") {
+      setTranslations({});
+      return;
+    }
+
+    const descriptions = data.parts.map((p: any) => p.description);
+    const cacheKey = `${lang}-${descriptions.join("|")}`;
+    
+    // Check if already translated
+    if (translations._cacheKey === cacheKey) return;
+
+    const translateParts = async () => {
+      try {
+        const resp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate-parts`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ descriptions, targetLang: lang }),
+          }
+        );
+        if (resp.ok) {
+          const { translations: translated } = await resp.json();
+          const map: Record<string, string> = { _cacheKey: cacheKey };
+          data.parts.forEach((p: any, i: number) => {
+            map[p.material] = translated[i] || p.description;
+          });
+          setTranslations(map);
+        }
+      } catch {
+        // Silently fail, show originals
+      }
+    };
+
+    translateParts();
+  }, [data?.parts, lang]);
+
+  const getDescription = (part: any) => {
+    if (lang === "pt") return part.description;
+    return translations[part.material] || part.description;
+  };
+
   const totalPages = Math.ceil((data?.count || 0) / PAGE_SIZE);
   const inCartMaterials = new Set(cartItems.map(i => i.material));
 
@@ -98,11 +146,11 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
           {data?.parts.map((part: any) => (
             <QuotePartCard
               key={part.id}
-              part={part}
+              part={{ ...part, description: getDescription(part) }}
               inCart={inCartMaterials.has(part.material)}
               hasAiData={data.aiIds.includes(part.id)}
-              onAdd={() => onAddToCart(part)}
-              onViewDetail={() => setDetailPart(part)}
+              onAdd={() => onAddToCart({ ...part, description: getDescription(part) })}
+              onViewDetail={() => setDetailPart({ ...part, description: getDescription(part) })}
               lang={lang}
             />
           ))}

@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, lang } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -283,9 +283,8 @@ Exemplo de funil:
 6. **NUNCA invente dados** — use APENAS as informações fornecidas no contexto do sistema
 
 ## IDIOMA
-- Responda SEMPRE em português brasileiro
-- Use termos técnicos do setor de máquinas pesadas
-- Seja profissional mas acessível${partsContext}`;
+${lang === "en" ? "- ALWAYS respond in English\n- Use heavy machinery technical terms in English" : lang === "es" ? "- SIEMPRE responde en español\n- Usa términos técnicos del sector de maquinaria pesada en español" : "- Responda SEMPRE em português brasileiro\n- Use termos técnicos do setor de máquinas pesadas"}
+- Seja profissional mas acessível / Be professional but approachable${partsContext}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
