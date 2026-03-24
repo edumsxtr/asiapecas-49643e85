@@ -155,7 +155,7 @@ Responda em JSON com esta estrutura exata:
         maintenance_tips: analysis.maintenance_tips || "",
         related_parts: analysis.related_parts || [],
         researched_at: new Date().toISOString(),
-        model_used: "openai/gpt-5.2",
+        model_used: "google/gemini-2.5-pro",
       };
 
       const { error: upsertError } = await supabase
