@@ -1,49 +1,44 @@
 
 
-# Plano: Sincronizar Estoque com Planilha Completa (20.436 linhas → 498k unidades → R$ 204M+)
+# Plano: Atualização Instantânea via SQL Direto (segundos, não horas)
 
-## Diagnóstico
+## Por que demora tanto hoje
 
-A planilha tem **20.436 linhas**, mas muitos materiais aparecem repetidos com estoques diferentes. Exemplo real:
+O método atual faz **15.298 chamadas individuais** ao banco — uma por peça. Cada chamada passa por: Frontend → Edge Function HTTP → Supabase Client → Banco. Isso leva horas.
 
-| Material | Linhas na planilha | Estoque planilha (soma) | Estoque no banco |
-|----------|-------------------|------------------------|-----------------|
-| 860132921 | 3x (386+380+348) | **1.114** | 386 (só 1a linha) |
-| 272102015 | 2x (45+20) | **65** | 85 (parece ok) |
-| 453101366 | 2x (279+204) | **483** | 484 (ok) |
+## Solução: Uma única migration SQL
 
-**O problema**: a importação original não somou os estoques das linhas duplicadas de forma consistente. Resultado: faltam ~36k unidades e ~R$ 16M em valor.
+Em vez de 15.298 chamadas, vou gerar **1 arquivo SQL** que atualiza tudo de uma vez usando uma tabela temporária. Execução: menos de 10 segundos.
 
-| Métrica | Planilha (correto) | Banco atual | Gap |
-|---------|-------------------|-------------|-----|
-| Materiais únicos | ~15.298 | 15.298 | OK |
-| Unidades totais | ~498.000 | 461.669 | -36.331 |
-| Valor total | ~R$ 204M+ | R$ 188M | -R$ 16M |
+```text
+Método atual:     15.298 chamadas HTTP × ~100ms = ~25 minutos+
+Método novo:      1 migration SQL com temp table = ~5 segundos
+```
 
-## Solução
+## Implementação
 
-### 1. Script de correção via psql
-- Ler a planilha completa (20.436 linhas) com Python/pandas
-- Agrupar por material, **somar estoques** de todas as linhas duplicadas
-- Para preço: usar a **média ponderada** (ou o maior preço quando houver variação)
-- Para `compatible_models`: **concatenar** todos os modelos únicos das linhas duplicadas
-- Gerar SQL de UPDATE em massa e executar direto no banco
+### 1. Processar a planilha com Python
+- Ler `Peças_Valor_estimado.xlsx`, agrupar por material
+- Somar estoques de linhas duplicadas, pegar maior preço
+- Gerar arquivo SQL com INSERT INTO temp table + UPDATE parts
 
-### 2. Execução
-- Processar o arquivo `Peças_Valor_estimado.xlsx` com pandas
-- Gerar updates em batches de 500 via `psql`
-- Verificar totais finais: deve bater ~498k unidades e ~R$ 204M+
+### 2. Executar como migration
+- Criar migration SQL que:
+  - Cria tabela temporária com (material, stock, price)
+  - Insere os 15.298 registros
+  - Faz UPDATE parts SET stock = t.stock, estimated_price = t.price FROM temp_table t WHERE parts.material = t.material
+  - Dropa a tabela temporária
+- Execução via ferramenta de migration (direto no banco, sem HTTP)
 
-### 3. Validação
-- Query de verificação final comparando totais do banco com totais da planilha
-- Se houver materiais na planilha que não existem no banco, inserir como novos
+### 3. Validar
+- Query de verificação: total deve ser ~498k unidades e ~R$ 205M+
 
-## Detalhes Técnicos
-- Usar `psql` com INSERT access para inserir novos materiais (se existirem)
-- Para updates, criar migration SQL com tabela temporária
-- O script roda fora do app, direto no banco — sem timeout de edge function
+## Resultado esperado
+- De 461.669 unidades → ~498.022 unidades
+- De R$ 188M → ~R$ 205M+
+- Tempo: menos de 10 segundos
 
 ## Arquivos
-- Nenhum arquivo do projeto precisa mudar — é apenas correção de dados no banco
-- Após correção, os dashboards e catálogo refletirão automaticamente os valores corretos
+- 1 script Python temporário (gera o SQL)
+- 1 migration SQL (executa no banco)
 
