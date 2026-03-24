@@ -1,34 +1,57 @@
 
-# ✅ Concluído: Análise Avançada + Detecção de Duplicados + Integração Total
 
-## O que foi implementado
+# Plano: Relatório Executivo + Explicação 20k vs 15k + Alinhamento com Plano de Negócios
 
-### Banco de Dados
-- `reviewed_at` adicionado à tabela `parts`
-- Função SQL `find_duplicate_parts()` para detectar peças com descrições idênticas
-- `get_dashboard_stats()` atualizado com: vendas cruzadas, giro de estoque, peças nunca vendidas, duplicados, prospects, tickets
+## Por que 15.298 e não 20.436
 
-### Dashboard Integrado
-- Cards de navegação rápida: Clientes, Vendas, Tickets Abertos, Prospects Quentes
-- Métricas: Giro de estoque, Peças nunca vendidas, Duplicados
-- Nova aba "Vendas" com gráfico de vendas por mês + tabela de vendas recentes
-- Todos os cards são clicáveis e levam ao módulo correspondente
+A planilha tem **20.436 linhas**, mas muitos materiais se repetem (mesmo código, modelos diferentes). Ao agrupar por código de material, restam **~15.298 materiais únicos**. Os estoques das linhas repetidas são somados. Isso precisa ser explicado claramente no app.
 
-### Estoque Avançado (StockPage)
-- 5 KPIs: Unidades, Valor, Giro, Parados, Nunca vendidas
-- Aba "Duplicados": tabela com peças de descrição idêntica mas códigos diferentes
-- Aba "Planilhas": gestão de importações
-- Aba "Críticos": peças de alto valor com baixo estoque
+## O que vou fazer
 
-### Detalhes da Peça (PartDetailDialog)
-- Botão **Editar**: estoque, preço e modelo inline
-- Botão **Revisar**: marca peça como revisada com timestamp
-- Aba **Similares**: busca peças com descrição similar no catálogo
-- Aba **Vendas**: histórico de vendas que incluem esta peça
-- Abas Mercado e IA mantidas
+### 1. Nova página `/relatorio` — Relatório Executivo Interativo
 
-### Hooks novos
-- `useUpdatePart()` — editar peça inline
-- `useSimilarParts()` — buscar peças com descrição similar
-- `usePartSales()` — vendas de uma peça específica
-- `useDuplicateParts()` — peças potencialmente duplicadas
+Uma página estilo apresentação corporativa que explica toda a operação, conectada ao plano de negócios. Seções:
+
+**Slide 1 — Visão Geral da Empresa**
+- Nome: Lopes & Lopes — Distribuidor XCMG
+- Missão, segmentos atendidos (Mineração, Linha Amarela, Perfuratriz, Caminhão Elétrico, Guindaste)
+- Mercados: Brasil (todos os estados), Venezuela, Guiana
+
+**Slide 2 — Inventário: 20.436 linhas → 15.298 materiais únicos**
+- Card explicativo com infográfico: "A planilha original contém 20.436 registros. Muitos materiais aparecem em múltiplas linhas (diferentes modelos de máquina, filiais ou lotes). Ao consolidar por código de material, existem 15.298 materiais únicos."
+- Tabela exemplo: mostrar um material que aparece 2-3x na planilha com estoques diferentes
+- Totais consolidados: ~498k unidades, ~R$ 205M+
+- Dados puxados em tempo real do banco
+
+**Slide 3 — Análise por Categoria**
+- Gráficos de categorias (Mineração, Linha Amarela, etc.) com valores e percentuais
+
+**Slide 4 — Análise por Tempo de Estoque**
+- Capital parado > 2 anos, giro de estoque
+
+**Slide 5 — Estrutura de Vendas**
+- Pipeline: Prospecção IA → Prospect → Cliente → Orçamento → Venda → Pós-venda
+- KPIs de vendas, clientes, tickets
+
+**Slide 6 — Expansão Internacional**
+- Mapa conceitual: estados BR + Venezuela + Guiana
+- Prospects por país/região
+
+**Slide 7 — Plano de Ação**
+- Próximos passos alinhados ao plano de negócios
+- Metas de conversão, redução de estoque parado
+
+### 2. Atualizar Dashboard
+- Adicionar card "Relatório Executivo" com link para `/relatorio`
+- Mostrar claramente "15.298 materiais únicos (de 20.436 linhas na planilha)"
+
+### 3. Sidebar
+- Adicionar link "Relatório" no menu
+
+## Arquivos a criar/editar
+
+- `src/pages/ReportPage.tsx` — nova página com relatório estilo apresentação
+- `src/App.tsx` — adicionar rota `/relatorio`
+- `src/components/AppSidebar.tsx` — adicionar link "Relatório"
+- `src/components/dashboard/DashboardPage.tsx` — ajustar label de SKUs para explicar 20k vs 15k
+
