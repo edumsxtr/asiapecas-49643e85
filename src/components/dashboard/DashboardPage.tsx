@@ -37,7 +37,7 @@ export function DashboardPage() {
   const turnover = stats.totalValue > 0 ? ((stats.totalSalesValue / stats.totalValue) * 100).toFixed(1) : "0";
 
   const kpis = [
-    { label: "Total SKUs", value: stats.totalParts.toLocaleString("pt-BR"), subtitle: `${stats.totalStock.toLocaleString("pt-BR")} unidades`, icon: Package, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Total SKUs", value: stats.totalParts.toLocaleString("pt-BR"), subtitle: `${stats.totalStock.toLocaleString("pt-BR")} un · de 20.436 linhas consolidadas`, icon: Package, color: "text-primary", bg: "bg-primary/10" },
     { label: "Valor do Estoque", value: formatCompact(stats.totalValue), subtitle: `Preço médio: ${formatBRL(stats.avgPrice)}`, icon: DollarSign, color: "text-blue-500", bg: "bg-blue-500/10" },
     { label: "Capital Parado (>2a)", value: formatCompact(stats.staleValue), subtitle: `${stalePercent}% do total`, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
     { label: "Estoque Crítico", value: stats.lowStockHighValue.toString(), subtitle: "Baixo estoque + alto valor", icon: Cpu, color: "text-orange-500", bg: "bg-orange-500/10" },

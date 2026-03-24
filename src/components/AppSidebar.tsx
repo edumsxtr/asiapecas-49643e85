@@ -10,6 +10,7 @@ import {
   Search,
   ClipboardList,
   Radar,
+  FileBarChart,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -43,6 +44,7 @@ const crmItems = [
 
 const toolItems = [
   { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
+  { title: "Relatório Executivo", url: "/relatorio", icon: FileBarChart },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
