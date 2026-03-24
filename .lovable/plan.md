@@ -1,85 +1,66 @@
 
 
-# Plano: Autenticação + Separação Portal Público vs Sistema Interno
+# Plano: Mobile Responsivo + Treinamento de Equipe sobre Estoque
 
-## Situação Atual
+## Parte 1: Seletor de idioma no mobile do portal `/cotacao`
 
-- `/cotacao` — portal do cliente (deve continuar **público**, sem login)
-- Todas as outras rotas (`/`, `/catalogo`, `/estoque`, `/clientes`, `/vendas`, etc.) — sistema operacional interno, atualmente **sem proteção nenhuma**
-- Dados sensíveis de clientes, vendas, prospects estão acessíveis a qualquer pessoa que acesse as URLs
-- Não existe autenticação no sistema
+**Problema**: O seletor de idiomas (PT/EN/ES) e a navegacao estao dentro de `hidden md:flex` no header — invisivel no mobile.
 
-## O que vou fazer
+**Solucao**: Adicionar menu hamburger no mobile com:
+- Links de navegacao (Pecas, Como Funciona, FAQ)
+- Seletor de idioma com bandeiras (PT/EN/ES)
+- Botao WhatsApp
+- Sheet/drawer lateral que abre ao clicar no icone de menu
 
-### 1. Página de Login (`/login`)
+### Arquivo: `src/pages/QuotePage.tsx`
+- Adicionar botao hamburger visivel apenas no mobile (`md:hidden`)
+- Usar Sheet do shadcn para menu lateral mobile
+- Mover seletor de idioma e nav links para dentro do Sheet
+- Manter nav desktop como esta (hidden md:flex)
 
-- Formulário com email + senha (design com cores da marca Elite Peças)
-- Opções: Login e Cadastro (com abas)
-- Validação de email obrigatória (sem auto-confirm — o usuário precisa verificar o email)
-- Página de recuperação de senha (`/reset-password`)
-- Logo Elite Peças no topo
+## Parte 2: Pagina de Treinamento de Equipe (`/treinamento`)
 
-### 2. Contexto de Autenticação (`AuthContext`)
+Nova pagina interna (protegida) com conteudo de treinamento focado no estoque, baseado no plano de negocios da Elite Pecas XCMG.
 
-- Provider que escuta `onAuthStateChange` do backend
-- Verifica sessão ativa
-- Expõe `user`, `loading`, `signIn`, `signUp`, `signOut`
+### Conteudo do treinamento (cards interativos com abas):
 
-### 3. Componente de Rota Protegida (`ProtectedRoute`)
+**Aba 1 — Conhecimento do Estoque**
+- Como funciona a classificacao por categorias (Mineracao, Linha Amarela, Perfuratriz, Guindaste, Caminhao Eletrico)
+- O que significam as metricas: giro de estoque, capital parado, estoque critico
+- Como interpretar o dashboard e agir sobre pecas paradas ha mais de 2 anos
 
-- Wrapper que verifica se há usuário autenticado
-- Se não autenticado, redireciona para `/login`
-- Mostra loading enquanto verifica sessão
+**Aba 2 — Processo de Vendas**
+- Fluxo: Cotacao → Orcamento → Pedido → Faturamento → Entrega
+- Como usar o portal do cliente (`/cotacao`) para receber pedidos
+- Como converter prospects em clientes
 
-### 4. Separação de Rotas no `App.tsx`
+**Aba 3 — Atendimento ao Cliente**
+- Regioes atendidas: Brasil, Venezuela, Guiana
+- Segmentos: mineracao, construcao civil, infraestrutura
+- Como usar o pos-venda para fidelizar
 
-**Rotas públicas** (sem login):
-- `/cotacao` — portal do cliente
-- `/login` — login/cadastro
-- `/reset-password` — redefinir senha
+**Aba 4 — Ferramentas do Sistema**
+- Tour rapido por cada modulo (Dashboard, Catalogo, Estoque, Vendas, Prospeccao)
+- Dicas de produtividade: atalhos, filtros, pesquisa IA
 
-**Rotas protegidas** (exigem login):
-- `/` — Dashboard
-- `/catalogo`, `/estoque`, `/clientes`, `/vendas`, `/pos-venda`
-- `/pedidos/novo`, `/prospeccao`, `/pesquisa-mercado`
-- `/assistente`, `/relatorio`, `/configuracoes`
+### Interatividade:
+- Cards com icones e descricoes
+- Checklist de progresso (localStorage) — "Marcar como lido"
+- Quiz rapido ao final de cada aba (3 perguntas multipla escolha)
+- Barra de progresso geral do treinamento
 
-### 5. Botão Logout no Sidebar
+## Parte 3: Link no Sidebar
 
-- Adicionar botão "Sair" no rodapé do sidebar
-- Ao clicar, faz logout e redireciona para `/login`
-
-### 6. RLS — Proteger dados sensíveis
-
-As tabelas `customers`, `sales`, `prospects`, `after_sales` atualmente permitem acesso público (SELECT/INSERT/UPDATE/DELETE para `{public}`). Vou restringir para apenas usuários autenticados:
-
-- `customers` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `sales` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `sale_items` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `prospects` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `after_sales` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `prospection_campaigns` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `market_research` — SELECT/INSERT/UPDATE/DELETE apenas para `authenticated`
-- `stock_imports` / `stock_import_items` — apenas `authenticated`
-
-Tabelas que continuam públicas:
-- `parts` — SELECT público (o portal do cliente precisa ler)
-- `quote_requests` — INSERT público (cliente envia cotação sem login)
-- `ai_compatibility_results` — SELECT público (portal do cliente usa)
+Adicionar item "Treinamento" no grupo "Ferramentas" do sidebar com icone `GraduationCap`.
 
 ## Arquivos a criar/editar
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| `src/pages/LoginPage.tsx` | Criar — login/cadastro com email+senha |
-| `src/pages/ResetPasswordPage.tsx` | Criar — redefinir senha |
-| `src/contexts/AuthContext.tsx` | Criar — provider de autenticação |
-| `src/components/ProtectedRoute.tsx` | Criar — wrapper de rota protegida |
-| `src/App.tsx` | Editar — envolver rotas internas com ProtectedRoute |
-| `src/components/AppSidebar.tsx` | Editar — adicionar botão Sair |
-| Migration SQL | Atualizar RLS — restringir tabelas sensíveis para `authenticated` |
+| `src/pages/QuotePage.tsx` | Editar — menu hamburger mobile com seletor de idioma |
+| `src/pages/TrainingPage.tsx` | Criar — pagina de treinamento com 4 abas, quiz, checklist |
+| `src/components/AppSidebar.tsx` | Editar — adicionar link "Treinamento" |
+| `src/App.tsx` | Editar — rota `/treinamento` protegida |
 
-## Banco de Dados
-
-Migration para atualizar as policies RLS das tabelas sensíveis, trocando `{public}` por `{authenticated}` em SELECT/INSERT/UPDATE/DELETE.
+Sem alteracoes no banco de dados.
 
