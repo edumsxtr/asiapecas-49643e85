@@ -46,7 +46,7 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: allMsgs }),
+        body: JSON.stringify({ messages: displayMsgs, lang }),
       });
 
       if (!resp.ok || !resp.body) throw new Error("Error");
