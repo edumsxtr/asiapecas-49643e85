@@ -108,8 +108,14 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
       if (category && CATEGORY_MAP[category]) {
         query = query.eq(CATEGORY_MAP[category], true);
       }
-      if (manufacturer !== "all") query = query.eq("manufacturer", manufacturer);
-      if (model !== "all") query = query.eq("machine_model", model);
+      if (manufacturer !== "all") {
+        const dbVal = filterOptions?.mfrMap?.[manufacturer] || manufacturer;
+        query = query.eq("manufacturer", dbVal);
+      }
+      if (model !== "all") {
+        const dbVal = filterOptions?.mdlMap?.[model] || model;
+        query = query.eq("machine_model", dbVal);
+      }
       if (availability === "ready") query = query.gt("stock", 10);
       if (availability === "low") query = query.lte("stock", 10);
       if (partCategory) query = query.eq("part_category", partCategory);
