@@ -154,7 +154,7 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
             <TabsTrigger value="details" className="gap-1 text-xs"><Search className="h-3 w-3" /> Mercado</TabsTrigger>
             <TabsTrigger value="ai" className="gap-1 text-xs"><Brain className="h-3 w-3" /> IA</TabsTrigger>
             <TabsTrigger value="similar" className="gap-1 text-xs"><Copy className="h-3 w-3" /> Similares</TabsTrigger>
-            <TabsTrigger value="sales" className="gap-1 text-xs"><ShoppingCart className="h-3 w-3" /> Vendas</TabsTrigger>
+            <TabsTrigger value="sales" className="gap-1 text-xs"><ShoppingCartIcon className="h-3 w-3" /> Vendas</TabsTrigger>
           </TabsList>
           <TabsContent value="details">
             <MarketResearchTab partId={part.id} ourPrice={part.estimated_price} />
