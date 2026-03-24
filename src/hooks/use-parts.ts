@@ -101,7 +101,8 @@ export function useDistinctValues(column: "manufacturer" | "machine_model") {
         .not(column, "is", null)
         .order(column);
       if (error) throw error;
-      const unique = [...new Set((data || []).map((r: any) => r[column]).filter(Boolean))];
+      const noChinese = (s: string) => !/[\u4e00-\u9fff\u3400-\u4dbf]/.test(s);
+      const unique = [...new Set((data || []).map((r: any) => r[column]).filter((v: string) => v && noChinese(v)))];
       return unique as string[];
     },
     staleTime: 300_000,
