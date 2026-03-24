@@ -76,7 +76,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   });
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [search, category, manufacturer, model, availability, sort]);
+  useEffect(() => { setPage(0); }, [search, category, partCategory, manufacturer, model, availability, sort]);
 
   const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all"].filter(Boolean).length;
 
