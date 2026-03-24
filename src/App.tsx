@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index";
 import CatalogPage from "./pages/CatalogPage";
 import StockPage from "./pages/StockPage";
@@ -15,6 +16,7 @@ import AssistantPage from "./pages/AssistantPage";
 import NewOrderPage from "./pages/NewOrderPage";
 import ProspectionPage from "./pages/ProspectionPage";
 import ReportPage from "./pages/ReportPage";
+import QuotePage from "./pages/QuotePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,25 +24,28 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/catalogo" element={<CatalogPage />} />
-          <Route path="/estoque" element={<StockPage />} />
-          <Route path="/clientes" element={<CustomersPage />} />
-          <Route path="/vendas" element={<SalesPage />} />
-          <Route path="/pos-venda" element={<AfterSalesPage />} />
-          <Route path="/pedidos/novo" element={<NewOrderPage />} />
-          <Route path="/prospeccao" element={<ProspectionPage />} />
-          <Route path="/pesquisa-mercado" element={<MarketResearchPage />} />
-          <Route path="/assistente" element={<AssistantPage />} />
-          <Route path="/relatorio" element={<ReportPage />} />
-          <Route path="/configuracoes" element={<ComingSoonPage title="Configurações" />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <CartProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/catalogo" element={<CatalogPage />} />
+            <Route path="/estoque" element={<StockPage />} />
+            <Route path="/clientes" element={<CustomersPage />} />
+            <Route path="/vendas" element={<SalesPage />} />
+            <Route path="/pos-venda" element={<AfterSalesPage />} />
+            <Route path="/pedidos/novo" element={<NewOrderPage />} />
+            <Route path="/prospeccao" element={<ProspectionPage />} />
+            <Route path="/pesquisa-mercado" element={<MarketResearchPage />} />
+            <Route path="/assistente" element={<AssistantPage />} />
+            <Route path="/relatorio" element={<ReportPage />} />
+            <Route path="/cotacao" element={<QuotePage />} />
+            <Route path="/configuracoes" element={<ComingSoonPage title="Configurações" />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </CartProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Part, formatBRL, getActiveCategories, useUpdatePart, useSimilarParts, usePartSales } from "@/hooks/use-parts";
-import { Package, Clock, Layers, Truck, Search, Brain, Pencil, CheckCircle2, Copy, ShoppingCart } from "lucide-react";
+import { Package, Clock, Layers, Truck, Search, Brain, Pencil, CheckCircle2, Copy, ShoppingCart as ShoppingCartIcon } from "lucide-react";
 import { MarketResearchTab } from "./MarketResearchTab";
 import { PartAIResearch } from "./PartAIResearch";
+import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
 interface PartDetailDialogProps {
@@ -34,10 +35,22 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
   const updatePart = useUpdatePart();
   const { data: similarParts } = useSimilarParts(part.description);
   const { data: partSales } = usePartSales(part.id);
+  const { addItem } = useCart();
 
   const categories = getActiveCategories(part);
   const totalValue = part.stock * part.estimated_price;
   const filteredSimilar = (similarParts || []).filter(p => p.id !== part.id);
+
+  const handleAddToCart = () => {
+    addItem({
+      part_id: part.id,
+      material: part.material,
+      description: part.description,
+      unit_price: part.estimated_price,
+      stock: part.stock,
+    });
+    toast.success("Adicionado ao pedido");
+  };
 
   const handleUpdate = () => {
     updatePart.mutate({
@@ -78,6 +91,9 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
               <p className="font-semibold text-foreground mt-1">{part.description}</p>
             </div>
             <div className="flex gap-1">
+              <Button variant="default" size="sm" onClick={handleAddToCart} className="gap-1">
+                <ShoppingCartIcon className="h-3 w-3" /> Pedido
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setEditing(!editing)} className="gap-1">
                 <Pencil className="h-3 w-3" /> Editar
               </Button>
@@ -141,7 +157,7 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
             <TabsTrigger value="details" className="gap-1 text-xs"><Search className="h-3 w-3" /> Mercado</TabsTrigger>
             <TabsTrigger value="ai" className="gap-1 text-xs"><Brain className="h-3 w-3" /> IA</TabsTrigger>
             <TabsTrigger value="similar" className="gap-1 text-xs"><Copy className="h-3 w-3" /> Similares</TabsTrigger>
-            <TabsTrigger value="sales" className="gap-1 text-xs"><ShoppingCart className="h-3 w-3" /> Vendas</TabsTrigger>
+            <TabsTrigger value="sales" className="gap-1 text-xs"><ShoppingCartIcon className="h-3 w-3" /> Vendas</TabsTrigger>
           </TabsList>
           <TabsContent value="details">
             <MarketResearchTab partId={part.id} ourPrice={part.estimated_price} />
