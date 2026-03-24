@@ -71,21 +71,33 @@ export function ImportCatalogDialog({ open, onClose }: Props) {
           const sheet = wb.Sheets[wb.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json<any>(sheet);
 
-          parsed = json.map((row: any) => ({
-            material: String(row.material || row.Material || row.codigo || row.MATERIAL || "").trim(),
-            description: String(row.description || row.Description || row.descricao || row.Descrição || row.DESCRICAO || row.DESCRIÇÃO || "").trim(),
-            estimated_price: parseFloat(row.estimated_price || row.preco || row.Preço || row.PRECO || row.price || row.valor_estimado || row.VALOR_ESTIMADO || 0) || 0,
-            stock: parseInt(row.stock || row.estoque || row.Estoque || row.ESTOQUE || row.qty || 0) || 0,
-            machine_model: String(row.machine_model || row.modelo || row.Modelo || row.MODELO || "").trim() || undefined,
-            manufacturer: String(row.manufacturer || row.fabricante || row.Fabricante || row.FABRICANTE || "").trim() || undefined,
-            supplier: String(row.supplier || row.fornecedor || row.Fornecedor || row.FORNECEDOR || "").trim() || undefined,
-            last_entry_time: String(row.last_entry_time || row.tempo_entrada || row.TEMPO_ENTRADA || "").trim() || undefined,
-            is_mineracao: parseBool(row.is_mineracao || row.mineracao || row.MINERACAO),
-            is_linha_amarela: parseBool(row.is_linha_amarela || row.linha_amarela || row.LINHA_AMARELA),
-            is_perfuratriz: parseBool(row.is_perfuratriz || row.perfuratriz || row.PERFURATRIZ),
-            is_caminhao_eletrico: parseBool(row.is_caminhao_eletrico || row.caminhao_eletrico || row.CAMINHAO_ELETRICO),
-            is_guindaste: parseBool(row.is_guindaste || row.guindaste || row.GUINDASTE),
-          })).filter(r => r.material && r.description);
+          // Normalize keys: trim whitespace and accents from header names
+          const normalizeRow = (row: any) => {
+            const normalized: any = {};
+            for (const key of Object.keys(row)) {
+              normalized[key.trim()] = row[key];
+            }
+            return normalized;
+          };
+
+          parsed = json.map((raw: any) => {
+            const row = normalizeRow(raw);
+            return {
+              material: String(row.material || row.Material || row.codigo || row.MATERIAL || "").trim(),
+              description: String(row.description || row.Description || row.descricao || row.Descrição || row.DESCRICAO || row.DESCRIÇÃO || row["Texto breve material"] || "").trim(),
+              estimated_price: parseFloat(row.estimated_price || row.preco || row.Preço || row.PRECO || row.price || row.valor_estimado || row.VALOR_ESTIMADO || row["Preço Estimado Dealer com impostos"] || 0) || 0,
+              stock: parseInt(row.stock || row.estoque || row.Estoque || row.ESTOQUE || row.qty || row.Saldo || 0) || 0,
+              machine_model: String(row.machine_model || row.modelo || row.Modelo || row.MODELO || row["Modelo de máquina"] || "").trim() || undefined,
+              manufacturer: String(row.manufacturer || row.fabricante || row.Fabricante || row.FABRICANTE || "").trim() || undefined,
+              supplier: String(row.supplier || row.fornecedor || row.Fornecedor || row.FORNECEDOR || row["Nome 1"] || "").trim() || undefined,
+              last_entry_time: String(row.last_entry_time || row.tempo_entrada || row.TEMPO_ENTRADA || row["Tempo de ùltima entrada"] || row["Tempo de última entrada"] || "").trim() || undefined,
+              is_mineracao: parseBool(row.is_mineracao || row.mineracao || row.MINERACAO || row.Mineração || row["Mineração"]),
+              is_linha_amarela: parseBool(row.is_linha_amarela || row.linha_amarela || row.LINHA_AMARELA || row["Linha amarela"]),
+              is_perfuratriz: parseBool(row.is_perfuratriz || row.perfuratriz || row.PERFURATRIZ || row.Perfuratriz),
+              is_caminhao_eletrico: parseBool(row.is_caminhao_eletrico || row.caminhao_eletrico || row.CAMINHAO_ELETRICO || row["Caminhão Eletrico"]),
+              is_guindaste: parseBool(row.is_guindaste || row.guindaste || row.GUINDASTE || row.Guindaste),
+            };
+          }).filter(r => r.material && r.description);
         }
 
         if (parsed.length === 0) {
