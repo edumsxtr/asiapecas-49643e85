@@ -1,83 +1,65 @@
 
 
-# Plano: Portal do Cliente Profissional — Estilo Extra Maquinas
+# Plano: Prospecção Completa — Contatos Reais + Peças Sugeridas + Interface Interativa
 
-## Referencia Visual
+## Problema Atual
 
-O site da Extra Maquinas tem: hero banner com video/imagem, navegacao por categorias com sidebar, cards de produtos com imagens e specs tecnicas, botao WhatsApp flutuante, secao institucional, e pagina de pecas com busca lateral.
+1. A IA gera prospects sem telefone/email — campos ficam vazios
+2. A tabela mostra apenas "X peças" sem detalhar quais
+3. Falta interatividade: não dá para ver detalhes, peças sugeridas, ou agir rapidamente
+4. O resumo da IA fica escondido no dialog de edição
 
 ## O que vou fazer
 
-### 1. Reescrever `QuotePage.tsx` como portal completo
+### 1. Atualizar Edge Function `prospect-search`
 
-**Header profissional**:
-- Logo Lopes & Lopes com cores amarelo/preto (brand)
-- Menu horizontal: Inicio, Pecas, Maquinas, Sobre Nos, Contato
-- Botao "Solicitar Atendimento" destacado
-- Botao WhatsApp flutuante no canto inferior direito
+Alterar o prompt e o schema da tool call para a IA retornar:
+- **Telefone** (formato do país, ex: +55 11 9xxxx-xxxx)
+- **Email** (email comercial provável, ex: contato@empresa.com.br)
+- **CNPJ** (quando disponível/estimável)
+- **Peças recomendadas** com descrição (não só código): ex: "860132921 - Filtro de óleo hidráulico"
+- **Justificativa por peça**: por que aquela peça é relevante para o prospect
 
-**Hero Section**:
-- Banner com gradiente amarelo/preto e titulo: "Pecas Originais XCMG"
-- Subtitulo: "Distribuidor autorizado — Brasil, Venezuela, Guiana"
-- Campo de busca grande centralizado
-- Cards de destaque: Mineracao, Linha Amarela, Perfuratriz, Guindaste, Caminhao Eletrico (filtros rapidos por categoria)
+Adicionar esses campos no schema da function tool e salvar no banco.
 
-**Catalogo com sidebar de filtros**:
-- Sidebar esquerda: categorias clicaveis (Mineracao, Linha Amarela, etc.), filtro por modelo de maquina, filtro por fabricante
-- Grid de pecas 3 colunas com cards visuais: codigo em badge amarelo, descricao, modelo, disponibilidade, botao "Adicionar a Cotacao"
-- Paginacao ou infinite scroll
+### 2. Redesign da Página de Prospecção
 
-**Secao "Como Funciona"**:
-- 3 passos visuais: 1) Busque a peca, 2) Monte seu pedido, 3) Receba sua cotacao
-- Icones ilustrativos
+**Cards de prospect** em vez de tabela pura — cada prospect vira um card expandível:
+- Header: Nome, Empresa, Score (barra visual colorida), Status (seletor inline)
+- Corpo expandido ao clicar:
+  - Contato: telefone clicável (tel:), email clicável (mailto:), WhatsApp (link direto)
+  - Localização: Cidade/Estado/País com bandeira
+  - Resumo IA: texto completo da análise
+  - **Peças Recomendadas**: lista visual com código, descrição, estoque atual, preço — cada uma com botão "Montar Orçamento"
+  - Botões de ação: Editar, Converter para Cliente, WhatsApp, Descartar
 
-**Secao FAQ / Tire Duvidas**:
-- Accordion com perguntas frequentes (prazo de entrega, garantia, formas de pagamento, como rastrear pedido)
-- Botao "Fale com um Especialista" que abre WhatsApp
+**Pipeline visual** no topo: colunas Kanban simplificadas (Novo → Contatado → Qualificado → Negociação → Convertido) com contagem e drag visual (badges clicáveis para filtrar)
 
-**Secao Institucional**:
-- Sobre a Lopes & Lopes (texto do plano de negocios)
-- Segmentos atendidos
-- Regioes de atuacao
+### 3. Dialog de Detalhes do Prospect
 
-**Footer**:
-- Contato, redes sociais, CNPJ, endereco
-- Links rapidos
+Ao clicar no prospect, abre dialog completo com:
+- Todas as informações de contato (tel, email, WhatsApp, CNPJ)
+- Mapa de localização conceitual (estado/cidade)
+- Peças recomendadas com cards visuais (material, descrição, estoque, preço)
+- Botão "Montar Orçamento" que adiciona as peças ao carrinho e redireciona para `/pedidos/novo`
+- Timeline de interações (histórico de mudanças de status)
+- Campo de notas editável inline
 
-### 2. Carrinho lateral (drawer)
+### 4. Ações Rápidas na Listagem
 
-Em vez de card inline, o carrinho abre como sheet/drawer lateral:
-- Lista de itens com +/- quantidade
-- Botao "Solicitar Cotacao" que abre o formulario
-- Sempre visivel como icone flutuante com badge de contagem
+- Botão WhatsApp direto na linha (abre `wa.me/{phone}` com mensagem pré-formatada)
+- Botão Email direto (abre mailto com assunto pré-preenchido)
+- Botão "Ver Peças" que expande inline as peças sugeridas
 
-### 3. Chat de duvidas integrado
+## Banco de Dados
 
-- Botao "Tire suas duvidas" que abre um mini-chat com IA (reutiliza a edge function `chat`)
-- O cliente pode perguntar sobre pecas, compatibilidade, prazos
-- Resposta automatica baseada no estoque real
-
-### 4. Detalhes da peca (dialog melhorado)
-
-Ao clicar "Ver Detalhes" no card:
-- Modal com: codigo, descricao completa, modelo de maquina, disponibilidade
-- Se tem pesquisa IA salva: mostra compatibilidade, funcao provavel, specs tecnicas
-- Botao "Adicionar a Cotacao" no modal
-- Pecas relacionadas/similares (query ILIKE)
+Sem alteração de schema — os campos `phone`, `email`, `cnpj_cpf`, `matched_parts`, `ai_summary` já existem na tabela `prospects`. Apenas a IA vai passar a preenchê-los.
 
 ## Arquivos a criar/editar
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/pages/QuotePage.tsx` | Reescrever completo — portal profissional |
-| `src/components/quote/QuoteHero.tsx` | Criar — hero banner com busca |
-| `src/components/quote/QuoteCatalog.tsx` | Criar — catalogo com sidebar + grid |
-| `src/components/quote/QuotePartCard.tsx` | Criar — card de peca estilo e-commerce |
-| `src/components/quote/QuotePartDetail.tsx` | Criar — dialog detalhes com dados IA |
-| `src/components/quote/QuoteCart.tsx` | Criar — drawer lateral do carrinho |
-| `src/components/quote/QuoteFAQ.tsx` | Criar — accordion de perguntas frequentes |
-| `src/components/quote/QuoteFooter.tsx` | Criar — footer institucional |
-| `src/components/quote/QuoteChat.tsx` | Criar — mini-chat com IA para duvidas |
-
-Nenhuma alteracao no banco de dados necessaria — usa as mesmas tabelas `parts`, `quote_requests`, e `ai_compatibility_results`.
+| `supabase/functions/prospect-search/index.ts` | Atualizar prompt + schema para incluir telefone, email, CNPJ, peças detalhadas |
+| `src/pages/ProspectionPage.tsx` | Redesign completo: cards expandíveis, pipeline visual, ações rápidas (WhatsApp/Email), dialog detalhado com peças recomendadas |
+| `src/hooks/use-prospects.ts` | Sem mudança (schema já suporta os campos) |
 
