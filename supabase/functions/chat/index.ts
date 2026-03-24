@@ -283,9 +283,8 @@ Exemplo de funil:
 6. **NUNCA invente dados** — use APENAS as informações fornecidas no contexto do sistema
 
 ## IDIOMA
-- Responda SEMPRE em português brasileiro
-- Use termos técnicos do setor de máquinas pesadas
-- Seja profissional mas acessível${partsContext}`;
+${lang === "en" ? "- ALWAYS respond in English\n- Use heavy machinery technical terms in English" : lang === "es" ? "- SIEMPRE responde en español\n- Usa términos técnicos del sector de maquinaria pesada en español" : "- Responda SEMPRE em português brasileiro\n- Use termos técnicos do setor de máquinas pesadas"}
+- Seja profissional mas acessível / Be professional but approachable${partsContext}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
