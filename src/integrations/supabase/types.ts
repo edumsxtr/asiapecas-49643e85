@@ -390,6 +390,45 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_requests: {
+        Row: {
+          cnpj_cpf: string | null
+          company: string | null
+          created_at: string
+          customer_name: string
+          email: string | null
+          id: string
+          items: Json
+          notes: string | null
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          cnpj_cpf?: string | null
+          company?: string | null
+          created_at?: string
+          customer_name: string
+          email?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          cnpj_cpf?: string | null
+          company?: string | null
+          created_at?: string
+          customer_name?: string
+          email?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       sale_items: {
         Row: {
           created_at: string
