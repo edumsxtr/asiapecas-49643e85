@@ -7,13 +7,21 @@ import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
 import { Search, ClipboardList, Send } from "lucide-react";
+import { type Lang, tr } from "@/components/quote/translations";
 
 type CartItem = { material: string; description: string; quantity: number };
+
+const LANG_FLAGS: { lang: Lang; label: string }[] = [
+  { lang: "pt", label: "🇧🇷 PT" },
+  { lang: "en", label: "🇺🇸 EN" },
+  { lang: "es", label: "🇪🇸 ES" },
+];
 
 export default function QuotePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [lang, setLang] = useState<Lang>("pt");
 
   const handleCategoryClick = (key: string) => {
     setCategory(prev => (prev === key ? null : key));
@@ -45,15 +53,27 @@ export default function QuotePage() {
             </div>
             <div>
               <h1 className="font-bold text-sm font-['Space_Grotesk']">Lopes & Lopes</h1>
-              <p className="text-[10px] text-secondary-foreground/60">Peças Originais XCMG</p>
+              <p className="text-[10px] text-secondary-foreground/60">{tr("header.subtitle", lang)}</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-secondary-foreground/70">
-            <a href="#pecas" className="hover:text-primary transition-colors">Peças</a>
-            <a href="#como-funciona" className="hover:text-primary transition-colors">Como Funciona</a>
-            <a href="#faq" className="hover:text-primary transition-colors">Dúvidas</a>
+            <a href="#pecas" className="hover:text-primary transition-colors">{tr("header.parts", lang)}</a>
+            <a href="#como-funciona" className="hover:text-primary transition-colors">{tr("header.howItWorks", lang)}</a>
+            <a href="#faq" className="hover:text-primary transition-colors">{tr("header.faq", lang)}</a>
+            {/* Language selector */}
+            <div className="flex items-center gap-1 border border-secondary-foreground/20 rounded-lg px-1">
+              {LANG_FLAGS.map(({ lang: l, label }) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "hover:bg-secondary-foreground/10"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <a href="https://wa.me/5500000000000" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
-              Solicitar Atendimento
+              {tr("header.contact", lang)}
             </a>
           </nav>
         </div>
@@ -65,17 +85,18 @@ export default function QuotePage() {
         onSearchChange={setSearch}
         onCategoryClick={handleCategoryClick}
         activeCategory={category}
+        lang={lang}
       />
 
       {/* How it works */}
       <section id="como-funciona" className="py-12 bg-card border-b">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-center text-foreground mb-8">Como Funciona</h2>
+          <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-center text-foreground mb-8">{tr("how.title", lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: Search, title: "Busque a Peça", desc: "Pesquise por código, descrição ou modelo de máquina" },
-              { icon: ClipboardList, title: "Monte seu Pedido", desc: "Adicione as peças desejadas ao carrinho de cotação" },
-              { icon: Send, title: "Receba sua Cotação", desc: "Envie o pedido e nossa equipe responde em até 24h" },
+              { icon: Search, title: tr("how.step1.title", lang), desc: tr("how.step1.desc", lang) },
+              { icon: ClipboardList, title: tr("how.step2.title", lang), desc: tr("how.step2.desc", lang) },
+              { icon: Send, title: tr("how.step3.title", lang), desc: tr("how.step3.desc", lang) },
             ].map((step, i) => (
               <div key={i} className="text-center space-y-3">
                 <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -96,16 +117,17 @@ export default function QuotePage() {
           category={category}
           cartItems={cartItems}
           onAddToCart={addToCart}
+          lang={lang}
         />
       </div>
 
       {/* FAQ */}
       <div id="faq">
-        <QuoteFAQ />
+        <QuoteFAQ lang={lang} />
       </div>
 
       {/* Footer */}
-      <QuoteFooter />
+      <QuoteFooter lang={lang} />
 
       {/* Cart drawer */}
       <QuoteCart
@@ -113,10 +135,11 @@ export default function QuotePage() {
         onUpdateQty={updateQty}
         onRemove={removeItem}
         onClear={() => setCartItems([])}
+        lang={lang}
       />
 
       {/* Chat */}
-      <QuoteChat />
+      <QuoteChat lang={lang} />
     </div>
   );
 }
