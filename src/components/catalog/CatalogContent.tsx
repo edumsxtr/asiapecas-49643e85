@@ -9,6 +9,7 @@ import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
 import { PartDetailDialog } from "./PartDetailDialog";
 import { ImportCatalogDialog } from "./ImportCatalogDialog";
+import { ExportCatalogButton } from "./ExportCatalogButton";
 
 export function CatalogContent() {
   const [search, setSearch] = useState("");
