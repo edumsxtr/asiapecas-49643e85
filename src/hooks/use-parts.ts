@@ -20,11 +20,16 @@ export const timeLabels = [
   "mais de 2 anos",
 ];
 
+export const priceRanges = [
+  { label: "Até R$ 1k", min: 0, max: 1000 },
+  { label: "R$ 1k – 10k", min: 1000, max: 10000 },
+  { label: "R$ 10k – 50k", min: 10000, max: 50000 },
+  { label: "R$ 50k – 100k", min: 50000, max: 100000 },
+  { label: "R$ 100k+", min: 100000, max: 999999999 },
+];
+
 export function formatBRL(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 export function formatCompact(value: number): string {
@@ -42,33 +47,64 @@ export function getActiveCategories(part: Part): string[] {
 interface UsePartsOptions {
   search?: string;
   category?: string | null;
+  manufacturer?: string | null;
+  machineModel?: string | null;
+  priceMin?: number | null;
+  priceMax?: number | null;
+  timeFilter?: string | null;
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortAsc?: boolean;
 }
 
-export function useParts({ search, category, page = 0, pageSize = 50 }: UsePartsOptions = {}) {
+export function useParts({
+  search, category, manufacturer, machineModel,
+  priceMin, priceMax, timeFilter,
+  page = 0, pageSize = 50,
+  sortBy = "stock", sortAsc = false,
+}: UsePartsOptions = {}) {
   return useQuery({
-    queryKey: ["parts", search, category, page, pageSize],
+    queryKey: ["parts", search, category, manufacturer, machineModel, priceMin, priceMax, timeFilter, page, pageSize, sortBy, sortAsc],
     queryFn: async () => {
       let query = supabase
         .from("parts")
         .select("*", { count: "exact" })
         .range(page * pageSize, (page + 1) * pageSize - 1)
-        .order("stock", { ascending: false });
+        .order(sortBy as any, { ascending: sortAsc });
 
       if (search) {
         const q = `%${search}%`;
         query = query.or(`description.ilike.${q},material.ilike.${q},machine_model.ilike.${q}`);
       }
-
-      if (category) {
-        query = (query as any).eq(category, true);
-      }
+      if (category) query = (query as any).eq(category, true);
+      if (manufacturer) query = query.eq("manufacturer", manufacturer);
+      if (machineModel) query = query.eq("machine_model", machineModel);
+      if (priceMin != null) query = query.gte("estimated_price", priceMin);
+      if (priceMax != null) query = query.lte("estimated_price", priceMax);
+      if (timeFilter) query = query.eq("last_entry_time", timeFilter);
 
       const { data, error, count } = await query;
       if (error) throw error;
       return { parts: (data ?? []) as Part[], total: count ?? 0 };
     },
+  });
+}
+
+export function useDistinctValues(column: "manufacturer" | "machine_model") {
+  return useQuery({
+    queryKey: ["distinct", column],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parts")
+        .select(column)
+        .not(column, "is", null)
+        .order(column);
+      if (error) throw error;
+      const unique = [...new Set((data || []).map((r: any) => r[column]).filter(Boolean))];
+      return unique as string[];
+    },
+    staleTime: 300_000,
   });
 }
 
