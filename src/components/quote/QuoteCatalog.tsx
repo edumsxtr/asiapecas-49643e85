@@ -33,37 +33,28 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
   const { data, isLoading } = useQuery({
     queryKey: ["quote-parts", search, category, page],
     queryFn: async () => {
-      let q = supabase
+      // Build filter params for RPC-style approach to avoid deep TS chain
+      const filters: Record<string, any> = {};
+      if (category && CATEGORY_MAP[category]) {
+        filters[CATEGORY_MAP[category]] = true;
+      }
+
+      let query: any = supabase
         .from("parts")
         .select("id, material, description, machine_model, stock, manufacturer, estimated_price", { count: "exact" })
-        .gt("stock", 0)
-        .order("stock", { ascending: false });
+        .gt("stock", 0);
 
       if (search.length >= 2) {
-        q = q.or(`material.ilike.%${search}%,description.ilike.%${search}%,machine_model.ilike.%${search}%`);
+        query = query.or(`material.ilike.%${search}%,description.ilike.%${search}%,machine_model.ilike.%${search}%`);
       }
 
-      q = q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      const { data: allParts, count } = await q;
-      
-      // Filter by category client-side to avoid deep type issue
-      let parts = allParts || [];
-      if (category && CATEGORY_MAP[category]) {
-        // Re-query with category filter
-        let q2 = supabase
-          .from("parts")
-          .select("id, material, description, machine_model, stock, manufacturer, estimated_price", { count: "exact" })
-          .gt("stock", 0)
-          .eq(CATEGORY_MAP[category] as any, true)
-          .order("stock", { ascending: false });
-        if (search.length >= 2) {
-          q2 = q2.or(`material.ilike.%${search}%,description.ilike.%${search}%,machine_model.ilike.%${search}%`);
-        }
-        q2 = q2.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-        const res = await q2;
-        parts = res.data || [];
-        return { parts, count: res.count || 0, aiIds: [] as string[] };
+      for (const [key, val] of Object.entries(filters)) {
+        query = query.eq(key, val);
       }
+
+      query = query.order("stock", { ascending: false }).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      const { data: parts, count } = await query;
       
       // Check which parts have AI data
       const ids = (parts || []).map(p => p.id);
