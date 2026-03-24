@@ -24,6 +24,7 @@ export default function QuotePage() {
   const [category, setCategory] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lang, setLang] = useState<Lang>("pt");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCategoryClick = (key: string) => {
     setCategory(prev => (prev === key ? null : key));
