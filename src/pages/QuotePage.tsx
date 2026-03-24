@@ -6,8 +6,9 @@ import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
-import { Search, ClipboardList, Send } from "lucide-react";
+import { Search, ClipboardList, Send, MessageCircle } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
+import eliteLogo from "@/assets/elite-logo.png";
 
 type CartItem = { material: string; description: string; quantity: number };
 
@@ -48,11 +49,9 @@ export default function QuotePage() {
       <header className="sticky top-0 z-40 bg-secondary text-secondary-foreground border-b border-secondary-foreground/10">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-              <span className="font-bold text-primary-foreground text-sm">LL</span>
-            </div>
+            <img src={eliteLogo} alt="Elite Peças XCMG" className="h-10 w-auto rounded-lg" />
             <div>
-              <h1 className="font-bold text-sm font-['Space_Grotesk']">Lopes & Lopes</h1>
+              <h1 className="font-bold text-sm font-['Space_Grotesk']">Elite Peças XCMG</h1>
               <p className="text-[10px] text-secondary-foreground/60">{tr("header.subtitle", lang)}</p>
             </div>
           </div>
@@ -72,7 +71,7 @@ export default function QuotePage() {
                 </button>
               ))}
             </div>
-            <a href="https://wa.me/5500000000000" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
+            <a href="https://wa.me/559597400928?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
               {tr("header.contact", lang)}
             </a>
           </nav>
@@ -140,6 +139,17 @@ export default function QuotePage() {
 
       {/* Chat */}
       <QuoteChat lang={lang} />
+
+      {/* WhatsApp flutuante */}
+      <a
+        href="https://wa.me/559597400928?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform"
+        title="WhatsApp"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </a>
     </div>
   );
 }
