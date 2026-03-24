@@ -47,6 +47,7 @@ interface QuotePartCardProps {
 export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAdd, onViewDetail, lang }: QuotePartCardProps) {
   const isReadyToShip = part.stock > 10;
   const isLastUnits = part.stock >= 1 && part.stock <= 5;
+  const [PartIcon, iconColor] = useMemo(() => getPartIcon(part.description), [part.description]);
 
   return (
     <Card className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border ${inCart ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"}`}>
