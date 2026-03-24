@@ -68,9 +68,9 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
         supabase.from("parts").select("manufacturer").gt("stock", 0).not("manufacturer", "is", null),
         supabase.from("parts").select("machine_model").gt("stock", 0).not("machine_model", "is", null),
       ]);
-      const noChinese = (s: string) => !/[\u4e00-\u9fff\u3400-\u4dbf]/.test(s);
-      const manufacturers = [...new Set((mfr.data || []).map((r: any) => r.manufacturer).filter((v: string) => v && noChinese(v)))].sort();
-      const models = [...new Set((mdl.data || []).map((r: any) => r.machine_model).filter((v: string) => v && noChinese(v)))].sort();
+      const cleanChinese = (s: string) => s.replace(/[\u4e00-\u9fff\u3400-\u4dbf]+[-\s]*/g, "").trim();
+      const manufacturers = [...new Set((mfr.data || []).map((r: any) => cleanChinese(r.manufacturer)).filter(Boolean))].sort();
+      const models = [...new Set((mdl.data || []).map((r: any) => cleanChinese(r.machine_model)).filter(Boolean))].sort();
       return { manufacturers, models };
     },
     staleTime: 5 * 60 * 1000,
