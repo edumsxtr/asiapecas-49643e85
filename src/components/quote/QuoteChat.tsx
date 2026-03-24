@@ -3,19 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { type Lang, tr } from "./translations";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-export default function QuoteChat() {
+export default function QuoteChat({ lang }: { lang: Lang }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Olá! Sou o assistente da Lopes & Lopes. Como posso ajudar? Posso tirar dúvidas sobre peças, compatibilidade de máquinas e prazos." },
+    { role: "assistant", content: tr("chat.greeting", lang) },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevLang = useRef(lang);
+
+  // Update greeting when language changes
+  useEffect(() => {
+    if (prevLang.current !== lang && messages.length === 1) {
+      setMessages([{ role: "assistant", content: tr("chat.greeting", lang) }]);
+    }
+    prevLang.current = lang;
+  }, [lang, messages.length]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
@@ -24,8 +34,12 @@ export default function QuoteChat() {
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg: Msg = { role: "user", content: input.trim() };
-    const allMsgs = [...messages, userMsg];
-    setMessages(allMsgs);
+    const langInstruction = lang === "en" ? "Respond in English." : lang === "es" ? "Responde en español." : "";
+    const allMsgs = langInstruction
+      ? [{ role: "user" as const, content: langInstruction }, ...messages, userMsg]
+      : [...messages, userMsg];
+    const displayMsgs = [...messages, userMsg];
+    setMessages(displayMsgs);
     setInput("");
     setLoading(true);
 
@@ -39,7 +53,7 @@ export default function QuoteChat() {
         body: JSON.stringify({ messages: allMsgs }),
       });
 
-      if (!resp.ok || !resp.body) throw new Error("Erro na resposta");
+      if (!resp.ok || !resp.body) throw new Error("Error");
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -64,17 +78,17 @@ export default function QuoteChat() {
             const c = parsed.choices?.[0]?.delta?.content;
             if (c) {
               assistantText += c;
-              setMessages([...allMsgs, { role: "assistant", content: assistantText }]);
+              setMessages([...displayMsgs, { role: "assistant", content: assistantText }]);
             }
           } catch {}
         }
       }
 
       if (!assistantText) {
-        setMessages([...allMsgs, { role: "assistant", content: "Desculpe, não consegui processar sua pergunta. Tente novamente." }]);
+        setMessages([...displayMsgs, { role: "assistant", content: tr("chat.noResponse", lang) }]);
       }
     } catch {
-      setMessages([...allMsgs, { role: "assistant", content: "Erro ao conectar. Tente novamente ou fale conosco pelo WhatsApp." }]);
+      setMessages([...displayMsgs, { role: "assistant", content: tr("chat.error", lang) }]);
     }
     setLoading(false);
   };
@@ -92,18 +106,16 @@ export default function QuoteChat() {
 
   return (
     <div className="fixed bottom-6 left-6 z-50 w-80 sm:w-96 bg-card border rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ maxHeight: "70vh" }}>
-      {/* Header */}
       <div className="bg-secondary text-secondary-foreground px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-sm">Assistente Lopes & Lopes</span>
+          <span className="font-semibold text-sm">{tr("chat.title", lang)}</span>
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7 text-secondary-foreground hover:text-primary" onClick={() => setOpen(false)}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[200px]">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -123,15 +135,14 @@ export default function QuoteChat() {
         {loading && (
           <div className="flex gap-2">
             <Bot className="h-5 w-5 text-primary mt-1" />
-            <div className="bg-muted rounded-xl px-3 py-2 text-sm text-muted-foreground animate-pulse">Digitando...</div>
+            <div className="bg-muted rounded-xl px-3 py-2 text-sm text-muted-foreground animate-pulse">{tr("chat.typing", lang)}</div>
           </div>
         )}
       </div>
 
-      {/* Input */}
       <div className="border-t p-3 flex gap-2">
         <Input
-          placeholder="Pergunte sobre peças, modelos..."
+          placeholder={tr("chat.placeholder", lang)}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && send()}

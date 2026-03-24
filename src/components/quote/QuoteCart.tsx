@@ -7,6 +7,7 @@ import { ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2 } from "lucide-re
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { type Lang, tr } from "./translations";
 
 type CartItem = { material: string; description: string; quantity: number };
 
@@ -15,9 +16,10 @@ interface QuoteCartProps {
   onUpdateQty: (material: string, qty: number) => void;
   onRemove: (material: string) => void;
   onClear: () => void;
+  lang: Lang;
 }
 
-export default function QuoteCart({ items, onUpdateQty, onRemove, onClear }: QuoteCartProps) {
+export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang }: QuoteCartProps) {
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +27,7 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear }: Quo
 
   const handleSubmit = async () => {
     if (!form.name || !form.email || items.length === 0) {
-      toast.error("Preencha nome, email e adicione ao menos 1 peça");
+      toast.error(tr("cart.error", lang));
       return;
     }
     setSubmitting(true);
@@ -39,7 +41,7 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear }: Quo
       notes: form.notes || null,
     });
     setSubmitting(false);
-    if (error) { toast.error("Erro ao enviar cotação"); return; }
+    if (error) { toast.error(tr("cart.errorSend", lang)); return; }
     setSubmitted(true);
   };
 
@@ -66,34 +68,34 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear }: Quo
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
-            Cotação ({items.length} itens)
+            {tr("cart.title", lang)} ({items.length} {tr("cart.items", lang)})
           </SheetTitle>
         </SheetHeader>
 
         {submitted ? (
           <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
             <CheckCircle2 className="h-16 w-16 text-primary" />
-            <h3 className="text-xl font-bold text-foreground">Cotação Enviada!</h3>
-            <p className="text-sm text-muted-foreground">Nossa equipe entrará em contato em breve.</p>
-            <Button onClick={resetAll}>Nova Cotação</Button>
+            <h3 className="text-xl font-bold text-foreground">{tr("cart.sent", lang)}</h3>
+            <p className="text-sm text-muted-foreground">{tr("cart.sentDesc", lang)}</p>
+            <Button onClick={resetAll}>{tr("cart.new", lang)}</Button>
           </div>
         ) : showForm ? (
           <div className="space-y-3 mt-4">
-            <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div><Label>Empresa</Label><Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} /></div>
+            <div><Label>{tr("cart.name", lang)} *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div><Label>{tr("cart.company", lang)}</Label><Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} /></div>
             <div><Label>CNPJ/CPF</Label><Input value={form.cnpj} onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))} /></div>
-            <div><Label>Email *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-            <div><Label>Telefone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
-            <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+            <div><Label>{tr("cart.email", lang)} *</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+            <div><Label>{tr("cart.phone", lang)}</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+            <div><Label>{tr("cart.notes", lang)}</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
             <Button onClick={handleSubmit} disabled={submitting} className="w-full gap-2">
-              <Send className="h-4 w-4" /> {submitting ? "Enviando..." : "Enviar Cotação"}
+              <Send className="h-4 w-4" /> {submitting ? tr("cart.sending", lang) : tr("cart.send", lang)}
             </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setShowForm(false)}>Voltar</Button>
+            <Button variant="ghost" className="w-full" onClick={() => setShowForm(false)}>{tr("cart.back", lang)}</Button>
           </div>
         ) : (
           <div className="space-y-3 mt-4">
             {items.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">Nenhum item adicionado. Busque peças e adicione à cotação.</p>
+              <p className="text-center text-muted-foreground py-12">{tr("cart.empty", lang)}</p>
             ) : (
               <>
                 {items.map(item => (
@@ -117,7 +119,7 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear }: Quo
                   </div>
                 ))}
                 <Button onClick={() => setShowForm(true)} className="w-full gap-2 mt-4">
-                  <Send className="h-4 w-4" /> Solicitar Cotação
+                  <Send className="h-4 w-4" /> {tr("cart.submit", lang)}
                 </Button>
               </>
             )}

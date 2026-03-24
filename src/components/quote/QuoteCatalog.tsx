@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
+import { type Lang, tr } from "./translations";
 
 type CartItem = { material: string; description: string; quantity: number };
 
@@ -14,6 +15,7 @@ interface QuoteCatalogProps {
   category: string | null;
   cartItems: CartItem[];
   onAddToCart: (part: any) => void;
+  lang: Lang;
 }
 
 const PAGE_SIZE = 12;
@@ -26,14 +28,13 @@ const CATEGORY_MAP: Record<string, string> = {
   caminhao_eletrico: "is_caminhao_eletrico",
 };
 
-export default function QuoteCatalog({ search, category, cartItems, onAddToCart }: QuoteCatalogProps) {
+export default function QuoteCatalog({ search, category, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["quote-parts", search, category, page],
     queryFn: async () => {
-      // Build filter params for RPC-style approach to avoid deep TS chain
       const filters: Record<string, any> = {};
       if (category && CATEGORY_MAP[category]) {
         filters[CATEGORY_MAP[category]] = true;
@@ -55,16 +56,15 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
       query = query.order("stock", { ascending: false }).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       const { data: parts, count } = await query;
-      
-      // Check which parts have AI data
-      const ids = (parts || []).map(p => p.id);
+
+      const ids = (parts || []).map((p: any) => p.id);
       let aiIds: string[] = [];
       if (ids.length > 0) {
         const { data: aiData } = await supabase
           .from("ai_compatibility_results")
           .select("part_id")
           .in("part_id", ids);
-        aiIds = (aiData || []).map(a => a.part_id);
+        aiIds = (aiData || []).map((a: any) => a.part_id);
       }
 
       return { parts: parts || [], count: count || 0, aiIds };
@@ -76,19 +76,17 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
 
   return (
     <section className="max-w-6xl mx-auto px-6 py-8">
-      {/* Results count */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-muted-foreground">
-          {data?.count ? `${data.count.toLocaleString("pt-BR")} peças encontradas` : "Buscando peças..."}
+          {data?.count ? `${data.count.toLocaleString("pt-BR")} ${tr("catalog.found", lang)}` : tr("catalog.searching", lang)}
         </p>
         {totalPages > 1 && (
           <p className="text-sm text-muted-foreground">
-            Página {page + 1} de {totalPages}
+            {tr("catalog.page", lang)} {page + 1} {tr("catalog.of", lang)} {totalPages}
           </p>
         )}
       </div>
 
-      {/* Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -97,7 +95,7 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {data?.parts.map((part) => (
+          {data?.parts.map((part: any) => (
             <QuotePartCard
               key={part.id}
               part={part}
@@ -105,46 +103,40 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
               hasAiData={data.aiIds.includes(part.id)}
               onAdd={() => onAddToCart(part)}
               onViewDetail={() => setDetailPart(part)}
+              lang={lang}
             />
           ))}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-8">
           <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-            <ChevronLeft className="h-4 w-4" /> Anterior
+            <ChevronLeft className="h-4 w-4" /> {tr("catalog.prev", lang)}
           </Button>
           <div className="flex gap-1">
             {Array.from({ length: Math.min(totalPages, 7) }).map((_, i) => {
               const p = totalPages <= 7 ? i : Math.max(0, Math.min(page - 3, totalPages - 7)) + i;
               return (
-                <Button
-                  key={p}
-                  variant={p === page ? "default" : "ghost"}
-                  size="sm"
-                  className="w-9"
-                  onClick={() => setPage(p)}
-                >
+                <Button key={p} variant={p === page ? "default" : "ghost"} size="sm" className="w-9" onClick={() => setPage(p)}>
                   {p + 1}
                 </Button>
               );
             })}
           </div>
           <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-            Próxima <ChevronRight className="h-4 w-4" />
+            {tr("catalog.next", lang)} <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}
 
-      {/* Detail dialog */}
       <QuotePartDetail
         part={detailPart}
         open={!!detailPart}
         onClose={() => setDetailPart(null)}
         inCart={detailPart ? inCartMaterials.has(detailPart.material) : false}
         onAdd={() => { if (detailPart) { onAddToCart(detailPart); setDetailPart(null); } }}
+        lang={lang}
       />
     </section>
   );
