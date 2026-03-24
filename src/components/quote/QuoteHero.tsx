@@ -1,4 +1,4 @@
-import { Search, Pickaxe, Construction, Drill, Crane, Truck } from "lucide-react";
+import { Search, Pickaxe, Construction, Drill, Container, Truck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const categories = [
