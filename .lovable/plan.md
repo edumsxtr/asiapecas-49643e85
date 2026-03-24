@@ -1,67 +1,83 @@
 
 
-# Plano: Pesquisa IA em Massa + Catálogo Interativo + Carrinho Integrado + Portal do Cliente
+# Plano: Portal do Cliente Profissional — Estilo Extra Maquinas
 
-## 4 Grandes Entregas
+## Referencia Visual
 
-### 1. Pesquisa IA em Massa (Batch) — Todas as 15k peças pré-pesquisadas
+O site da Extra Maquinas tem: hero banner com video/imagem, navegacao por categorias com sidebar, cards de produtos com imagens e specs tecnicas, botao WhatsApp flutuante, secao institucional, e pagina de pecas com busca lateral.
 
-**Edge Function `batch-ai-research/index.ts`**:
-- Recebe um lote de materiais (50 por vez)
-- Para cada peça sem pesquisa salva em `ai_compatibility_results`, chama a IA (gemini-2.5-flash para velocidade e custo)
-- Salva resultados automaticamente
-- Controle de rate limit com delay entre chamadas
+## O que vou fazer
 
-**Botão no Catálogo**: "Pesquisar Todas com IA" que dispara a pesquisa em lotes (50 peças por request, com progresso visual). Ao terminar, cada peça já tem dados de compatibilidade, descrição técnica e peças relacionadas prontos para consulta instantânea.
+### 1. Reescrever `QuotePage.tsx` como portal completo
 
-**Hook `use-batch-ai-research.ts`**: Gerencia a fila de lotes, progresso, e status.
+**Header profissional**:
+- Logo Lopes & Lopes com cores amarelo/preto (brand)
+- Menu horizontal: Inicio, Pecas, Maquinas, Sobre Nos, Contato
+- Botao "Solicitar Atendimento" destacado
+- Botao WhatsApp flutuante no canto inferior direito
 
-### 2. Catálogo mais Interativo e Responsivo
+**Hero Section**:
+- Banner com gradiente amarelo/preto e titulo: "Pecas Originais XCMG"
+- Subtitulo: "Distribuidor autorizado — Brasil, Venezuela, Guiana"
+- Campo de busca grande centralizado
+- Cards de destaque: Mineracao, Linha Amarela, Perfuratriz, Guindaste, Caminhao Eletrico (filtros rapidos por categoria)
 
-- **PartCard**: Adicionar botão "Adicionar ao Pedido" (ícone carrinho) direto no card, sem precisar abrir o dialog
-- **Indicador de IA**: Badge verde "IA ✓" no card quando a peça já tem pesquisa salva em `ai_compatibility_results`
-- **Quick preview**: Hover no card mostra tooltip com descrição técnica da IA (se disponível)
-- **Responsividade**: Grid adapta de 1 a 4 colunas, cards com layout compacto em mobile
-- **Busca otimizada**: Quando a peça tem dados de IA, incluir `compatible_machines` na busca (JOIN com `ai_compatibility_results`)
+**Catalogo com sidebar de filtros**:
+- Sidebar esquerda: categorias clicaveis (Mineracao, Linha Amarela, etc.), filtro por modelo de maquina, filtro por fabricante
+- Grid de pecas 3 colunas com cards visuais: codigo em badge amarelo, descricao, modelo, disponibilidade, botao "Adicionar a Cotacao"
+- Paginacao ou infinite scroll
 
-### 3. Montar Pedido/Orçamento direto do Catálogo
+**Secao "Como Funciona"**:
+- 3 passos visuais: 1) Busque a peca, 2) Monte seu pedido, 3) Receba sua cotacao
+- Icones ilustrativos
 
-- **Carrinho flutuante**: Botão fixo no canto inferior direito com badge de quantidade
-- **Estado global do carrinho**: Context/Zustand para compartilhar entre Catálogo e Pedido
-- **Fluxo**: Catálogo → Adicionar peças → Clique no carrinho → Abre `/pedidos/novo` com itens preenchidos
-- **No PartDetailDialog**: Botão "Adicionar ao Orçamento" ao lado de Editar/Revisar
+**Secao FAQ / Tire Duvidas**:
+- Accordion com perguntas frequentes (prazo de entrega, garantia, formas de pagamento, como rastrear pedido)
+- Botao "Fale com um Especialista" que abre WhatsApp
 
-### 4. Portal do Cliente (separado do vendedor)
+**Secao Institucional**:
+- Sobre a Lopes & Lopes (texto do plano de negocios)
+- Segmentos atendidos
+- Regioes de atuacao
 
-**Nova rota `/cotacao`** — Página pública onde o CLIENTE acessa:
-- Catálogo simplificado (sem preços internos, sem edição)
-- Busca por código, descrição, modelo
-- Filtros por categoria e modelo de máquina
-- Botão "Solicitar Cotação" em cada peça
-- Formulário: Nome, Empresa, CNPJ, Email, Telefone, Lista de peças desejadas + quantidades
-- Ao enviar, cria registro em nova tabela `quote_requests` com status "pendente"
-- Vendedor vê as cotações pendentes na área de Vendas
+**Footer**:
+- Contato, redes sociais, CNPJ, endereco
+- Links rapidos
 
-**Nova tabela `quote_requests`**:
-- `id`, `customer_name`, `company`, `cnpj_cpf`, `email`, `phone`, `items` (jsonb — array de {material, quantity}), `status` (pendente/respondido/convertido), `notes`, `created_at`
+### 2. Carrinho lateral (drawer)
 
-## Banco de Dados
-- CREATE TABLE `quote_requests` com RLS pública (clientes não autenticados podem inserir)
-- Sem alteração nas tabelas existentes
+Em vez de card inline, o carrinho abre como sheet/drawer lateral:
+- Lista de itens com +/- quantidade
+- Botao "Solicitar Cotacao" que abre o formulario
+- Sempre visivel como icone flutuante com badge de contagem
+
+### 3. Chat de duvidas integrado
+
+- Botao "Tire suas duvidas" que abre um mini-chat com IA (reutiliza a edge function `chat`)
+- O cliente pode perguntar sobre pecas, compatibilidade, prazos
+- Resposta automatica baseada no estoque real
+
+### 4. Detalhes da peca (dialog melhorado)
+
+Ao clicar "Ver Detalhes" no card:
+- Modal com: codigo, descricao completa, modelo de maquina, disponibilidade
+- Se tem pesquisa IA salva: mostra compatibilidade, funcao provavel, specs tecnicas
+- Botao "Adicionar a Cotacao" no modal
+- Pecas relacionadas/similares (query ILIKE)
 
 ## Arquivos a criar/editar
 
-| Arquivo | Ação |
+| Arquivo | Acao |
 |---------|------|
-| `supabase/functions/batch-ai-research/index.ts` | Criar — pesquisa IA em lote |
-| `src/hooks/use-batch-ai-research.ts` | Criar — gerencia pesquisa em massa |
-| `src/contexts/CartContext.tsx` | Criar — carrinho global |
-| `src/pages/QuotePage.tsx` | Criar — portal do cliente |
-| `src/components/catalog/PartCard.tsx` | Editar — botão carrinho + badge IA |
-| `src/components/catalog/CatalogContent.tsx` | Editar — botão "Pesquisar Todas" + carrinho flutuante |
-| `src/components/catalog/PartDetailDialog.tsx` | Editar — botão "Adicionar ao Orçamento" |
-| `src/pages/NewOrderPage.tsx` | Editar — ler itens do CartContext |
-| `src/App.tsx` | Editar — rota `/cotacao` + CartProvider |
-| `src/pages/SalesPage.tsx` | Editar — tab/seção "Cotações Recebidas" |
-| Migration SQL | Criar — tabela `quote_requests` |
+| `src/pages/QuotePage.tsx` | Reescrever completo — portal profissional |
+| `src/components/quote/QuoteHero.tsx` | Criar — hero banner com busca |
+| `src/components/quote/QuoteCatalog.tsx` | Criar — catalogo com sidebar + grid |
+| `src/components/quote/QuotePartCard.tsx` | Criar — card de peca estilo e-commerce |
+| `src/components/quote/QuotePartDetail.tsx` | Criar — dialog detalhes com dados IA |
+| `src/components/quote/QuoteCart.tsx` | Criar — drawer lateral do carrinho |
+| `src/components/quote/QuoteFAQ.tsx` | Criar — accordion de perguntas frequentes |
+| `src/components/quote/QuoteFooter.tsx` | Criar — footer institucional |
+| `src/components/quote/QuoteChat.tsx` | Criar — mini-chat com IA para duvidas |
+
+Nenhuma alteracao no banco de dados necessaria — usa as mesmas tabelas `parts`, `quote_requests`, e `ai_compatibility_results`.
 
