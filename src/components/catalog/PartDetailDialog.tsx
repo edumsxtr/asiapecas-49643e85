@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Part, formatBRL, getActiveCategories, useUpdatePart, useSimilarParts, usePartSales } from "@/hooks/use-parts";
-import { Package, Clock, Layers, Truck, Search, Brain, Pencil, CheckCircle2, Copy, ShoppingCart } from "lucide-react";
+import { Package, Clock, Layers, Truck, Search, Brain, Pencil, CheckCircle2, Copy, ShoppingCart as ShoppingCartIcon } from "lucide-react";
 import { MarketResearchTab } from "./MarketResearchTab";
 import { PartAIResearch } from "./PartAIResearch";
+import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
 interface PartDetailDialogProps {
