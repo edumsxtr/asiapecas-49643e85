@@ -5,13 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useProspects, useUpdateProspect, useDeleteProspect, useConvertToCustomer, useSearchProspectsAI, Prospect } from "@/hooks/use-prospects";
-import { Search, Sparkles, Users, Globe, TrendingUp, Trash2, Edit, UserPlus, Loader2 } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Search, Sparkles, Users, Globe, TrendingUp, Trash2, Edit, UserPlus, Loader2,
+  Phone, Mail, MessageSquare, ChevronDown, ChevronRight, Package, MapPin,
+  Building2, ShoppingCart, ExternalLink, FileText
+} from "lucide-react";
 
 const COUNTRIES = [
   { value: "BR", label: "🇧🇷 Brasil" },
@@ -35,13 +43,285 @@ const statusColors: Record<string, string> = {
   descartado: "bg-muted text-muted-foreground border-muted",
 };
 
+const pipelineSteps = [
+  { key: "novo", label: "Novo", icon: "🆕" },
+  { key: "contatado", label: "Contatado", icon: "📞" },
+  { key: "qualificado", label: "Qualificado", icon: "✅" },
+  { key: "negociação", label: "Negociação", icon: "🤝" },
+  { key: "convertido", label: "Convertido", icon: "🎉" },
+];
+
+function ScoreBar({ score }: { score: number }) {
+  const color = score >= 70 ? "bg-green-500" : score >= 40 ? "bg-yellow-500" : "bg-red-500";
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
+      </div>
+      <span className="text-xs font-bold">{score}</span>
+    </div>
+  );
+}
+
+function ProspectCard({
+  prospect,
+  onEdit,
+  onConvert,
+  onDelete,
+  onStatusChange,
+  parts,
+}: {
+  prospect: Prospect;
+  onEdit: () => void;
+  onConvert: () => void;
+  onDelete: () => void;
+  onStatusChange: (status: string) => void;
+  parts: any[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const { addItem } = useCart();
+
+  const matchedPartsData = parts.filter(p =>
+    prospect.matched_parts?.includes(p.material)
+  );
+
+  const parsedPartsDetails = (() => {
+    if (!prospect.notes?.startsWith("PEÇAS RECOMENDADAS:")) return [];
+    return prospect.notes
+      .replace("PEÇAS RECOMENDADAS:\n", "")
+      .split("\n")
+      .filter(l => l.startsWith("•"))
+      .map(l => {
+        const match = l.match(/^• (\S+) - (.+?): (.+)$/);
+        if (!match) return null;
+        return { material: match[1], description: match[2], reason: match[3] };
+      })
+      .filter(Boolean) as { material: string; description: string; reason: string }[];
+  })();
+
+  const whatsappPhone = prospect.phone?.replace(/[\s()-]/g, "").replace("+", "");
+  const whatsappMsg = encodeURIComponent(
+    `Olá ${prospect.name}! Sou da Lopes & Lopes, distribuidor autorizado XCMG. Gostaria de apresentar nossas soluções em peças para máquinas pesadas. Podemos conversar?`
+  );
+
+  return (
+    <Card className={`transition-all ${expanded ? "ring-1 ring-primary/30" : "hover:bg-accent/30"}`}>
+      <Collapsible open={expanded} onOpenChange={setExpanded}>
+        <CollapsibleTrigger asChild>
+          <div className="p-4 cursor-pointer">
+            <div className="flex items-start gap-3">
+              {/* Avatar/Icon */}
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+
+              {/* Main info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm">{prospect.name}</span>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusColors[prospect.status]}`}>
+                    {prospect.status}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
+                  {prospect.company && <span className="font-medium">{prospect.company}</span>}
+                  <span className="flex items-center gap-0.5">
+                    <MapPin className="h-3 w-3" />
+                    {prospect.country === "BR" ? "🇧🇷" : prospect.country === "VE" ? "🇻🇪" : "🇬🇾"}
+                    {" "}{prospect.city}{prospect.state ? `, ${prospect.state}` : ""}
+                  </span>
+                  {prospect.segment && <span className="capitalize">· {prospect.segment}</span>}
+                </div>
+
+                {/* Contact quick icons */}
+                <div className="flex items-center gap-1 mt-2">
+                  {prospect.phone && (
+                    <>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                        <a href={`tel:${prospect.phone}`} title={prospect.phone} onClick={e => e.stopPropagation()}>
+                          <Phone className="h-3.5 w-3.5 text-blue-400" />
+                        </a>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                        <a href={`https://wa.me/${whatsappPhone}?text=${whatsappMsg}`} target="_blank" rel="noopener" title="WhatsApp" onClick={e => e.stopPropagation()}>
+                          <MessageSquare className="h-3.5 w-3.5 text-green-400" />
+                        </a>
+                      </Button>
+                    </>
+                  )}
+                  {prospect.email && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                      <a href={`mailto:${prospect.email}?subject=Peças XCMG - Lopes %26 Lopes`} title={prospect.email} onClick={e => e.stopPropagation()}>
+                        <Mail className="h-3.5 w-3.5 text-orange-400" />
+                      </a>
+                    </Button>
+                  )}
+                  {(prospect.matched_parts?.length || 0) > 0 && (
+                    <Badge variant="secondary" className="text-[10px] ml-1">
+                      <Package className="h-3 w-3 mr-0.5" /> {prospect.matched_parts?.length} peças
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Score + expand */}
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <ScoreBar score={prospect.score} />
+                {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-4 border-t pt-4">
+            {/* Contact details */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Telefone</Label>
+                <div className="text-sm flex items-center gap-2">
+                  {prospect.phone ? (
+                    <a href={`tel:${prospect.phone}`} className="text-blue-400 hover:underline">{prospect.phone}</a>
+                  ) : <span className="text-muted-foreground italic">Não informado</span>}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Email</Label>
+                <div className="text-sm">
+                  {prospect.email ? (
+                    <a href={`mailto:${prospect.email}`} className="text-orange-400 hover:underline">{prospect.email}</a>
+                  ) : <span className="text-muted-foreground italic">Não informado</span>}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">CNPJ/CPF</Label>
+                <div className="text-sm">{prospect.cnpj_cpf || <span className="text-muted-foreground italic">Não informado</span>}</div>
+              </div>
+            </div>
+
+            {/* AI Summary */}
+            {prospect.ai_summary && (
+              <div className="rounded-lg bg-primary/5 border border-primary/10 p-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-primary">Análise IA</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{prospect.ai_summary}</p>
+              </div>
+            )}
+
+            {/* Recommended parts */}
+            {(matchedPartsData.length > 0 || parsedPartsDetails.length > 0) && (
+              <div>
+                <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5 text-primary" /> Peças Recomendadas
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {matchedPartsData.length > 0
+                    ? matchedPartsData.map((part: any) => {
+                        const detail = parsedPartsDetails.find(d => d.material === part.material);
+                        return (
+                          <div key={part.id} className="flex items-center gap-3 rounded-md border bg-card p-2.5">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">{part.material}</Badge>
+                                <span className="text-xs truncate">{part.description}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                Estoque: {part.stock} · R$ {Number(part.estimated_price).toLocaleString("pt-BR")}
+                              </div>
+                              {detail?.reason && (
+                                <div className="text-[10px] text-primary/70 mt-0.5 italic">💡 {detail.reason}</div>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              title="Adicionar ao orçamento"
+                              onClick={() => addItem({
+                                part_id: part.id,
+                                material: part.material,
+                                description: part.description,
+                                unit_price: Number(part.estimated_price),
+                                stock: part.stock,
+                              })}
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+                            </Button>
+                          </div>
+                        );
+                      })
+                    : parsedPartsDetails.map((d, i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-md border bg-card p-2.5">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">{d.material}</Badge>
+                              <span className="text-xs truncate">{d.description}</span>
+                            </div>
+                            <div className="text-[10px] text-primary/70 mt-0.5 italic">💡 {d.reason}</div>
+                          </div>
+                        </div>
+                      ))
+                  }
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 flex-wrap pt-2 border-t">
+              <Select value={prospect.status} onValueChange={onStatusChange}>
+                <SelectTrigger className={`h-8 text-xs w-[130px] ${statusColors[prospect.status] || ""}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}</SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onEdit}>
+                <Edit className="h-3 w-3 mr-1" /> Editar
+              </Button>
+              {prospect.phone && (
+                <Button variant="outline" size="sm" className="h-8 text-xs text-green-400 border-green-500/20" asChild>
+                  <a href={`https://wa.me/${whatsappPhone}?text=${whatsappMsg}`} target="_blank" rel="noopener">
+                    <MessageSquare className="h-3 w-3 mr-1" /> WhatsApp
+                  </a>
+                </Button>
+              )}
+              {prospect.status !== "convertido" && (
+                <Button variant="outline" size="sm" className="h-8 text-xs text-green-400 border-green-500/20" onClick={onConvert}>
+                  <UserPlus className="h-3 w-3 mr-1" /> Converter
+                </Button>
+              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive ml-auto">
+                    <Trash2 className="h-3 w-3 mr-1" /> Descartar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remover prospect?</AlertDialogTitle>
+                    <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDelete}>Remover</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
+
 export default function ProspectionPage() {
   const [search, setSearch] = useState("");
   const [filterCountry, setFilterCountry] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterSegment, setFilterSegment] = useState<string>("");
 
-  // AI search params
   const [aiCountry, setAiCountry] = useState("BR");
   const [aiState, setAiState] = useState("");
   const [aiSegment, setAiSegment] = useState("");
@@ -57,6 +337,21 @@ export default function ProspectionPage() {
     search: search || undefined,
   });
 
+  // Fetch parts for matching
+  const { data: allParts = [] } = useQuery({
+    queryKey: ["parts-for-prospects"],
+    queryFn: async () => {
+      const allMaterials = new Set(prospects.flatMap(p => p.matched_parts || []));
+      if (allMaterials.size === 0) return [];
+      const { data } = await supabase
+        .from("parts")
+        .select("id, material, description, stock, estimated_price")
+        .in("material", Array.from(allMaterials));
+      return data || [];
+    },
+    enabled: prospects.length > 0,
+  });
+
   const updateProspect = useUpdateProspect();
   const deleteProspect = useDeleteProspect();
   const convertToCustomer = useConvertToCustomer();
@@ -64,15 +359,13 @@ export default function ProspectionPage() {
 
   const stateOptions = aiCountry === "BR" ? BR_STATES : aiCountry === "VE" ? VE_STATES : GY_STATES;
 
-  // KPIs
   const totalProspects = prospects.length;
   const byCountry = prospects.reduce((acc, p) => { acc[p.country] = (acc[p.country] || 0) + 1; return acc; }, {} as Record<string, number>);
-  const converted = prospects.filter(p => p.status === "convertido").length;
   const avgScore = totalProspects > 0 ? Math.round(prospects.reduce((s, p) => s + p.score, 0) / totalProspects) : 0;
 
   const handleEdit = (p: Prospect) => {
     setEditProspect(p);
-    setEditForm({ name: p.name, company: p.company, email: p.email, phone: p.phone, status: p.status, notes: p.notes });
+    setEditForm({ name: p.name, company: p.company, email: p.email, phone: p.phone, cnpj_cpf: p.cnpj_cpf, status: p.status, notes: p.notes });
   };
 
   const handleSaveEdit = () => {
@@ -83,15 +376,38 @@ export default function ProspectionPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">Prospecção Inteligente</h1>
-            <p className="text-sm text-muted-foreground">Encontre clientes potenciais com IA baseado no seu estoque</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Prospecção Inteligente</h1>
+          <p className="text-sm text-muted-foreground">Encontre clientes potenciais com IA — contatos reais, peças sugeridas e ações rápidas</p>
+        </div>
+
+        {/* Pipeline Visual */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {pipelineSteps.map(step => {
+            const count = prospects.filter(p => p.status === step.key).length;
+            const isActive = filterStatus === step.key;
+            return (
+              <button
+                key={step.key}
+                onClick={() => setFilterStatus(isActive ? "" : step.key)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shrink-0 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : `${statusColors[step.key]} hover:opacity-80`
+                }`}
+              >
+                <span>{step.icon}</span>
+                <span>{step.label}</span>
+                <Badge variant={isActive ? "secondary" : "outline"} className="text-[10px] h-5 px-1.5 ml-1">
+                  {count}
+                </Badge>
+              </button>
+            );
+          })}
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="pt-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Users className="h-3.5 w-3.5" /> Total</div>
             <p className="text-2xl font-bold">{totalProspects}</p>
@@ -102,7 +418,7 @@ export default function ProspectionPage() {
           </CardContent></Card>
           <Card><CardContent className="pt-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><TrendingUp className="h-3.5 w-3.5" /> Convertidos</div>
-            <p className="text-2xl font-bold text-green-400">{converted}</p>
+            <p className="text-2xl font-bold text-green-400">{prospects.filter(p => p.status === "convertido").length}</p>
           </CardContent></Card>
           <Card><CardContent className="pt-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Sparkles className="h-3.5 w-3.5" /> Score Médio</div>
@@ -113,7 +429,10 @@ export default function ProspectionPage() {
         {/* AI Search Panel */}
         <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Buscar Prospects com IA (GPT-5.2)</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Buscar Prospects com IA
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">A IA encontra empresas reais com telefone, email e peças recomendadas do seu estoque</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -158,24 +477,17 @@ export default function ProspectionPage() {
           </CardContent>
         </Card>
 
-        {/* Filters */}
+        {/* Search + Filters */}
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome ou empresa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Buscar por nome, empresa, telefone, email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={filterCountry} onValueChange={v => setFilterCountry(v === "todos" ? "" : v)}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="País" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               {COUNTRIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={v => setFilterStatus(v === "todos" ? "" : v)}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterSegment} onValueChange={v => setFilterSegment(v === "todos" ? "" : v)}>
@@ -187,116 +499,53 @@ export default function ProspectionPage() {
           </Select>
         </div>
 
-        {/* Pipeline summary */}
-        <div className="flex gap-2 flex-wrap">
-          {STATUSES.filter(s => s !== "descartado").map(s => {
-            const count = prospects.filter(p => p.status === s).length;
-            return (
-              <Badge key={s} variant="outline" className={`${statusColors[s]} cursor-pointer`} onClick={() => setFilterStatus(s === filterStatus ? "" : s)}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}: {count}
-              </Badge>
-            );
-          })}
+        {/* Prospect Cards */}
+        <div className="space-y-3">
+          {isLoading ? (
+            <Card><CardContent className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">Carregando prospects...</p></CardContent></Card>
+          ) : prospects.length === 0 ? (
+            <Card><CardContent className="py-12 text-center">
+              <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Nenhum prospect encontrado.</p>
+              <p className="text-xs text-muted-foreground mt-1">Use a busca com IA acima para gerar prospects com contatos reais.</p>
+            </CardContent></Card>
+          ) : prospects.map(p => (
+            <ProspectCard
+              key={p.id}
+              prospect={p}
+              parts={allParts}
+              onEdit={() => handleEdit(p)}
+              onConvert={() => convertToCustomer.mutate(p)}
+              onDelete={() => deleteProspect.mutate(p.id)}
+              onStatusChange={(status) => updateProspect.mutate({ id: p.id, status })}
+            />
+          ))}
         </div>
-
-        {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome / Empresa</TableHead>
-                  <TableHead>País</TableHead>
-                  <TableHead>Segmento</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Peças</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></TableCell></TableRow>
-                ) : prospects.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum prospect. Use a busca com IA acima.</TableCell></TableRow>
-                ) : prospects.map(p => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.company || "—"}</div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs">{p.country === "BR" ? "🇧🇷" : p.country === "VE" ? "🇻🇪" : "🇬🇾"} {p.state || ""}</span>
-                    </TableCell>
-                    <TableCell><span className="text-xs capitalize">{p.segment || "—"}</span></TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={p.score >= 70 ? "border-green-500/30 text-green-400" : p.score >= 40 ? "border-yellow-500/30 text-yellow-400" : "border-red-500/30 text-red-400"}>
-                        {p.score}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select value={p.status} onValueChange={v => updateProspect.mutate({ id: p.id, status: v })}>
-                        <SelectTrigger className={`h-7 text-xs w-[120px] ${statusColors[p.status] || ""}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">{p.matched_parts?.length || 0} peças</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(p)}><Edit className="h-3.5 w-3.5" /></Button>
-                        {p.status !== "convertido" && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-green-400" onClick={() => convertToCustomer.mutate(p)} title="Converter para Cliente">
-                            <UserPlus className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button></AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover prospect?</AlertDialogTitle>
-                              <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteProspect.mutate(p.id)}>Remover</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
 
         {/* Edit Dialog */}
         <Dialog open={!!editProspect} onOpenChange={o => !o && setEditProspect(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Editar Prospect</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div><Label>Nome</Label><Input value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
-              <div><Label>Empresa</Label><Input value={editForm.company || ""} onChange={e => setEditForm(f => ({ ...f, company: e.target.value }))} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Email</Label><Input value={editForm.email || ""} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></div>
-                <div><Label>Telefone</Label><Input value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                <div><Label>Nome</Label><Input value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
+                <div><Label>Empresa</Label><Input value={editForm.company || ""} onChange={e => setEditForm(f => ({ ...f, company: e.target.value }))} /></div>
               </div>
-              <div><Label>Status</Label>
-                <Select value={editForm.status || "novo"} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Telefone</Label><Input value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="+55 11 9xxxx-xxxx" /></div>
+                <div><Label>Email</Label><Input value={editForm.email || ""} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="contato@empresa.com" /></div>
               </div>
-              <div><Label>Notas</Label><Textarea value={editForm.notes || ""} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
-              {editProspect?.ai_summary && (
-                <div className="rounded-md bg-muted p-3 text-xs"><strong>Resumo IA:</strong> {editProspect.ai_summary}</div>
-              )}
-              <Button onClick={handleSaveEdit} disabled={updateProspect.isPending} className="w-full">Salvar</Button>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>CNPJ/CPF</Label><Input value={editForm.cnpj_cpf || ""} onChange={e => setEditForm(f => ({ ...f, cnpj_cpf: e.target.value }))} /></div>
+                <div><Label>Status</Label>
+                  <Select value={editForm.status || "novo"} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div><Label>Notas</Label><Textarea value={editForm.notes || ""} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={3} /></div>
+              <Button onClick={handleSaveEdit} disabled={updateProspect.isPending} className="w-full">Salvar Alterações</Button>
             </div>
           </DialogContent>
         </Dialog>
