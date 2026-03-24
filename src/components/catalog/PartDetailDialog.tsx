@@ -91,6 +91,9 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
               <p className="font-semibold text-foreground mt-1">{part.description}</p>
             </div>
             <div className="flex gap-1">
+              <Button variant="default" size="sm" onClick={handleAddToCart} className="gap-1">
+                <ShoppingCartIcon className="h-3 w-3" /> Pedido
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setEditing(!editing)} className="gap-1">
                 <Pencil className="h-3 w-3" /> Editar
               </Button>
