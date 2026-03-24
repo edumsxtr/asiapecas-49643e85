@@ -479,6 +479,107 @@ export type Database = {
           },
         ]
       }
+      stock_import_items: {
+        Row: {
+          created_at: string
+          description: string
+          estimated_price: number | null
+          id: string
+          import_id: string
+          is_caminhao_eletrico: boolean | null
+          is_guindaste: boolean | null
+          is_linha_amarela: boolean | null
+          is_mineracao: boolean | null
+          is_perfuratriz: boolean | null
+          last_entry_time: string | null
+          machine_model: string | null
+          manufacturer: string | null
+          material: string
+          stock: number | null
+          supplier: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          estimated_price?: number | null
+          id?: string
+          import_id: string
+          is_caminhao_eletrico?: boolean | null
+          is_guindaste?: boolean | null
+          is_linha_amarela?: boolean | null
+          is_mineracao?: boolean | null
+          is_perfuratriz?: boolean | null
+          last_entry_time?: string | null
+          machine_model?: string | null
+          manufacturer?: string | null
+          material: string
+          stock?: number | null
+          supplier?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          estimated_price?: number | null
+          id?: string
+          import_id?: string
+          is_caminhao_eletrico?: boolean | null
+          is_guindaste?: boolean | null
+          is_linha_amarela?: boolean | null
+          is_mineracao?: boolean | null
+          is_perfuratriz?: boolean | null
+          last_entry_time?: string | null
+          machine_model?: string | null
+          manufacturer?: string | null
+          material?: string
+          stock?: number | null
+          supplier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_import_items_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "stock_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_imports: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          imported_at: string
+          source_label: string | null
+          status: string
+          total_rows: number | null
+          total_stock: number | null
+          total_value: number | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          imported_at?: string
+          source_label?: string | null
+          status?: string
+          total_rows?: number | null
+          total_stock?: number | null
+          total_value?: number | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          imported_at?: string
+          source_label?: string | null
+          status?: string
+          total_rows?: number | null
+          total_stock?: number | null
+          total_value?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Search, Grid3X3, List, Upload } from "lucide-react";
+import { Search, Grid3X3, List, Upload, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useParts, categoryLabels, categoryKeys, type Part } from "@/hooks/use-parts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useParts, categoryLabels, categoryKeys, priceRanges, timeLabels, useDistinctValues, type Part } from "@/hooks/use-parts";
 import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
 import { PartDetailDialog } from "./PartDetailDialog";
@@ -19,111 +20,164 @@ export function CatalogContent() {
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const [page, setPage] = useState(0);
   const [showImport, setShowImport] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [manufacturer, setManufacturer] = useState<string | null>(null);
+  const [machineModel, setMachineModel] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<number | null>(null);
+  const [timeFilter, setTimeFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState("stock");
+  const [sortAsc, setSortAsc] = useState(false);
   const pageSize = 50;
 
-  // Debounce search
+  const { data: manufacturers } = useDistinctValues("manufacturer");
+  const { data: models } = useDistinctValues("machine_model");
+
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = (value: string) => {
     setSearch(value);
     if (timer) clearTimeout(timer);
-    const t = setTimeout(() => {
-      setDebouncedSearch(value);
-      setPage(0);
-    }, 400);
+    const t = setTimeout(() => { setDebouncedSearch(value); setPage(0); }, 400);
     setTimer(t);
   };
 
+  const pr = priceRange != null ? priceRanges[priceRange] : null;
+  const hasFilters = manufacturer || machineModel || priceRange != null || timeFilter;
+
   const { data, isLoading } = useParts({
-    search: debouncedSearch,
-    category: activeCategory,
-    page,
-    pageSize,
+    search: debouncedSearch, category: activeCategory,
+    manufacturer, machineModel,
+    priceMin: pr?.min ?? null, priceMax: pr?.max ?? null,
+    timeFilter, page, pageSize, sortBy, sortAsc,
   });
 
   const filtered = data?.parts ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / pageSize);
 
+  const clearFilters = () => {
+    setManufacturer(null); setMachineModel(null);
+    setPriceRange(null); setTimeFilter(null);
+    setActiveCategory(null); setPage(0);
+  };
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Catálogo de Peças</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {total.toLocaleString("pt-BR")} peça(s) encontrada(s)
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{total.toLocaleString("pt-BR")} peça(s)</p>
         </div>
         <div className="flex gap-2">
           <ExportCatalogButton />
           <Button variant="outline" onClick={() => setShowImport(true)}>
-            <Upload className="h-4 w-4 mr-1" /> Importar Planilha
+            <Upload className="h-4 w-4 mr-1" /> Importar
           </Button>
         </div>
       </div>
 
-      {/* Search + View Toggle */}
+      {/* Search + Filter Toggle + View */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por código, descrição ou modelo..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Buscar código, descrição ou modelo..." value={search} onChange={(e) => handleSearch(e.target.value)} className="pl-10" />
         </div>
         <div className="flex gap-2">
-          <Button variant={viewMode === "grid" ? "default" : "outline"} size="icon" onClick={() => setViewMode("grid")}>
-            <Grid3X3 className="h-4 w-4" />
+          <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)}>
+            <Filter className="h-4 w-4 mr-1" /> Filtros
+            {hasFilters && <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">!</Badge>}
           </Button>
-          <Button variant={viewMode === "list" ? "default" : "outline"} size="icon" onClick={() => setViewMode("list")}>
-            <List className="h-4 w-4" />
-          </Button>
+          <Button variant={viewMode === "grid" ? "default" : "outline"} size="icon" onClick={() => setViewMode("grid")}><Grid3X3 className="h-4 w-4" /></Button>
+          <Button variant={viewMode === "list" ? "default" : "outline"} size="icon" onClick={() => setViewMode("list")}><List className="h-4 w-4" /></Button>
         </div>
       </div>
 
+      {/* Advanced Filters */}
+      {showFilters && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 bg-muted/50 rounded-lg border">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Fabricante</label>
+            <Select value={manufacturer || "__all__"} onValueChange={(v) => { setManufacturer(v === "__all__" ? null : v); setPage(0); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos</SelectItem>
+                {(manufacturers || []).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Modelo</label>
+            <Select value={machineModel || "__all__"} onValueChange={(v) => { setMachineModel(v === "__all__" ? null : v); setPage(0); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos</SelectItem>
+                {(models || []).map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Faixa de Preço</label>
+            <Select value={priceRange != null ? String(priceRange) : "__all__"} onValueChange={(v) => { setPriceRange(v === "__all__" ? null : Number(v)); setPage(0); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {priceRanges.map((r, i) => <SelectItem key={i} value={String(i)}>{r.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Tempo Parado</label>
+            <Select value={timeFilter || "__all__"} onValueChange={(v) => { setTimeFilter(v === "__all__" ? null : v); setPage(0); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos</SelectItem>
+                {timeLabels.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Ordenar por</label>
+            <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(0); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stock">Estoque</SelectItem>
+                <SelectItem value="estimated_price">Preço</SelectItem>
+                <SelectItem value="description">Nome</SelectItem>
+                <SelectItem value="material">Código</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="col-span-full text-xs">
+              <X className="h-3 w-3 mr-1" /> Limpar filtros
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Category Filters */}
       <div className="flex flex-wrap gap-2">
-        <Badge
-          variant={activeCategory === null ? "default" : "outline"}
-          className="cursor-pointer select-none"
-          onClick={() => { setActiveCategory(null); setPage(0); }}
-        >
-          Todas
-        </Badge>
+        <Badge variant={activeCategory === null ? "default" : "outline"} className="cursor-pointer select-none" onClick={() => { setActiveCategory(null); setPage(0); }}>Todas</Badge>
         {categoryKeys.map((key) => (
-          <Badge
-            key={key}
-            variant={activeCategory === key ? "default" : "outline"}
-            className="cursor-pointer select-none"
-            onClick={() => { setActiveCategory(activeCategory === key ? null : key); setPage(0); }}
-          >
+          <Badge key={key} variant={activeCategory === key ? "default" : "outline"} className="cursor-pointer select-none"
+            onClick={() => { setActiveCategory(activeCategory === key ? null : key); setPage(0); }}>
             {categoryLabels[key]}
           </Badge>
         ))}
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
-          ))}
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
         </div>
       )}
 
-      {/* Parts Display */}
       {!isLoading && viewMode === "grid" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((part) => (
-            <PartCard key={part.id} part={part} onClick={() => setSelectedPart(part)} />
-          ))}
+          {filtered.map((part) => <PartCard key={part.id} part={part} onClick={() => setSelectedPart(part)} />)}
         </div>
       )}
 
-      {!isLoading && viewMode === "list" && (
-        <PartTable parts={filtered} onSelect={setSelectedPart} />
-      )}
+      {!isLoading && viewMode === "list" && <PartTable parts={filtered} onSelect={setSelectedPart} />}
 
       {!isLoading && filtered.length === 0 && (
         <div className="text-center py-16">
@@ -132,18 +186,11 @@ export function CatalogContent() {
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
-            Anterior
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Página {page + 1} de {totalPages}
-          </span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-            Próxima
-          </Button>
+          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
+          <span className="text-sm text-muted-foreground">Página {page + 1} de {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Próxima</Button>
         </div>
       )}
 
