@@ -43,6 +43,7 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
   const [model, setModel] = useState<string>("all");
   const [availability, setAvailability] = useState<string>("all");
   const [sort, setSort] = useState<SortOption>("relevance");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Fetch filter options
   const { data: filterOptions } = useQuery({
