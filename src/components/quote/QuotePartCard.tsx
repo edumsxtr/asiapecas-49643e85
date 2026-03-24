@@ -1,9 +1,31 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye, Brain, Package, Zap, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, type LucideIcon } from "lucide-react";
 import { type Lang, tr } from "./translations";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMemo } from "react";
+
+const ICON_KEYWORDS: [string[], LucideIcon, string][] = [
+  [["filtro", "filter"], Filter, "text-blue-500"],
+  [["engrenagem", "gear", "eixo", "rolamento", "bearing"], Cog, "text-zinc-500"],
+  [["disco", "brake", "freio", "disk"], Disc, "text-orange-500"],
+  [["parafuso", "bolt", "porca", "nut", "arruela", "washer"], Wrench, "text-slate-500"],
+  [["combustivel", "fuel", "tanque", "tank", "bomba", "pump"], Fuel, "text-amber-600"],
+  [["cabo", "cable", "fio", "wire", "chicote", "harness"], Cable, "text-purple-500"],
+  [["sensor", "modulo", "module", "eletron", "electr", "ecu", "placa"], CircuitBoard, "text-emerald-500"],
+  [["ventilador", "fan", "radiador", "radiator", "cooler"], Fan, "text-cyan-500"],
+  [["manometro", "gauge", "pressao", "pressure", "valvula", "valve"], Gauge, "text-red-500"],
+  [["martelo", "hammer", "pino", "pin", "bucha", "bushing"], Hammer, "text-stone-500"],
+];
+
+function getPartIcon(description: string): [LucideIcon, string] {
+  const lower = description.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const [keywords, icon, color] of ICON_KEYWORDS) {
+    if (keywords.some(k => lower.includes(k))) return [icon, color];
+  }
+  return [Package, "text-muted-foreground/30"];
+}
 
 interface QuotePartCardProps {
   part: {
