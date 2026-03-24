@@ -249,6 +249,16 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart,
             </div>
 
             <div className="flex items-center gap-2">
+              {/* View mode toggle */}
+              <div className="flex items-center border rounded-md">
+                <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className="h-9 w-9 p-0" onClick={() => setViewMode("grid")}>
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className="h-9 w-9 p-0" onClick={() => setViewMode("list")}>
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+
               {/* Sort */}
               <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
                 <SelectTrigger className="h-9 text-xs w-[160px]">
