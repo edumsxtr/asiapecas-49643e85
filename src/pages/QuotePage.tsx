@@ -71,7 +71,7 @@ export default function QuotePage() {
                 </button>
               ))}
             </div>
-            <a href="https://wa.me/5500000000000" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
+            <a href="https://wa.me/559597400928?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
               {tr("header.contact", lang)}
             </a>
           </nav>
