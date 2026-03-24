@@ -78,7 +78,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   // Reset page when filters change
   useEffect(() => { setPage(0); }, [search, category, partCategory, manufacturer, model, availability, sort]);
 
-  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all"].filter(Boolean).length;
+  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory].filter(Boolean).length;
 
   const { data, isLoading } = useQuery({
     queryKey: ["quote-parts", search, category, page, manufacturer, model, availability, sort],
