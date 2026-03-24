@@ -1,58 +1,30 @@
 
 
-# Plano: Rebranding para Elite Peças XCMG + Info Institucional + WhatsApp
+# Plano: Separar botões flutuantes + Corrigir WhatsApp
 
-## O que muda
+## Problema
 
-A empresa agora se chama **Elite Peças XCMG**. A logo enviada (fundo amarelo, ícone azul/amarelo) será adicionada ao projeto. O número de WhatsApp é **95 9 7400-9289** (55 95 974009289).
+1. **Sobreposição**: O botão do WhatsApp e o botão do carrinho estão ambos em `fixed bottom-6 right-6 z-50` — ficam sobrepostos, causando cliques errados
+2. **Número WhatsApp incorreto**: O link usa `559597400928` (faltando dígito). O correto é `5595974009289` (55 + 95 + 974009289)
 
-## Implementação
+## Solução
 
-### 1. Copiar logo para o projeto
-- Salvar `user-uploads://image-2.png` em `src/assets/elite-logo.png`
-- Usar como `import` nos componentes
+### 1. Reposicionar botões flutuantes
 
-### 2. Atualizar Header do Portal (`QuotePage.tsx`)
-- Trocar "LL" / "Lopes & Lopes" pela imagem da logo Elite Peças
-- Atualizar link WhatsApp para `https://wa.me/559597400928`
-- Botão WhatsApp verde flutuante fixo no canto inferior direito (separado do chat IA)
+- **Carrinho**: manter `bottom-6 right-6` (posição principal)
+- **WhatsApp**: mover para `bottom-24 right-6` (acima do carrinho, com espaço)
+- **Chat IA**: já está em `bottom-6 left-6` (sem conflito)
 
-### 3. Atualizar Hero (`QuoteHero.tsx`)
-- Manter estrutura, trocar textos de referência à marca
+### 2. Corrigir número WhatsApp em todos os lugares
 
-### 4. Atualizar Footer (`QuoteFooter.tsx`)
-- Logo Elite Peças em vez de "LL"
-- Nome: "Elite Peças XCMG"
-- Texto institucional: distribuidor de peças XCMG, atuação Brasil/Venezuela/Guiana
-- Contato real: WhatsApp 95 9 7400-9289
-- Email placeholder: contato@elitepecas.com.br
-
-### 5. Atualizar traduções (`translations.ts`)
-- Trocar todas as referências "Lopes & Lopes" por "Elite Peças"
-- Atualizar `footer.about` com texto institucional do plano de negócios
-- Atualizar `chat.title` e `chat.greeting` com novo nome
-
-### 6. Chat IA (`QuoteChat.tsx`)
-- Trocar título para "Assistente Elite Peças"
-
-### 7. FAQ (`QuoteFAQ.tsx`)
-- Botão WhatsApp aponta para número correto
-
-### 8. Botão WhatsApp flutuante
-- Adicionar em `QuotePage.tsx` um botão verde fixo no canto inferior direito com ícone WhatsApp
-- Link: `https://wa.me/559597400928` com mensagem pré-preenchida "Olá, gostaria de informações sobre peças XCMG"
+Trocar `559597400928` por `5595974009289` em:
+- `QuotePage.tsx` (header + botão flutuante)
+- `QuoteFAQ.tsx` (botão "Fale com especialista")
 
 ## Arquivos a editar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/assets/elite-logo.png` | Criar — copiar logo |
-| `src/pages/QuotePage.tsx` | Editar — header com logo, WhatsApp flutuante |
-| `src/components/quote/QuoteHero.tsx` | Editar — referências de marca |
-| `src/components/quote/QuoteFooter.tsx` | Editar — logo, nome, contato, institucional |
-| `src/components/quote/QuoteChat.tsx` | Editar — título do assistente |
-| `src/components/quote/QuoteFAQ.tsx` | Editar — link WhatsApp correto |
-| `src/components/quote/translations.ts` | Editar — trocar "Lopes & Lopes" por "Elite Peças" em PT/EN/ES |
-
-Sem alterações no banco de dados.
+| `src/pages/QuotePage.tsx` | Mover WhatsApp para `bottom-24`, corrigir número |
+| `src/components/quote/QuoteFAQ.tsx` | Corrigir número do WhatsApp |
 
