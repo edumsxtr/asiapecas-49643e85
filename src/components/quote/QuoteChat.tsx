@@ -34,10 +34,6 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg: Msg = { role: "user", content: input.trim() };
-    const langInstruction = lang === "en" ? "Respond in English." : lang === "es" ? "Responde en español." : "";
-    const allMsgs = langInstruction
-      ? [{ role: "user" as const, content: langInstruction }, ...messages, userMsg]
-      : [...messages, userMsg];
     const displayMsgs = [...messages, userMsg];
     setMessages(displayMsgs);
     setInput("");
