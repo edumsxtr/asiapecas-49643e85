@@ -98,6 +98,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
       if (model !== "all") query = query.eq("machine_model", model);
       if (availability === "ready") query = query.gt("stock", 10);
       if (availability === "low") query = query.lte("stock", 10);
+      if (partCategory) query = query.eq("part_category", partCategory);
 
       // Sort
       switch (sort) {
