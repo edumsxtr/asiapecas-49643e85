@@ -6,9 +6,10 @@ import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
-import { Search, ClipboardList, Send, MessageCircle } from "lucide-react";
+import { Search, ClipboardList, Send, MessageCircle, Menu } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
 import eliteLogo from "@/assets/elite-logo.png";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 type CartItem = { material: string; description: string; quantity: number };
 
@@ -23,6 +24,7 @@ export default function QuotePage() {
   const [category, setCategory] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lang, setLang] = useState<Lang>("pt");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCategoryClick = (key: string) => {
     setCategory(prev => (prev === key ? null : key));
@@ -59,7 +61,6 @@ export default function QuotePage() {
             <a href="#pecas" className="hover:text-primary transition-colors">{tr("header.parts", lang)}</a>
             <a href="#como-funciona" className="hover:text-primary transition-colors">{tr("header.howItWorks", lang)}</a>
             <a href="#faq" className="hover:text-primary transition-colors">{tr("header.faq", lang)}</a>
-            {/* Language selector */}
             <div className="flex items-center gap-1 border border-secondary-foreground/20 rounded-lg px-1">
               {LANG_FLAGS.map(({ lang: l, label }) => (
                 <button
@@ -75,6 +76,63 @@ export default function QuotePage() {
               {tr("header.contact", lang)}
             </a>
           </nav>
+
+          {/* Mobile hamburger */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button className="md:hidden p-2 rounded-lg hover:bg-secondary-foreground/10 transition-colors">
+                <Menu className="h-6 w-6 text-secondary-foreground" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-72 bg-secondary text-secondary-foreground">
+              <SheetHeader>
+                <SheetTitle className="text-secondary-foreground flex items-center gap-2">
+                  <img src={eliteLogo} alt="Elite Peças" className="h-8 w-auto rounded-lg" />
+                  Elite Peças XCMG
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-4 mt-6">
+                <a href="#pecas" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">
+                  {tr("header.parts", lang)}
+                </a>
+                <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">
+                  {tr("header.howItWorks", lang)}
+                </a>
+                <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">
+                  {tr("header.faq", lang)}
+                </a>
+
+                {/* Language selector mobile */}
+                <div className="pt-2">
+                  <p className="text-xs text-secondary-foreground/50 uppercase tracking-wider mb-2">
+                    {lang === "pt" ? "Idioma" : lang === "en" ? "Language" : "Idioma"}
+                  </p>
+                  <div className="flex gap-2">
+                    {LANG_FLAGS.map(({ lang: l, label }) => (
+                      <button
+                        key={l}
+                        onClick={() => { setLang(l); }}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary-foreground/10 hover:bg-secondary-foreground/20"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* WhatsApp mobile */}
+                <a
+                  href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 bg-[hsl(142,71%,45%)] text-white px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 

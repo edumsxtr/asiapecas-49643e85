@@ -19,6 +19,7 @@ import NewOrderPage from "./pages/NewOrderPage";
 import ProspectionPage from "./pages/ProspectionPage";
 import ReportPage from "./pages/ReportPage";
 import QuotePage from "./pages/QuotePage";
+import TrainingPage from "./pages/TrainingPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/pesquisa-mercado" element={<ProtectedRoute><MarketResearchPage /></ProtectedRoute>} />
               <Route path="/assistente" element={<ProtectedRoute><AssistantPage /></ProtectedRoute>} />
               <Route path="/relatorio" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
+              <Route path="/treinamento" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><ComingSoonPage title="Configurações" /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
