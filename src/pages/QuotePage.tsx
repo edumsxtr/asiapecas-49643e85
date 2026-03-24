@@ -143,6 +143,8 @@ export default function QuotePage() {
         onSearchChange={setSearch}
         onCategoryClick={handleCategoryClick}
         activeCategory={category}
+        onPartCategoryClick={(key) => setPartCategory(prev => prev === key ? null : key)}
+        activePartCategory={partCategory}
         lang={lang}
       />
 
