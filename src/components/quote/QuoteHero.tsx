@@ -5,7 +5,7 @@ const categories = [
   { label: "Mineração", icon: Pickaxe, key: "mineracao" },
   { label: "Linha Amarela", icon: Construction, key: "linha_amarela" },
   { label: "Perfuratriz", icon: Drill, key: "perfuratriz" },
-  { label: "Guindaste", icon: Crane, key: "guindaste" },
+  { label: "Guindaste", icon: Container, key: "guindaste" },
   { label: "Caminhão Elétrico", icon: Truck, key: "caminhao_eletrico" },
 ];
 

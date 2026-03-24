@@ -43,7 +43,7 @@ export default function QuoteCatalog({ search, category, cartItems, onAddToCart 
         q = q.or(`material.ilike.%${search}%,description.ilike.%${search}%,machine_model.ilike.%${search}%`);
       }
       if (category && CATEGORY_MAP[category]) {
-        q = q.eq(CATEGORY_MAP[category] as any, true);
+        q = q.eq(CATEGORY_MAP[category], true as any);
       }
 
       q = q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
