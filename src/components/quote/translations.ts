@@ -130,9 +130,9 @@ const t = {
   "footer.eTruck": { pt: "Caminhão Elétrico", en: "Electric Truck", es: "Camión Eléctrico" },
 
   // Chat
-  "chat.greeting": { pt: "Olá! Sou o assistente da Lopes & Lopes. Como posso ajudar? Posso tirar dúvidas sobre peças, compatibilidade de máquinas e prazos.", en: "Hello! I'm the Lopes & Lopes assistant. How can I help? I can answer questions about parts, machine compatibility and lead times.", es: "¡Hola! Soy el asistente de Lopes & Lopes. ¿Cómo puedo ayudar? Puedo resolver dudas sobre repuestos, compatibilidad de máquinas y plazos." },
+  "chat.greeting": { pt: "Olá! Sou o assistente da Elite Peças XCMG. Como posso ajudar? Posso tirar dúvidas sobre peças, compatibilidade de máquinas e prazos.", en: "Hello! I'm the Elite Peças XCMG assistant. How can I help? I can answer questions about parts, machine compatibility and lead times.", es: "¡Hola! Soy el asistente de Elite Peças XCMG. ¿Cómo puedo ayudar? Puedo resolver dudas sobre repuestos, compatibilidad de máquinas y plazos." },
   "chat.placeholder": { pt: "Pergunte sobre peças, modelos...", en: "Ask about parts, models...", es: "Pregunte sobre repuestos, modelos..." },
-  "chat.title": { pt: "Assistente Lopes & Lopes", en: "Lopes & Lopes Assistant", es: "Asistente Lopes & Lopes" },
+  "chat.title": { pt: "Assistente Elite Peças", en: "Elite Peças Assistant", es: "Asistente Elite Peças" },
   "chat.typing": { pt: "Digitando...", en: "Typing...", es: "Escribiendo..." },
   "chat.error": { pt: "Erro ao conectar. Tente novamente ou fale conosco pelo WhatsApp.", en: "Connection error. Try again or contact us via WhatsApp.", es: "Error de conexión. Intente de nuevo o contáctenos por WhatsApp." },
   "chat.noResponse": { pt: "Desculpe, não consegui processar sua pergunta. Tente novamente.", en: "Sorry, I couldn't process your question. Try again.", es: "Disculpe, no pude procesar su pregunta. Intente de nuevo." },
