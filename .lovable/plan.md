@@ -1,85 +1,99 @@
 
 
-# Plano: Sistema de Importação Rápida + Multi-Planilha + Filtros Avançados
+# Plano: Análise Avançada de Estoque + Detecção de Duplicados + Integração Total entre Módulos
 
-## Problema Atual
+## Resumo
 
-1. **Importação lenta e com erros**: o sistema faz 1 chamada HTTP por peça (20k chamadas = timeout). A planilha tem 20.436 linhas mas o banco mostra 461k unidades em vez de 498k
-2. **Sem rastreio de planilha/filial**: todas as peças vão para a mesma tabela sem saber de qual planilha vieram
-3. **Filtros limitados**: só filtra por categoria (mineração, etc.) e busca textual. Falta filtrar por modelo, fabricante, faixa de preço, tempo parado
-4. **Referências não atualizam**: compatibilidades da IA não são atualizadas automaticamente ao importar
+Transformar o sistema num ERP integrado com: análise profunda de estoque (novas métricas, duplicados, estudo de mercado), botões de atualização/revisão/especificações em cada peça, e navegação cruzada entre todos os módulos (Clientes ↔ Vendas ↔ Pedidos ↔ Estoque ↔ Relatórios).
 
-## Solução
+---
 
-### 1. Nova tabela `stock_imports` (rastreio de planilhas)
+## 1. Análise Avançada de Estoque (StockPage)
 
-Cada planilha importada vira um registro:
-- `id`, `file_name`, `imported_at`, `total_rows`, `total_stock`, `total_value`, `status` (processando/completo/erro), `source_label` (ex: "Filial Pouso Alegre", "Estoque Central")
+### Novas métricas e KPIs
+- **Giro de estoque**: valor vendido / valor em estoque (usando dados de `sales` + `sale_items`)
+- **Cobertura de estoque**: dias estimados até esgotar (baseado em vendas recentes)
+- **Concentração ABC**: classificar peças em A (80% do valor), B (15%), C (5%)
+- **Top 10 peças mais vendidas** vs **Top 10 peças paradas** (cruzar `sale_items` com `parts`)
+- **Valor por m2** (se aplicável), **preço médio por categoria**, **preço médio por fabricante**
+- **Peças sem venda**: quantas peças nunca foram vendidas (cross com `sale_items`)
 
-### 2. Nova tabela `stock_import_items` (dados brutos por planilha)
+### Detecção de peças duplicadas
+- Novo card "Peças Potencialmente Duplicadas" na página de estoque
+- Query que agrupa por `description` similar (usando `similarity()` ou ILIKE com normalização)
+- Também detectar materiais com mesma descrição mas códigos diferentes
+- Mostrar tabela com: Material A, Material B, Descrição, Estoque A, Estoque B, Ação (Mesclar/Ignorar)
 
-Preserva os dados originais de cada planilha separadamente:
-- `id`, `import_id` (FK stock_imports), `material`, `description`, `stock`, `estimated_price`, `machine_model`, `manufacturer`, `supplier`, `last_entry_time`, categorias booleanas
+### Estudo de mercado integrado
+- Card na página de estoque: "Competitividade" com dados de `market_research`
+- Mostrar quantas peças estão acima/abaixo do preço de mercado
+- Link direto para pesquisa de mercado de cada peça
 
-### 3. Reescrever importação — Edge Function `import-catalog`
+## 2. Botões de Ação no Catálogo e Estoque
 
-Em vez de 20k chamadas individuais pelo frontend, o fluxo será:
-1. Frontend lê o XLSX com SheetJS e converte para JSON
-2. Envia JSON inteiro para edge function `import-catalog` (uma única chamada)
-3. Edge function usa `SUPABASE_SERVICE_ROLE_KEY` para:
-   - Criar registro em `stock_imports`
-   - Inserir todos os itens em `stock_import_items` em batch (usando `.insert()` com array de até 1000 por vez)
-   - Atualizar tabela `parts`: agregar todos os `stock_import_items` por material (somando estoques de todas as planilhas) e atualizar `parts.stock`, `parts.estimated_price`
-   - Para materiais novos (que não existem em `parts`), inserir automaticamente
-4. Retorna relatório: inseridos, atualizados, erros
+### Em cada peça (PartCard + PartDetailDialog)
+- **Atualizar**: editar estoque, preço, modelo diretamente (dialog inline)
+- **Revisar**: marcar peça como "revisada" + data da revisão (novo campo `reviewed_at`)
+- **Especificações IA**: botão que chama a pesquisa IA e salva em `ai_compatibility_results`
+- **Semelhanças**: botão que busca peças com descrição similar no catálogo (query ILIKE)
+- **Ver Vendas**: link direto para vendas que incluem esta peça
+- **Pesquisa de Mercado**: link direto para pesquisas desta peça
 
-Isso reduz de 20k chamadas para 1 chamada. Tempo estimado: 5-15 segundos.
+### Nova coluna na tabela `parts`
+- `reviewed_at` (timestamp, nullable) — data da última revisão manual
 
-### 4. Sincronizar dados da planilha atual
+## 3. Integração Total entre Módulos
 
-Executar a importação da planilha `Peças_Valor_estimado-2.xlsx` usando a nova edge function para corrigir os totais (461k -> 498k unidades, R$ 188M -> R$ 205M+).
+### Dashboard (Index)
+- Card "Vendas Recentes" com link para `/vendas`
+- Card "Tickets Abertos" com link para `/pos-venda`
+- Card "Prospects Quentes" com link para `/prospeccao`
+- Gráfico de vendas por mês (novo)
 
-### 5. Filtros avançados no Catálogo
+### Clientes → Vendas
+- Na tabela de clientes, coluna "Vendas" com contagem e link
+- Ao clicar no cliente, mostrar histórico de compras
 
-Adicionar ao `CatalogContent.tsx`:
-- **Por máquina/modelo**: dropdown com todos os modelos únicos do banco
-- **Por fabricante**: dropdown com fabricantes únicos
-- **Por faixa de preço**: slider ou seletor (0-1k, 1k-10k, 10k-50k, 50k-100k, 100k+)
-- **Por tempo parado**: badges clicáveis (6-12 meses, 1-2 anos, >2 anos)
-- **Ordenação**: por preço, estoque, valor total, nome
+### Vendas → Estoque
+- Na venda confirmada, link para cada peça no catálogo
+- Badge de estoque atual ao lado de cada item vendido
 
-Atualizar `useParts` hook para aceitar esses filtros como parâmetros.
+### Estoque → Vendas
+- Na peça, mostrar "Vendas desta peça" com lista de vendas que incluem o material
 
-### 6. Página de Gestão de Planilhas
+### Pós-Venda → Cliente + Venda
+- Link do ticket para o cliente e para a venda relacionada
 
-Nova seção na página de Estoque (ou tab) mostrando:
-- Lista de planilhas importadas (data, nome, total de itens, valor)
-- Botão "Importar Nova Planilha" (usa a nova edge function)
-- Botão "Ver itens" para cada planilha
-- Visão consolidada (soma de todas as planilhas)
+### Prospecção → Clientes
+- Já existe "Converter para Cliente", adicionar link para ver o cliente convertido
 
-### 7. Auto-atualizar referências ao importar
+### Pesquisa de Mercado → Catálogo
+- Link em cada pesquisa para abrir a peça no catálogo
 
-Ao finalizar importação, disparar atualização de `compatible_models` em `parts`:
-- Agrupar por material e concatenar todos os modelos únicos encontrados em `stock_import_items`
-- Atualizar o campo `compatible_models` de cada peça
+## 4. Relatórios Interativos
 
-### 8. Exportar catálogo com referências IA
-
-O `ExportCatalogButton` já existe e funciona. Garantir que inclui dados de `ai_compatibility_results` na exportação (já implementado).
+### Nova aba "Relatórios" no Dashboard
+- **Relatório de Vendas**: por período, por cliente, por peça, por status
+- **Relatório de Estoque**: ABC, giro, cobertura, duplicados
+- **Relatório de Competitividade**: preços vs mercado por categoria
+- Todos com gráficos interativos (recharts) e exportação
 
 ## Banco de Dados
 
-- CREATE TABLE `stock_imports` + RLS pública
-- CREATE TABLE `stock_import_items` + RLS pública + FK para stock_imports
+- Migration: `ALTER TABLE parts ADD COLUMN reviewed_at timestamptz DEFAULT NULL`
+- Migration: criar função SQL `find_duplicate_parts()` que retorna pares de peças com descrição similar
+- Atualizar `get_dashboard_stats()` para incluir dados de vendas cruzados
 
 ## Arquivos a criar/editar
 
-- **Migration SQL**: criar tabelas `stock_imports` e `stock_import_items`
-- `supabase/functions/import-catalog/index.ts` — nova edge function (importação em massa)
-- `src/components/catalog/ImportCatalogDialog.tsx` — reescrever para usar edge function + campo "fonte/filial"
-- `src/components/catalog/CatalogContent.tsx` — adicionar filtros avançados
-- `src/hooks/use-parts.ts` — aceitar novos filtros (modelo, fabricante, preço, tempo)
-- `src/pages/StockPage.tsx` — adicionar seção de planilhas importadas
-- `src/hooks/use-stock-imports.ts` — novo hook para gestão de importações
+- `src/pages/StockPage.tsx` — novas métricas, duplicados, estudo de mercado integrado
+- `src/components/dashboard/DashboardPage.tsx` — cards integrados, aba relatórios, gráfico de vendas
+- `src/components/catalog/PartDetailDialog.tsx` — botões Atualizar/Revisar/Semelhanças/Ver Vendas
+- `src/components/catalog/PartCard.tsx` — botões rápidos de ação
+- `src/components/catalog/CatalogContent.tsx` — coluna de ações na tabela
+- `src/hooks/use-parts.ts` — queries para duplicados, peças similares, revisão
+- `src/pages/CustomersPage.tsx` — coluna vendas, link para histórico
+- `src/pages/SalesPage.tsx` — links para peças e clientes
+- `src/pages/AfterSalesPage.tsx` — links para cliente/venda
+- Migration SQL — `reviewed_at` + função de duplicados + stats atualizados
 
