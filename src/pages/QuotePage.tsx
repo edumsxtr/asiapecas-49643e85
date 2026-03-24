@@ -145,7 +145,7 @@ export default function QuotePage() {
         href="https://wa.me/559597400928?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform"
+        className="fixed bottom-24 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform"
         title="WhatsApp"
       >
         <MessageCircle className="h-6 w-6" />
