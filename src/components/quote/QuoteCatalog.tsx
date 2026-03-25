@@ -60,17 +60,18 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   const [sort, setSort] = useState<SortOption>("relevance");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
-  // Fetch filter options
+  // Fetch filter options using RPC for full distinct values (no 1000-row limit)
   const { data: filterOptions } = useQuery({
     queryKey: ["quote-filter-options"],
     queryFn: async () => {
       const [mfr, mdl] = await Promise.all([
-        supabase.from("parts").select("manufacturer").gt("stock", 0).not("manufacturer", "is", null),
-        supabase.from("parts").select("machine_model").gt("stock", 0).not("machine_model", "is", null),
+        supabase.rpc("get_distinct_values", { col_name: "manufacturer", stock_min: 1 }),
+        supabase.rpc("get_distinct_values", { col_name: "machine_model", stock_min: 1 }),
       ]);
-      const manufacturers = [...new Set((mfr.data || []).map((r: any) => r.manufacturer).filter(Boolean))].sort();
-      const models = [...new Set((mdl.data || []).map((r: any) => r.machine_model).filter(Boolean))].sort();
-      return { manufacturers, models };
+      return {
+        manufacturers: (mfr.data ?? []) as string[],
+        models: (mdl.data ?? []) as string[],
+      };
     },
     staleTime: 5 * 60 * 1000,
   });
