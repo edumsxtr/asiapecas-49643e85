@@ -14,7 +14,7 @@ export function useCategorizeParts() {
     running: false, processed: 0, errors: 0, total: 0,
   });
 
-  const startCategorize = useCallback(async (batchLimit = 100) => {
+  const startCategorize = useCallback(async (batchLimit = 20) => {
     setProgress({ running: true, processed: 0, errors: 0, total: 0 });
 
     try {
