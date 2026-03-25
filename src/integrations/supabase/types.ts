@@ -644,6 +644,10 @@ export type Database = {
         }[]
       }
       get_dashboard_stats: { Args: never; Returns: Json }
+      get_distinct_values: {
+        Args: { col_name: string; stock_min?: number }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

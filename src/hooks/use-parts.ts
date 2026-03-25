@@ -91,18 +91,16 @@ export function useParts({
   });
 }
 
-export function useDistinctValues(column: "manufacturer" | "machine_model") {
+export function useDistinctValues(column: "manufacturer" | "machine_model", stockMin: number = 0) {
   return useQuery({
-    queryKey: ["distinct", column],
+    queryKey: ["distinct", column, stockMin],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parts")
-        .select(column)
-        .not(column, "is", null)
-        .order(column);
+      const { data, error } = await supabase.rpc("get_distinct_values", {
+        col_name: column,
+        stock_min: stockMin,
+      });
       if (error) throw error;
-      const unique = [...new Set((data || []).map((r: any) => r[column]).filter(Boolean))];
-      return unique as string[];
+      return (data ?? []) as string[];
     },
     staleTime: 300_000,
   });
