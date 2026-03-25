@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Grid3X3, List, Upload, Filter, X, Brain, ShoppingCart, Loader2 } from "lucide-react";
+import { Search, Grid3X3, List, Upload, Filter, X, Brain, ShoppingCart, Loader2, Tags } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParts, categoryLabels, categoryKeys, priceRanges, timeLabels, useDistinctValues, type Part } from "@/hooks/use-parts";
 import { useBatchAIResearch } from "@/hooks/use-batch-ai-research";
+import { useCategorizeParts } from "@/hooks/use-categorize-parts";
 import { useCart } from "@/contexts/CartContext";
 import { PartCard } from "./PartCard";
 import { PartTable } from "./PartTable";
@@ -37,6 +38,7 @@ export function CatalogContent() {
   const { data: manufacturers } = useDistinctValues("manufacturer");
   const { data: models } = useDistinctValues("machine_model");
   const { progress, startBatch, stop } = useBatchAIResearch();
+  const { progress: catProgress, startCategorize, stop: stopCategorize } = useCategorizeParts();
   const { count: cartCount } = useCart();
 
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -78,12 +80,20 @@ export function CatalogContent() {
           <Button
             variant="outline"
             size="sm"
+            onClick={catProgress.running ? stopCategorize : () => startCategorize(50)}
+            className="gap-1"
+          >
+            {catProgress.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tags className="h-4 w-4" />}
+            {catProgress.running ? `Categorizando (${catProgress.processed})...` : "Categorizar Peças"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={progress.running ? stop : startBatch}
-            disabled={false}
             className="gap-1"
           >
             {progress.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-            {progress.running ? "Parar IA" : "Pesquisar Todas com IA"}
+            {progress.running ? "Parar IA" : "Pesquisar com IA"}
           </Button>
           <ExportCatalogButton />
           <Button variant="outline" onClick={() => setShowImport(true)}>
