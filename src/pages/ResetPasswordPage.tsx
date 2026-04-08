@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import eliteLogo from "@/assets/elite-logo.png";
+import asiaLogo from "@/assets/asia-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md shadow-2xl border-primary/20">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <img src={eliteLogo} alt="Elite Peças XCMG" className="h-16 w-auto rounded-xl" />
+            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-16 w-auto rounded-xl" />
           </div>
           <CardTitle className="font-display text-xl">
             {isRecovery ? "Nova Senha" : "Recuperar Senha"}

@@ -8,7 +8,7 @@ import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
 import { Search, ClipboardList, Send, MessageCircle, Menu } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
-import eliteLogo from "@/assets/elite-logo.png";
+import asiaLogo from "@/assets/asia-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 type CartItem = { material: string; description: string; quantity: number };
@@ -52,9 +52,9 @@ export default function QuotePage() {
       <header className="sticky top-0 z-40 bg-secondary text-secondary-foreground border-b border-secondary-foreground/10">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={eliteLogo} alt="Elite Peças XCMG" className="h-10 w-auto rounded-lg" />
+            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-10 w-auto rounded-lg" />
             <div>
-              <h1 className="font-bold text-sm font-['Space_Grotesk']">Elite Peças XCMG</h1>
+              <h1 className="font-bold text-sm font-['Space_Grotesk']">Ásia Peças & Máquinas</h1>
               <p className="text-[10px] text-secondary-foreground/60">{tr("header.subtitle", lang)}</p>
             </div>
           </div>
@@ -88,8 +88,8 @@ export default function QuotePage() {
             <SheetContent side="right" className="w-72 bg-secondary text-secondary-foreground">
               <SheetHeader>
                 <SheetTitle className="text-secondary-foreground flex items-center gap-2">
-                  <img src={eliteLogo} alt="Elite Peças" className="h-8 w-auto rounded-lg" />
-                  Elite Peças XCMG
+                  <img src={asiaLogo} alt="Ásia Peças" className="h-8 w-auto rounded-lg" />
+                  Ásia Peças & Máquinas
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-4 mt-6">

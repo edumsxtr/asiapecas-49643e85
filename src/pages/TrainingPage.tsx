@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const STORAGE_KEY = "elite-training-progress";
+const STORAGE_KEY = "asia-training-progress";
 
 type CheckItem = { id: string; label: string };
 type QuizQuestion = { q: string; options: string[]; correct: number };
@@ -170,7 +170,7 @@ const TABS: TabData[] = [
       {
         title: "Regiões Atendidas",
         icon: Globe,
-        description: "A Elite Peças XCMG atende três mercados principais com necessidades distintas.",
+        description: "A Ásia Peças & Máquinas atende três mercados principais com necessidades distintas.",
         tips: [
           "🇧🇷 Brasil — Principal mercado. Foco em mineração e construção civil",
           "🇻🇪 Venezuela — Demanda crescente por peças de reposição. Atenção à logística",
@@ -208,7 +208,7 @@ const TABS: TabData[] = [
     ],
     quiz: [
       {
-        q: "Quais são os 3 países atendidos pela Elite Peças?",
+        q: "Quais são os 3 países atendidos pela Ásia Peças?",
         options: ["Brasil, Argentina, Chile", "Brasil, Venezuela, Guiana", "Brasil, Colômbia, Peru", "Brasil, Paraguai, Uruguai"],
         correct: 1,
       },
@@ -339,7 +339,7 @@ export default function TrainingPage() {
             Treinamento da Equipe
           </h1>
           <p className="text-muted-foreground text-sm">
-            Capacitação sobre estoque, vendas e ferramentas da Elite Peças XCMG
+            Capacitação sobre estoque, vendas e ferramentas da Ásia Peças & Máquinas
           </p>
         </div>
 

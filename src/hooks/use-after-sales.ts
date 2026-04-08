@@ -63,7 +63,8 @@ export function useUpdateAfterSale() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<AfterSale> & { id: string }) => {
-      const { error } = await supabase.from("after_sales").update(updates).eq("id", id);
+      const { customers, sales, ...dbUpdates } = updates as any;
+      const { error } = await supabase.from("after_sales").update(dbUpdates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
