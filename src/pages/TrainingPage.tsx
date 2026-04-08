@@ -339,7 +339,7 @@ export default function TrainingPage() {
             Treinamento da Equipe
           </h1>
           <p className="text-muted-foreground text-sm">
-            Capacitação sobre estoque, vendas e ferramentas da Elite Peças XCMG
+            Capacitação sobre estoque, vendas e ferramentas da Ásia Peças & Máquinas
           </p>
         </div>
 

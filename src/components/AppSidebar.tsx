@@ -90,14 +90,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center gap-3">
-          <img src={eliteLogo} alt="Elite Peças XCMG" className="h-9 w-auto rounded-lg shrink-0" />
+          <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-9 w-auto rounded-lg shrink-0" />
           {!collapsed && (
             <div className="overflow-hidden">
               <p className="font-display font-bold text-sm text-sidebar-foreground truncate">
-                Elite Peças XCMG
+                Ásia Peças & Máquinas
               </p>
               <p className="text-[10px] text-sidebar-foreground/60 uppercase tracking-wider">
-                Distribuidor XCMG
+                Peças & Máquinas
               </p>
             </div>
           )}

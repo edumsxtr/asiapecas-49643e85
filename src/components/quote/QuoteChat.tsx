@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, X, Send, Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { type Lang, tr } from "./translations";
-import eliteLogo from "@/assets/elite-logo.png";
+import asiaLogo from "@/assets/asia-logo.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
 

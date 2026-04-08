@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md shadow-2xl border-primary/20">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <img src={eliteLogo} alt="Elite Peças XCMG" className="h-16 w-auto rounded-xl" />
+            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-16 w-auto rounded-xl" />
           </div>
           <CardTitle className="font-display text-xl">
             {isRecovery ? "Nova Senha" : "Recuperar Senha"}

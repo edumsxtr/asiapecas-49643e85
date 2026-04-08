@@ -37,7 +37,7 @@ export default function QuoteFooter({ lang }: { lang: Lang }) {
         </div>
 
         <div className="border-t border-secondary-foreground/10 mt-8 pt-6 text-center text-xs text-secondary-foreground/50">
-          © {new Date().getFullYear()} Elite Peças XCMG — {tr("footer.rights", lang)}
+          © {new Date().getFullYear()} Ásia Peças & Máquinas — {tr("footer.rights", lang)}
         </div>
       </div>
     </footer>
