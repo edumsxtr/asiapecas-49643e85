@@ -8,7 +8,7 @@ import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
 import { Search, ClipboardList, Send, MessageCircle, Menu } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
-import eliteLogo from "@/assets/elite-logo.png";
+import asiaLogo from "@/assets/asia-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 type CartItem = { material: string; description: string; quantity: number };
