@@ -1,8 +1,9 @@
-import { Search, Pickaxe, Construction, Drill, Container, Truck, Package, Filter, Cog, Zap, Wrench, Droplets, Disc, Snowflake, CircleDot, Box } from "lucide-react";
+import { Search, Pickaxe, Construction, Drill, Container, Truck, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, tr } from "./translations";
+import { PART_CATEGORIES as partCategories } from "./part-categories";
 
 const machineCategories = [
   { icon: Pickaxe, key: "mineracao" },
@@ -10,18 +11,6 @@ const machineCategories = [
   { icon: Drill, key: "perfuratriz" },
   { icon: Container, key: "guindaste" },
   { icon: Truck, key: "caminhao_eletrico" },
-] as const;
-
-const partCategories = [
-  { icon: Filter, key: "Filtros" },
-  { icon: Disc, key: "Vedações e Retentores" },
-  { icon: Cog, key: "Motor e Componentes" },
-  { icon: Droplets, key: "Sistema Hidráulico" },
-  { icon: Zap, key: "Sistema Elétrico" },
-  { icon: Box, key: "Estrutural e Chassi" },
-  { icon: Wrench, key: "Transmissão" },
-  { icon: CircleDot, key: "Rolamentos e Buchas" },
-  { icon: Snowflake, key: "Refrigeração" },
 ] as const;
 
 interface QuoteHeroProps {
