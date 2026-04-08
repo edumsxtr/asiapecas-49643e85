@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const STORAGE_KEY = "elite-training-progress";
+const STORAGE_KEY = "asia-training-progress";
 
 type CheckItem = { id: string; label: string };
 type QuizQuestion = { q: string; options: string[]; correct: number };
