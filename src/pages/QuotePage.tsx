@@ -88,8 +88,8 @@ export default function QuotePage() {
             <SheetContent side="right" className="w-72 bg-secondary text-secondary-foreground">
               <SheetHeader>
                 <SheetTitle className="text-secondary-foreground flex items-center gap-2">
-                  <img src={eliteLogo} alt="Elite Peças" className="h-8 w-auto rounded-lg" />
-                  Elite Peças XCMG
+                  <img src={asiaLogo} alt="Ásia Peças" className="h-8 w-auto rounded-lg" />
+                  Ásia Peças & Máquinas
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-4 mt-6">
