@@ -170,7 +170,7 @@ const TABS: TabData[] = [
       {
         title: "Regiões Atendidas",
         icon: Globe,
-        description: "A Elite Peças XCMG atende três mercados principais com necessidades distintas.",
+        description: "A Ásia Peças & Máquinas atende três mercados principais com necessidades distintas.",
         tips: [
           "🇧🇷 Brasil — Principal mercado. Foco em mineração e construção civil",
           "🇻🇪 Venezuela — Demanda crescente por peças de reposição. Atenção à logística",
