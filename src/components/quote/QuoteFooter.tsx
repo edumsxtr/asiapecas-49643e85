@@ -29,7 +29,7 @@ export default function QuoteFooter({ lang }: { lang: Lang }) {
           <div className="space-y-3">
             <h4 className="font-semibold text-sm uppercase tracking-wider text-primary">{tr("footer.contact", lang)}</h4>
             <ul className="space-y-2 text-sm text-secondary-foreground/70">
-              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@elitepecas.com.br</li>
+              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@asiapecas.com.br</li>
               <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (95) 9 7400-9289</li>
               <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Brasil | Venezuela | Guiana</li>
             </ul>
