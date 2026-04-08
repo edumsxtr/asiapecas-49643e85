@@ -1,6 +1,6 @@
 import { Mail, Phone, MapPin } from "lucide-react";
 import { type Lang, tr } from "./translations";
-import eliteLogo from "@/assets/elite-logo.png";
+import asiaLogo from "@/assets/asia-logo.png";
 
 export default function QuoteFooter({ lang }: { lang: Lang }) {
   return (
