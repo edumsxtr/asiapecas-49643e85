@@ -9,8 +9,8 @@ export default function QuoteFooter({ lang }: { lang: Lang }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <img src={eliteLogo} alt="Elite Peças XCMG" className="h-8 w-auto rounded-lg" />
-              <span className="font-bold text-lg font-['Space_Grotesk']">Elite Peças XCMG</span>
+              <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-8 w-auto rounded-lg" />
+              <span className="font-bold text-lg font-['Space_Grotesk']">Ásia Peças & Máquinas</span>
             </div>
             <p className="text-sm text-secondary-foreground/70">{tr("footer.about", lang)}</p>
           </div>
