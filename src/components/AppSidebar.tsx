@@ -16,7 +16,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import eliteLogo from "@/assets/elite-logo.png";
+import asiaLogo from "@/assets/asia-logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
