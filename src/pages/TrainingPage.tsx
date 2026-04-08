@@ -208,7 +208,7 @@ const TABS: TabData[] = [
     ],
     quiz: [
       {
-        q: "Quais são os 3 países atendidos pela Elite Peças?",
+        q: "Quais são os 3 países atendidos pela Ásia Peças?",
         options: ["Brasil, Argentina, Chile", "Brasil, Venezuela, Guiana", "Brasil, Colômbia, Peru", "Brasil, Paraguai, Uruguai"],
         correct: 1,
       },
