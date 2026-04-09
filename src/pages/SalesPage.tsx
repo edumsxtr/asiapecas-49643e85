@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSales, useUpdateSaleStatus, useDeleteSale, type Sale } from "@/hooks/use-sales";
-import { Plus, Eye, Trash2 } from "lucide-react";
-
+import { Plus, Eye, Trash2, ClipboardList } from "lucide-react";
+import QuoteRequestsTab from "@/components/quote/QuoteRequestsTab";
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   orcamento: { label: "Orçamento", variant: "outline" },
   confirmado: { label: "Confirmado", variant: "default" },
@@ -43,80 +44,95 @@ export default function SalesPage() {
           <Button onClick={() => navigate("/pedidos/novo")}><Plus className="h-4 w-4 mr-2" />Novo Pedido</Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Vendas</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{sales.length}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Valor Total</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold text-primary">R$ {totalMonth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Ticket Médio</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold">R$ {avgTicket.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Orçamentos</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{sales.filter(s => s.status === "orcamento").length}</p></CardContent></Card>
-        </div>
+        <Tabs defaultValue="vendas">
+          <TabsList>
+            <TabsTrigger value="vendas">Vendas</TabsTrigger>
+            <TabsTrigger value="cotacoes" className="gap-1">
+              <ClipboardList className="h-4 w-4" /> Cotações Recebidas
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="flex gap-2">
-          {["todos", "orcamento", "confirmado", "faturado", "cancelado"].map(s => (
-            <Button key={s} variant={statusFilter === s ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(s)} className="capitalize">
-              {s === "todos" ? "Todos" : STATUS_MAP[s]?.label || s}
-            </Button>
-          ))}
-        </div>
+          <TabsContent value="vendas" className="space-y-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Vendas</CardTitle></CardHeader>
+                <CardContent><p className="text-2xl font-bold">{sales.length}</p></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Valor Total</CardTitle></CardHeader>
+                <CardContent><p className="text-2xl font-bold text-primary">R$ {totalMonth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Ticket Médio</CardTitle></CardHeader>
+                <CardContent><p className="text-2xl font-bold">R$ {avgTicket.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
+              <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Orçamentos</CardTitle></CardHeader>
+                <CardContent><p className="text-2xl font-bold">{sales.filter(s => s.status === "orcamento").length}</p></CardContent></Card>
+            </div>
 
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Itens</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-                ) : sales.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma venda encontrada</TableCell></TableRow>
-                ) : sales.map(sale => (
-                  <TableRow key={sale.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailSale(sale)}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {(sale as any).order_number ? `#${(sale as any).order_number}` : sale.id.slice(0, 6)}
-                    </TableCell>
-                    <TableCell>{new Date(sale.sale_date).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell className="font-medium">{sale.customers?.name || "—"}</TableCell>
-                    <TableCell>{sale.sale_items?.length || 0} itens</TableCell>
-                    <TableCell className="font-mono">R$ {sale.total_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_MAP[sale.status]?.variant || "outline"}>
-                        {STATUS_MAP[sale.status]?.label || sale.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => setDetailSale(sale)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Select value={sale.status} onValueChange={v => updateStatus.mutate({ id: sale.id, status: v })}>
-                          <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(sale.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            <div className="flex gap-2">
+              {["todos", "orcamento", "confirmado", "faturado", "cancelado"].map(s => (
+                <Button key={s} variant={statusFilter === s ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(s)} className="capitalize">
+                  {s === "todos" ? "Todos" : STATUS_MAP[s]?.label || s}
+                </Button>
+              ))}
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Itens</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                    ) : sales.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma venda encontrada</TableCell></TableRow>
+                    ) : sales.map(sale => (
+                      <TableRow key={sale.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailSale(sale)}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {(sale as any).order_number ? `#${(sale as any).order_number}` : sale.id.slice(0, 6)}
+                        </TableCell>
+                        <TableCell>{new Date(sale.sale_date).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell className="font-medium">{sale.customers?.name || "—"}</TableCell>
+                        <TableCell>{sale.sale_items?.length || 0} itens</TableCell>
+                        <TableCell className="font-mono">R$ {sale.total_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>
+                          <Badge variant={STATUS_MAP[sale.status]?.variant || "outline"}>
+                            {STATUS_MAP[sale.status]?.label || sale.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-1 justify-end">
+                            <Button variant="ghost" size="icon" onClick={() => setDetailSale(sale)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Select value={sale.status} onValueChange={v => updateStatus.mutate({ id: sale.id, status: v })}>
+                              <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(sale.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cotacoes" className="mt-4">
+            <QuoteRequestsTab />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Sale Detail Dialog */}
