@@ -134,7 +134,7 @@ const t = {
   "faq.a6": { pt: "Nosso sistema possui pesquisa de compatibilidade por IA. Ao consultar uma peça, você verá os modelos compatíveis. Em caso de dúvida, fale com nossos especialistas.", en: "Our system has AI-powered compatibility search. When viewing a part, you'll see compatible models. If in doubt, talk to our specialists.", es: "Nuestro sistema tiene búsqueda de compatibilidad con IA. Al consultar un repuesto, verá los modelos compatibles. En caso de duda, hable con nuestros especialistas." },
 
   // Footer
-  "footer.about": { pt: "Elite Peças XCMG — Distribuidor autorizado de peças originais XCMG. Atuamos no Brasil, Venezuela e Guiana, fornecendo peças para mineração, construção, perfuração, guindastes e caminhões elétricos.", en: "Elite Peças XCMG — Authorized distributor of original XCMG parts. We operate in Brazil, Venezuela and Guyana, supplying parts for mining, construction, drilling, cranes and electric trucks.", es: "Elite Peças XCMG — Distribuidor autorizado de repuestos originales XCMG. Operamos en Brasil, Venezuela y Guyana, suministrando repuestos para minería, construcción, perforación, grúas y camiones eléctricos." },
+  "footer.about": { pt: "Ásia Peças & Máquinas — Distribuidor autorizado de peças originais XCMG. Atuamos no Brasil, Venezuela e Guiana, fornecendo peças para mineração, construção, perfuração, guindastes e caminhões elétricos.", en: "Ásia Peças & Máquinas — Authorized distributor of original XCMG parts. We operate in Brazil, Venezuela and Guyana, supplying parts for mining, construction, drilling, cranes and electric trucks.", es: "Ásia Peças & Máquinas — Distribuidor autorizado de repuestos originales XCMG. Operamos en Brasil, Venezuela y Guyana, suministrando repuestos para minería, construcción, perforación, grúas y camiones eléctricos." },
   "footer.segments": { pt: "Segmentos", en: "Segments", es: "Segmentos" },
   "footer.contact": { pt: "Contato", en: "Contact", es: "Contacto" },
   "footer.rights": { pt: "Todos os direitos reservados", en: "All rights reserved", es: "Todos los derechos reservados" },
@@ -145,9 +145,9 @@ const t = {
   "footer.eTruck": { pt: "Caminhão Elétrico", en: "Electric Truck", es: "Camión Eléctrico" },
 
   // Chat
-  "chat.greeting": { pt: "Olá! Sou o assistente da Elite Peças XCMG. Como posso ajudar? Posso tirar dúvidas sobre peças, compatibilidade de máquinas e prazos.", en: "Hello! I'm the Elite Peças XCMG assistant. How can I help? I can answer questions about parts, machine compatibility and lead times.", es: "¡Hola! Soy el asistente de Elite Peças XCMG. ¿Cómo puedo ayudar? Puedo resolver dudas sobre repuestos, compatibilidad de máquinas y plazos." },
+  "chat.greeting": { pt: "Olá! Sou o assistente da Ásia Peças & Máquinas. Como posso ajudar? Posso tirar dúvidas sobre peças, compatibilidade de máquinas e prazos.", en: "Hello! I'm the Ásia Peças & Máquinas assistant. How can I help? I can answer questions about parts, machine compatibility and lead times.", es: "¡Hola! Soy el asistente de Ásia Peças & Máquinas. ¿Cómo puedo ayudar? Puedo resolver dudas sobre repuestos, compatibilidad de máquinas y plazos." },
   "chat.placeholder": { pt: "Pergunte sobre peças, modelos...", en: "Ask about parts, models...", es: "Pregunte sobre repuestos, modelos..." },
-  "chat.title": { pt: "Assistente Elite Peças", en: "Elite Peças Assistant", es: "Asistente Elite Peças" },
+  "chat.title": { pt: "Assistente Ásia Peças", en: "Ásia Peças Assistant", es: "Asistente Ásia Peças" },
   "chat.typing": { pt: "Digitando...", en: "Typing...", es: "Escribiendo..." },
   "chat.error": { pt: "Erro ao conectar. Tente novamente ou fale conosco pelo WhatsApp.", en: "Connection error. Try again or contact us via WhatsApp.", es: "Error de conexión. Intente de nuevo o contáctenos por WhatsApp." },
   "chat.noResponse": { pt: "Desculpe, não consegui processar sua pergunta. Tente novamente.", en: "Sorry, I couldn't process your question. Try again.", es: "Disculpe, no pude procesar su pregunta. Intente de nuevo." },
