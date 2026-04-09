@@ -10,8 +10,7 @@ import { Search, ClipboardList, Send, MessageCircle, Menu } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
 import asiaLogo from "@/assets/asia-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
-type CartItem = { material: string; description: string; quantity: number };
+import { useCartSession } from "@/hooks/use-cart-session";
 
 const LANG_FLAGS: { lang: Lang; label: string }[] = [
   { lang: "pt", label: "🇧🇷 PT" },
@@ -23,25 +22,13 @@ export default function QuotePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [partCategory, setPartCategory] = useState<string | null>(null);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [lang, setLang] = useState<Lang>("pt");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const { items: cartItems, addToCart, updateQty, removeItem, clearCart } = useCartSession();
+
   const handleCategoryClick = (key: string) => {
     setCategory(prev => (prev === key ? null : key));
-  };
-
-  const addToCart = (part: any) => {
-    if (cartItems.find(i => i.material === part.material)) return;
-    setCartItems(prev => [...prev, { material: part.material, description: part.description, quantity: 1 }]);
-  };
-
-  const updateQty = (material: string, qty: number) => {
-    setCartItems(prev => prev.map(i => i.material === material ? { ...i, quantity: Math.max(1, qty) } : i));
-  };
-
-  const removeItem = (material: string) => {
-    setCartItems(prev => prev.filter(i => i.material !== material));
   };
 
   return (
@@ -64,11 +51,7 @@ export default function QuotePage() {
             <a href="#faq" className="hover:text-primary transition-colors">{tr("header.faq", lang)}</a>
             <div className="flex items-center gap-1 border border-secondary-foreground/20 rounded-lg px-1">
               {LANG_FLAGS.map(({ lang: l, label }) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "hover:bg-secondary-foreground/10"}`}
-                >
+                <button key={l} onClick={() => setLang(l)} className={`px-2 py-1 rounded text-xs font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "hover:bg-secondary-foreground/10"}`}>
                   {label}
                 </button>
               ))}
@@ -93,43 +76,23 @@ export default function QuotePage() {
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-4 mt-6">
-                <a href="#pecas" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">
-                  {tr("header.parts", lang)}
-                </a>
-                <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">
-                  {tr("header.howItWorks", lang)}
-                </a>
-                <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">
-                  {tr("header.faq", lang)}
-                </a>
-
-                {/* Language selector mobile */}
+                <a href="#pecas" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">{tr("header.parts", lang)}</a>
+                <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">{tr("header.howItWorks", lang)}</a>
+                <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm hover:text-primary transition-colors py-2 border-b border-secondary-foreground/10">{tr("header.faq", lang)}</a>
                 <div className="pt-2">
                   <p className="text-xs text-secondary-foreground/50 uppercase tracking-wider mb-2">
                     {lang === "pt" ? "Idioma" : lang === "en" ? "Language" : "Idioma"}
                   </p>
                   <div className="flex gap-2">
                     {LANG_FLAGS.map(({ lang: l, label }) => (
-                      <button
-                        key={l}
-                        onClick={() => { setLang(l); }}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary-foreground/10 hover:bg-secondary-foreground/20"}`}
-                      >
+                      <button key={l} onClick={() => setLang(l)} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary-foreground/10 hover:bg-secondary-foreground/20"}`}>
                         {label}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                {/* WhatsApp mobile */}
-                <a
-                  href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 bg-[hsl(142,71%,45%)] text-white px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp
+                <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="mt-4 bg-[hsl(142,71%,45%)] text-white px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                  <MessageCircle className="h-4 w-4" />WhatsApp
                 </a>
               </nav>
             </SheetContent>
@@ -137,18 +100,8 @@ export default function QuotePage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <QuoteHero
-        search={search}
-        onSearchChange={setSearch}
-        onCategoryClick={handleCategoryClick}
-        activeCategory={category}
-        onPartCategoryClick={(key) => setPartCategory(prev => prev === key ? null : key)}
-        activePartCategory={partCategory}
-        lang={lang}
-      />
+      <QuoteHero search={search} onSearchChange={setSearch} onCategoryClick={handleCategoryClick} activeCategory={category} onPartCategoryClick={(key) => setPartCategory(prev => prev === key ? null : key)} activePartCategory={partCategory} lang={lang} />
 
-      {/* How it works */}
       <section id="como-funciona" className="py-12 bg-card border-b">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-center text-foreground mb-8">{tr("how.title", lang)}</h2>
@@ -170,47 +123,16 @@ export default function QuotePage() {
         </div>
       </section>
 
-      {/* Catalog */}
       <div id="pecas">
-        <QuoteCatalog
-          search={search}
-          category={category}
-          partCategory={partCategory}
-          onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)}
-          cartItems={cartItems}
-          onAddToCart={addToCart}
-          lang={lang}
-        />
+        <QuoteCatalog search={search} category={category} partCategory={partCategory} onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)} cartItems={cartItems} onAddToCart={addToCart} lang={lang} />
       </div>
 
-      {/* FAQ */}
-      <div id="faq">
-        <QuoteFAQ lang={lang} />
-      </div>
-
-      {/* Footer */}
+      <div id="faq"><QuoteFAQ lang={lang} /></div>
       <QuoteFooter lang={lang} />
-
-      {/* Cart drawer */}
-      <QuoteCart
-        items={cartItems}
-        onUpdateQty={updateQty}
-        onRemove={removeItem}
-        onClear={() => setCartItems([])}
-        lang={lang}
-      />
-
-      {/* Chat */}
+      <QuoteCart items={cartItems} onUpdateQty={updateQty} onRemove={removeItem} onClear={clearCart} lang={lang} />
       <QuoteChat lang={lang} />
 
-      {/* WhatsApp flutuante */}
-      <a
-        href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-24 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform"
-        title="WhatsApp"
-      >
+      <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
         <MessageCircle className="h-6 w-6" />
       </a>
     </div>
