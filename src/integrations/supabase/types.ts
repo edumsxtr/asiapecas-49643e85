@@ -118,6 +118,30 @@ export type Database = {
           },
         ]
       }
+      cart_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -397,6 +421,7 @@ export type Database = {
         Row: {
           cnpj_cpf: string | null
           company: string | null
+          converted_sale_id: string | null
           created_at: string
           customer_name: string
           email: string | null
@@ -409,6 +434,7 @@ export type Database = {
         Insert: {
           cnpj_cpf?: string | null
           company?: string | null
+          converted_sale_id?: string | null
           created_at?: string
           customer_name: string
           email?: string | null
@@ -421,6 +447,7 @@ export type Database = {
         Update: {
           cnpj_cpf?: string | null
           company?: string | null
+          converted_sale_id?: string | null
           created_at?: string
           customer_name?: string
           email?: string | null
@@ -430,7 +457,15 @@ export type Database = {
           phone?: string | null
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quote_requests_converted_sale_id_fkey"
+            columns: ["converted_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sale_items: {
         Row: {
