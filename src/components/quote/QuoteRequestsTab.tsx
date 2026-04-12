@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuoteRequests, useConvertQuoteToSale, type QuoteRequest } from "@/hooks/use-quote-requests";
-import { ArrowRightLeft, Eye, Mail, Phone, Building } from "lucide-react";
-import { useState } from "react";
+import { ArrowRightLeft, Eye, Mail, Phone, Building, Search } from "lucide-react";
+import { useState, useMemo } from "react";
 
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "outline" },
@@ -13,13 +14,55 @@ const STATUS_BADGE: Record<string, { label: string; variant: "default" | "second
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
+const STATUS_FILTERS = [
+  { value: "todos", label: "Todos" },
+  { value: "pendente", label: "Pendente" },
+  { value: "convertido", label: "Convertido" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
 export default function QuoteRequestsTab() {
   const { data: quotes = [], isLoading } = useQuoteRequests();
   const convertMut = useConvertQuoteToSale();
   const [detail, setDetail] = useState<QuoteRequest | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+
+  const filteredQuotes = useMemo(() => {
+    return quotes.filter(q => {
+      const matchesStatus = statusFilter === "todos" || q.status === statusFilter;
+      const s = search.toLowerCase();
+      const matchesSearch = !s || [q.customer_name, q.company, q.email].some(f => f?.toLowerCase().includes(s));
+      return matchesStatus && matchesSearch;
+    });
+  }, [quotes, search, statusFilter]);
 
   return (
     <>
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por cliente, empresa ou email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex gap-1">
+          {STATUS_FILTERS.map(sf => (
+            <Button
+              key={sf.value}
+              size="sm"
+              variant={statusFilter === sf.value ? "default" : "outline"}
+              onClick={() => setStatusFilter(sf.value)}
+            >
+              {sf.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -36,9 +79,11 @@ export default function QuoteRequestsTab() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : quotes.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma cotação recebida</TableCell></TableRow>
-              ) : quotes.map(q => {
+              ) : filteredQuotes.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  {quotes.length === 0 ? "Nenhuma cotação recebida" : "Nenhum resultado para o filtro aplicado"}
+                </TableCell></TableRow>
+              ) : filteredQuotes.map(q => {
                 const items = Array.isArray(q.items) ? q.items : [];
                 return (
                   <TableRow key={q.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetail(q)}>
