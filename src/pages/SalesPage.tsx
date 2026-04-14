@@ -209,6 +209,13 @@ export default function SalesPage() {
                   </TableBody>
                 </Table>
               )}
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => handleGenerateProposal(detailSale)} className="gap-2">
+                  <FileDown className="h-4 w-4" />
+                  Gerar Proposta Comercial (PDF)
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
