@@ -35,6 +35,17 @@ export default function SalesPage() {
     deleteMut.mutate(deleteId, { onSuccess: () => setDeleteId(null) });
   };
 
+  const handleGenerateProposal = useCallback(async (sale: Sale) => {
+    try {
+      toast.info("Gerando proposta...");
+      const logo = await loadLogoAsBase64();
+      await generateProposalPDF(sale, logo);
+      toast.success("Proposta gerada com sucesso!");
+    } catch (e: any) {
+      toast.error("Erro ao gerar proposta: " + e.message);
+    }
+  }, []);
+
   const totalMonth = sales.reduce((s, v) => s + v.total_amount, 0);
   const avgTicket = sales.length ? totalMonth / sales.length : 0;
 
