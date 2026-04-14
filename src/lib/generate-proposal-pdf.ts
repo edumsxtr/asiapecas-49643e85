@@ -271,7 +271,9 @@ export async function generateProposalPDF(sale: Sale, logoBase64?: string) {
 
 export async function loadLogoAsBase64(): Promise<string | undefined> {
   try {
-    const response = await fetch(new URL("@/assets/asia-logo.png", import.meta.url).href);
+    const logoModule = await import("@/assets/asia-logo.png");
+    const url = logoModule.default;
+    const response = await fetch(url);
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
