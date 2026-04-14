@@ -315,6 +315,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_settings: {
+        Row: {
+          default_markup: number
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          default_markup?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          default_markup?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       prospection_campaigns: {
         Row: {
           converted: number | null
@@ -474,6 +495,7 @@ export type Database = {
           part_id: string | null
           quantity: number
           sale_id: string
+          sell_price: number
           total_price: number
           unit_price: number
         }
@@ -483,6 +505,7 @@ export type Database = {
           part_id?: string | null
           quantity?: number
           sale_id: string
+          sell_price?: number
           total_price?: number
           unit_price?: number
         }
@@ -492,6 +515,7 @@ export type Database = {
           part_id?: string | null
           quantity?: number
           sale_id?: string
+          sell_price?: number
           total_price?: number
           unit_price?: number
         }

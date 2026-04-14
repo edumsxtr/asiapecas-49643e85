@@ -12,9 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCustomers, useCreateCustomer, type CustomerInsert } from "@/hooks/use-customers";
 import { useCreateSale } from "@/hooks/use-sales";
+import { usePricingSettings, useUpdatePricingSettings, applySellPrice } from "@/hooks/use-pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Trash2, Search, Check, UserPlus } from "lucide-react";
+import { ShoppingCart, Plus, Trash2, Search, Check, UserPlus, Settings2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 
 type CartItem = {
@@ -22,7 +23,8 @@ type CartItem = {
   material: string;
   description: string;
   quantity: number;
-  unit_price: number;
+  cost_price: number;
+  sell_price: number;
   stock: number;
 };
 
@@ -35,6 +37,10 @@ export default function NewOrderPage() {
   const createSale = useCreateSale();
   const createCustomer = useCreateCustomer();
   const globalCart = useCart();
+  const { data: pricing } = usePricingSettings();
+  const updatePricing = useUpdatePricingSettings();
+
+  const markup = pricing?.default_markup ?? 30;
 
   const [step, setStep] = useState(1);
   const [customerId, setCustomerId] = useState("");
@@ -48,19 +54,23 @@ export default function NewOrderPage() {
         material: i.material,
         description: i.description,
         quantity: i.quantity,
-        unit_price: i.unit_price,
+        cost_price: i.unit_price,
+        sell_price: applySellPrice(i.unit_price, markup),
         stock: i.stock,
       })));
       globalCart.clearCart();
-      setStep(2); // Skip to items step if cart has items
+      setStep(2);
     }
   }, []);
+
   const [partSearch, setPartSearch] = useState("");
   const [partResults, setPartResults] = useState<any[]>([]);
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [markupOpen, setMarkupOpen] = useState(false);
+  const [tempMarkup, setTempMarkup] = useState(markup);
 
   // New customer inline
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
@@ -86,7 +96,9 @@ export default function NewOrderPage() {
     } else {
       setCart((prev) => [...prev, {
         part_id: part.id, material: part.material, description: part.description,
-        quantity: 1, unit_price: part.estimated_price, stock: part.stock,
+        quantity: 1, cost_price: part.estimated_price,
+        sell_price: applySellPrice(part.estimated_price, markup),
+        stock: part.stock,
       }]);
     }
     setPartSearch("");
@@ -99,7 +111,26 @@ export default function NewOrderPage() {
 
   const removeFromCart = (idx: number) => setCart((prev) => prev.filter((_, i) => i !== idx));
 
-  const total = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const applyMarkupToAll = (m: number) => {
+    setCart(prev => prev.map(item => ({
+      ...item,
+      sell_price: applySellPrice(item.cost_price, m),
+    })));
+  };
+
+  const handleSaveMarkup = () => {
+    if (pricing) {
+      updatePricing.mutate({ id: pricing.id, default_markup: tempMarkup });
+    }
+    applyMarkupToAll(tempMarkup);
+    setMarkupOpen(false);
+  };
+
+  const totalCost = cart.reduce((s, i) => s + i.quantity * i.cost_price, 0);
+  const totalSell = cart.reduce((s, i) => s + i.quantity * i.sell_price, 0);
+  const totalProfit = totalSell - totalCost;
+  const profitMargin = totalSell > 0 ? (totalProfit / totalSell) * 100 : 0;
+
   const selectedCustomer = customers.find((c) => c.id === customerId);
 
   const handleCreateCustomer = () => {
@@ -117,18 +148,18 @@ export default function NewOrderPage() {
     if (!customerId || cart.length === 0) return;
     setConfirming(true);
     try {
-      // Create sale as orcamento first
       const saleData = {
         customer_id: customerId,
         notes: notes || null,
         payment_method: paymentMethod || null,
         payment_terms: paymentTerms || null,
-        items: cart.map(({ part_id, quantity, unit_price }) => ({ part_id, quantity, unit_price })),
+        items: cart.map(({ part_id, quantity, sell_price }) => ({
+          part_id, quantity, unit_price: sell_price,
+        })),
       };
 
       createSale.mutate(saleData, {
         onSuccess: async (sale) => {
-          // Confirm sale (decrement stock)
           const { data, error } = await supabase.functions.invoke("confirm-sale", {
             body: { sale_id: sale.id },
           });
@@ -213,7 +244,13 @@ export default function NewOrderPage() {
         {step === 2 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">2. Adicionar Peças ao Pedido</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">2. Adicionar Peças ao Pedido</CardTitle>
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => { setTempMarkup(markup); setMarkupOpen(true); }}>
+                  <Settings2 className="h-4 w-4" />
+                  Margem: {markup}%
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
@@ -240,7 +277,8 @@ export default function NewOrderPage() {
                           <Badge variant={p.stock > 0 ? "secondary" : "destructive"} className="text-xs">
                             Estoque: {p.stock}
                           </Badge>
-                          <span className="font-medium">R$ {p.estimated_price.toLocaleString("pt-BR")}</span>
+                          <span className="text-xs text-muted-foreground">Custo: R$ {p.estimated_price.toLocaleString("pt-BR")}</span>
+                          <span className="font-medium text-primary">Venda: R$ {applySellPrice(p.estimated_price, markup).toLocaleString("pt-BR")}</span>
                           <Plus className="h-4 w-4 text-primary" />
                         </div>
                       </div>
@@ -250,59 +288,82 @@ export default function NewOrderPage() {
               </div>
 
               {cart.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead className="text-center">Estoque</TableHead>
-                      <TableHead className="text-center">Qtd</TableHead>
-                      <TableHead>Preço Unit.</TableHead>
-                      <TableHead>Subtotal</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cart.map((item, idx) => (
-                      <TableRow key={idx} className={item.quantity > item.stock ? "bg-destructive/5" : ""}>
-                        <TableCell className="font-mono text-xs">{item.material}</TableCell>
-                        <TableCell className="text-xs truncate max-w-[200px]">{item.description}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={item.stock > 0 ? "outline" : "destructive"}>{item.stock}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number" min={1} className="w-20 h-8 text-center"
-                            value={item.quantity}
-                            onChange={(e) => updateCartItem(idx, "quantity", Math.max(1, +e.target.value))}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number" min={0} step={0.01} className="w-28 h-8"
-                            value={item.unit_price}
-                            onChange={(e) => updateCartItem(idx, "unit_price", +e.target.value)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-mono font-medium">
-                          R$ {(item.quantity * item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="text-center">Est.</TableHead>
+                        <TableHead className="text-center">Qtd</TableHead>
+                        <TableHead>Custo</TableHead>
+                        <TableHead>Preço Venda</TableHead>
+                        <TableHead>Subtotal</TableHead>
+                        <TableHead></TableHead>
                       </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/30">
-                      <TableCell colSpan={5} className="text-right font-bold text-base">Total:</TableCell>
-                      <TableCell className="font-mono font-bold text-primary text-base">
-                        R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell />
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {cart.map((item, idx) => (
+                        <TableRow key={idx} className={item.quantity > item.stock ? "bg-destructive/5" : ""}>
+                          <TableCell className="font-mono text-xs">{item.material}</TableCell>
+                          <TableCell className="text-xs truncate max-w-[160px]">{item.description}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={item.stock > 0 ? "outline" : "destructive"}>{item.stock}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number" min={1} className="w-16 h-8 text-center"
+                              value={item.quantity}
+                              onChange={(e) => updateCartItem(idx, "quantity", Math.max(1, +e.target.value))}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            R$ {item.cost_price.toLocaleString("pt-BR")}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number" min={0} step={0.01} className="w-28 h-8"
+                              value={item.sell_price}
+                              onChange={(e) => updateCartItem(idx, "sell_price", +e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono font-medium">
+                            R$ {(item.quantity * item.sell_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pricing summary */}
+                  <div className="grid grid-cols-4 gap-3 bg-muted/30 rounded-lg p-3">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Custo Total</p>
+                      <p className="font-mono text-sm">R$ {totalCost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Venda Total</p>
+                      <p className="font-mono text-sm font-bold text-primary">R$ {totalSell.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Lucro</p>
+                      <p className={`font-mono text-sm font-bold ${totalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                        R$ {totalProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Margem Real</p>
+                      <p className={`font-mono text-sm font-bold ${profitMargin >= 0 ? "text-green-600" : "text-destructive"}`}>
+                        {profitMargin.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-30" />
@@ -337,11 +398,11 @@ export default function NewOrderPage() {
                     {selectedCustomer?.company && <p className="text-sm">{selectedCustomer.company}</p>}
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground mb-1">Total do Pedido</p>
+                    <p className="text-sm text-muted-foreground mb-1">Total do Pedido (Venda)</p>
                     <p className="text-2xl font-bold text-primary">
-                      R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R$ {totalSell.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
-                    <p className="text-sm text-muted-foreground">{cart.length} itens</p>
+                    <p className="text-sm text-muted-foreground">{cart.length} itens · Lucro: R$ {totalProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ({profitMargin.toFixed(1)}%)</p>
                   </div>
                 </div>
 
@@ -373,7 +434,7 @@ export default function NewOrderPage() {
                       <TableHead>Material</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead className="text-center">Qtd</TableHead>
-                      <TableHead>Preço Unit.</TableHead>
+                      <TableHead>Preço Venda</TableHead>
                       <TableHead>Subtotal</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -383,9 +444,9 @@ export default function NewOrderPage() {
                         <TableCell className="font-mono text-xs">{item.material}</TableCell>
                         <TableCell className="text-xs truncate max-w-[200px]">{item.description}</TableCell>
                         <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="font-mono">R$ {item.unit_price.toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="font-mono">R$ {item.sell_price.toLocaleString("pt-BR")}</TableCell>
                         <TableCell className="font-mono font-medium">
-                          R$ {(item.quantity * item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          R$ {(item.quantity * item.sell_price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -400,7 +461,7 @@ export default function NewOrderPage() {
                     className="gap-2"
                   >
                     <Check className="h-4 w-4" />
-                    {confirming ? "Confirmando..." : `Confirmar Pedido — R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    {confirming ? "Confirmando..." : `Confirmar Pedido — R$ ${totalSell.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                   </Button>
                 </div>
               </CardContent>
@@ -408,6 +469,30 @@ export default function NewOrderPage() {
           </div>
         )}
       </div>
+
+      {/* Markup Settings Dialog */}
+      <Dialog open={markupOpen} onOpenChange={setMarkupOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Configurar Margem de Lucro</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-3">
+            <div>
+              <Label>Margem Padrão (%)</Label>
+              <Input
+                type="number" min={0} max={500} step={1}
+                value={tempMarkup}
+                onChange={(e) => setTempMarkup(+e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Ex: 30% → peça de custo R$ 100 será vendida por R$ 130
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMarkupOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveMarkup}>Salvar e Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Customer Dialog */}
       <Dialog open={newCustomerOpen} onOpenChange={setNewCustomerOpen}>
