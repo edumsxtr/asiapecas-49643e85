@@ -120,7 +120,7 @@ export default function NewOrderPage() {
 
   const handleSaveMarkup = () => {
     if (pricing) {
-      updatePricing.mutate({ id: pricing.id, default_markup: tempMarkup });
+      updatePricing.mutate({ default_markup: tempMarkup });
     }
     applyMarkupToAll(tempMarkup);
     setMarkupOpen(false);
