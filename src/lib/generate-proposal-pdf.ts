@@ -1,8 +1,26 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Sale } from "@/hooks/use-sales";
+import { applySellPrice } from "@/hooks/use-pricing";
 
-const COMPANY = {
+type CompanyData = {
+  name: string;
+  cnpj: string;
+  address: string;
+  phone: string;
+  email: string;
+};
+
+export type ProposalOptions = {
+  company?: CompanyData;
+  markup?: number;
+  validity?: string;
+  deliveryTerms?: string;
+  warrantyText?: string;
+  observations?: string;
+};
+
+const DEFAULT_COMPANY: CompanyData = {
   name: "Ásia Peças & Máquinas",
   cnpj: "XX.XXX.XXX/XXXX-XX",
   address: "Macapá - AP",
@@ -10,7 +28,7 @@ const COMPANY = {
   email: "contato@asiapecas.com.br",
 };
 
-const PRIMARY_COLOR: [number, number, number] = [204, 163, 0]; // gold/yellow
+const PRIMARY_COLOR: [number, number, number] = [204, 163, 0];
 const DARK: [number, number, number] = [30, 30, 30];
 const GRAY: [number, number, number] = [100, 100, 100];
 const LIGHT_BG: [number, number, number] = [248, 245, 235];
@@ -19,7 +37,14 @@ function fmt(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
-export async function generateProposalPDF(sale: Sale, logoBase64?: string) {
+export async function generateProposalPDF(sale: Sale, logoBase64?: string, options?: ProposalOptions) {
+  const COMPANY = options?.company || DEFAULT_COMPANY;
+  const markup = options?.markup ?? 30;
+  const validityText = options?.validity || "15 dias";
+  const deliveryTerms = options?.deliveryTerms || "7 a 15 dias úteis após confirmação do pedido";
+  const warrantyText = options?.warrantyText || "Garantia de 3 meses contra defeitos de fabricação. Não cobre mau uso ou instalação inadequada.";
+  const observationsText = options?.observations || "";
+
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
@@ -102,7 +127,7 @@ export async function generateProposalPDF(sale: Sale, logoBase64?: string) {
   doc.setFont("helvetica", "bold");
   doc.text("Validade:", col2, y + 18);
   doc.setFont("helvetica", "normal");
-  doc.text("15 dias", col2 + 20, y + 18);
+  doc.text(validityText, col2 + 20, y + 18);
 
   if (sale.payment_method) {
     doc.setFont("helvetica", "bold");
@@ -133,33 +158,25 @@ export async function generateProposalPDF(sale: Sale, logoBase64?: string) {
   y += 4;
 
   const items = sale.sale_items || [];
-  const tableBody = items.map((item, i) => [
-    String(i + 1).padStart(2, "0"),
-    item.parts?.description || "—",
-    item.parts?.material || "—",
-    String(item.quantity),
-    fmt(item.unit_price),
-    fmt(item.total_price),
-  ]);
+  const tableBody = items.map((item, i) => {
+    const sellPrice = (item as any).sell_price > 0 ? (item as any).sell_price : applySellPrice(item.unit_price, markup);
+    return [
+      String(i + 1).padStart(2, "0"),
+      item.parts?.description || "—",
+      item.parts?.material || "—",
+      String(item.quantity),
+      fmt(sellPrice),
+      fmt(sellPrice * item.quantity),
+    ];
+  });
 
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
     head: [["Item", "Descrição", "Material/Modelo", "Qtd", "Valor Unit.", "Valor Total"]],
     body: tableBody,
-    styles: {
-      fontSize: 8,
-      cellPadding: 3,
-      textColor: DARK,
-      lineColor: [220, 220, 220],
-      lineWidth: 0.3,
-    },
-    headStyles: {
-      fillColor: DARK,
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      fontSize: 8,
-    },
+    styles: { fontSize: 8, cellPadding: 3, textColor: DARK, lineColor: [220, 220, 220], lineWidth: 0.3 },
+    headStyles: { fillColor: DARK, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 248, 240] },
     columnStyles: {
       0: { cellWidth: 12, halign: "center" },
@@ -173,44 +190,35 @@ export async function generateProposalPDF(sale: Sale, logoBase64?: string) {
 
   y = (doc as any).lastAutoTable.finalY + 4;
 
-  // ── Total ──
+  // ── Total (using sell prices) ──
+  const totalSell = items.reduce((s, item) => {
+    const sp = (item as any).sell_price > 0 ? (item as any).sell_price : applySellPrice(item.unit_price, markup);
+    return s + sp * item.quantity;
+  }, 0);
+
   doc.setFillColor(...PRIMARY_COLOR);
   doc.roundedRect(W - margin - 65, y, 65, 10, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...DARK);
-  doc.text(`TOTAL: ${fmt(sale.total_amount)}`, W - margin - 62, y + 7);
+  doc.text(`TOTAL: ${fmt(totalSell)}`, W - margin - 62, y + 7);
   y += 18;
 
   // ── Sections 3-6 ──
+  const warrantyLines = warrantyText.split(/\.\s*/).filter(Boolean).map(l => `• ${l.trim()}${l.endsWith('.') ? '' : '.'}`);
+  const obsLines = observationsText.split(/\.\s*/).filter(Boolean).map(l => `• ${l.trim()}`);
+  if (sale.notes) obsLines.push(`• ${sale.notes}`);
+
   const sections = [
     {
-      num: "3",
-      title: "CONDIÇÕES DE PAGAMENTO",
+      num: "3", title: "CONDIÇÕES DE PAGAMENTO",
       lines: sale.payment_method
         ? [`• ${sale.payment_method}${sale.payment_terms ? ` — ${sale.payment_terms}` : ""}`]
         : ["• A combinar"],
     },
-    { num: "4", title: "PRAZO DE ENTREGA", lines: ["• 7 a 15 dias úteis após confirmação do pedido"] },
-    {
-      num: "5",
-      title: "GARANTIA",
-      lines: [
-        "• Garantia de 3 meses contra defeitos de fabricação.",
-        "• Não cobre mau uso ou instalação inadequada.",
-      ],
-    },
-    {
-      num: "6",
-      title: "OBSERVAÇÕES",
-      lines: [
-        "• Frete: a combinar",
-        "• Instalação: não inclusa",
-        "• Produtos sujeitos à disponibilidade em estoque",
-        "• Valores podem sofrer alteração após vencimento da proposta",
-        ...(sale.notes ? [`• ${sale.notes}`] : []),
-      ],
-    },
+    { num: "4", title: "PRAZO DE ENTREGA", lines: [`• ${deliveryTerms}`] },
+    { num: "5", title: "GARANTIA", lines: warrantyLines.length ? warrantyLines : ["• Garantia de 3 meses contra defeitos de fabricação."] },
+    { num: "6", title: "OBSERVAÇÕES", lines: obsLines.length ? obsLines : ["• Frete: a combinar"] },
   ];
 
   for (const sec of sections) {

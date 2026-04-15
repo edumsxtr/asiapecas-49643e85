@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSales, useUpdateSaleStatus, useDeleteSale, type Sale } from "@/hooks/use-sales";
-import { Plus, Eye, Trash2, ClipboardList, FileDown } from "lucide-react";
+import { Plus, Eye, Trash2, ClipboardList, FileDown, Settings } from "lucide-react";
 import QuoteRequestsTab from "@/components/quote/QuoteRequestsTab";
-import { generateProposalPDF, loadLogoAsBase64 } from "@/lib/generate-proposal-pdf";
-import { toast } from "sonner";
+import ProposalCustomizeDialog from "@/components/sales/ProposalCustomizeDialog";
+import ProposalConfigTab from "@/components/sales/ProposalConfigTab";
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   orcamento: { label: "Orçamento", variant: "outline" },
   confirmado: { label: "Confirmado", variant: "default" },
@@ -26,6 +27,7 @@ export default function SalesPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [proposalSale, setProposalSale] = useState<Sale | null>(null);
   const { data: sales = [], isLoading } = useSales(statusFilter);
   const updateStatus = useUpdateSaleStatus();
   const deleteMut = useDeleteSale();
@@ -34,17 +36,6 @@ export default function SalesPage() {
     if (!deleteId) return;
     deleteMut.mutate(deleteId, { onSuccess: () => setDeleteId(null) });
   };
-
-  const handleGenerateProposal = useCallback(async (sale: Sale) => {
-    try {
-      toast.info("Gerando proposta...");
-      const logo = await loadLogoAsBase64();
-      await generateProposalPDF(sale, logo);
-      toast.success("Proposta gerada com sucesso!");
-    } catch (e: any) {
-      toast.error("Erro ao gerar proposta: " + e.message);
-    }
-  }, []);
 
   const totalMonth = sales.reduce((s, v) => s + v.total_amount, 0);
   const avgTicket = sales.length ? totalMonth / sales.length : 0;
@@ -62,6 +53,9 @@ export default function SalesPage() {
             <TabsTrigger value="vendas">Vendas</TabsTrigger>
             <TabsTrigger value="cotacoes" className="gap-1">
               <ClipboardList className="h-4 w-4" /> Cotações Recebidas
+            </TabsTrigger>
+            <TabsTrigger value="config" className="gap-1">
+              <Settings className="h-4 w-4" /> Configurações
             </TabsTrigger>
           </TabsList>
 
@@ -145,6 +139,10 @@ export default function SalesPage() {
           <TabsContent value="cotacoes" className="mt-4">
             <QuoteRequestsTab />
           </TabsContent>
+
+          <TabsContent value="config" className="mt-4">
+            <ProposalConfigTab />
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -211,7 +209,7 @@ export default function SalesPage() {
               )}
 
               <div className="flex justify-end pt-2">
-                <Button onClick={() => handleGenerateProposal(detailSale)} className="gap-2">
+                <Button onClick={() => { setDetailSale(null); setProposalSale(detailSale); }} className="gap-2">
                   <FileDown className="h-4 w-4" />
                   Gerar Proposta Comercial (PDF)
                 </Button>
@@ -220,6 +218,13 @@ export default function SalesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Proposal Customize Dialog */}
+      <ProposalCustomizeDialog
+        sale={proposalSale}
+        open={!!proposalSale}
+        onOpenChange={(o) => !o && setProposalSale(null)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
