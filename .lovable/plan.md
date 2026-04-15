@@ -1,26 +1,67 @@
 
 
-# Plano: Busca e Filtros na aba Cotações Recebidas
+# Plano: Precificação + Proposta Personalizada na Área de Vendas
 
-## O que será feito
+## Resumo
 
-Adicionar ao `QuoteRequestsTab.tsx`:
+Adicionar na página de Vendas: (1) uma aba/seção de **Configuração de Proposta** onde o usuário define dados da empresa, margem global, validade, prazo de entrega, garantia e observações padrão; (2) um **dialog de personalização** antes de gerar o PDF, permitindo revisar/editar os dados da proposta; (3) usar `sell_price` nos itens do PDF em vez de `unit_price` (preço de custo).
 
-1. **Campo de busca** -- Input de texto que filtra por nome do cliente, empresa ou email
-2. **Filtro por status** -- Botões (Todos / Pendente / Convertido / Cancelado) para filtrar cotações por status
+## Problemas Atuais
 
-A filtragem será feita no frontend (client-side) sobre os dados já carregados, sem necessidade de alterações no banco de dados.
+- O PDF usa `unit_price` (preço de custo) nos itens em vez do `sell_price`
+- Dados da empresa estão hardcoded no código (`generate-proposal-pdf.ts`)
+- Não há como editar validade, prazo de entrega, garantia antes de gerar
+- Não há acesso à precificação (margem) na página de Vendas -- só no Novo Pedido
 
-## Arquivo afetado
+## Solução
 
-| Arquivo | Mudança |
+### 1. Tabela `proposal_settings` no banco
+
+Armazenar configurações editáveis da proposta:
+- `company_name`, `cnpj`, `address`, `phone`, `email` (dados da empresa)
+- `default_validity_days` (validade padrão, ex: 15)
+- `default_delivery_terms` (prazo de entrega padrão)
+- `default_warranty_text` (texto de garantia)
+- `default_observations` (observações padrão)
+- `default_markup` -- reutilizar da `pricing_settings` existente
+
+### 2. Aba "Configurações" na página de Vendas
+
+Nova aba nas Tabs existentes (Vendas | Cotações Recebidas | **Configurações**) com:
+- Card "Dados da Empresa" -- editar nome, CNPJ, endereço, telefone, email
+- Card "Precificação" -- margem global (%) com botão salvar
+- Card "Padrões da Proposta" -- validade, prazo de entrega, garantia, observações
+
+### 3. Dialog de personalização antes de gerar PDF
+
+Ao clicar "Gerar Proposta", abrir um dialog com campos pré-preenchidos (dos `proposal_settings`) que o usuário pode ajustar antes de confirmar:
+- Validade da proposta
+- Prazo de entrega
+- Condições de garantia
+- Observações extras
+- Preview dos preços (sell_price vs cost)
+
+### 4. Corrigir PDF para usar sell_price
+
+Atualizar `generate-proposal-pdf.ts` para:
+- Receber as configurações da proposta como parâmetro
+- Usar `sell_price` (ou `unit_price * markup` como fallback) nos itens
+- Usar dados da empresa do banco em vez de hardcoded
+
+## Arquivos Afetados
+
+| Arquivo | Ação |
 |---|---|
-| `src/components/quote/QuoteRequestsTab.tsx` | Adicionar estados `search` e `statusFilter`, barra de busca + botões de filtro acima da tabela, e aplicar `useMemo` para filtrar `quotes` |
+| `supabase/migrations/new.sql` | Criar tabela `proposal_settings` com RLS |
+| `src/hooks/use-proposal-settings.ts` | **Novo** -- CRUD para `proposal_settings` |
+| `src/components/sales/ProposalConfigTab.tsx` | **Novo** -- aba de configurações |
+| `src/components/sales/ProposalCustomizeDialog.tsx` | **Novo** -- dialog de personalização pré-PDF |
+| `src/pages/SalesPage.tsx` | Adicionar aba Configurações + dialog de personalização |
+| `src/lib/generate-proposal-pdf.ts` | Usar sell_price + dados dinâmicos da empresa |
 
-## Detalhes técnicos
+## Detalhes Técnicos
 
-- Dois novos estados: `search` (string) e `statusFilter` (string, default "todos")
-- `filteredQuotes` via `useMemo`: filtra por status e depois por texto (busca case-insensitive em `customer_name`, `company`, `email`)
-- Barra com `Input` (ícone Search) + 4 botões de status renderizados acima do `Card` da tabela
-- Contadores vazios atualizados para refletir "nenhum resultado para o filtro"
+- A tabela `proposal_settings` terá uma única linha (como `pricing_settings`), com RLS para authenticated
+- O dialog de personalização receberá o `Sale` + `proposal_settings` e permitirá override temporário dos campos antes de chamar `generateProposalPDF`
+- O PDF mostrará `sell_price` quando disponível, senão aplicará markup sobre `unit_price`
 
