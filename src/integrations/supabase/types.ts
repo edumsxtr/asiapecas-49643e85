@@ -336,6 +336,51 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_settings: {
+        Row: {
+          address: string
+          cnpj: string
+          company_name: string
+          default_delivery_terms: string
+          default_observations: string
+          default_validity_days: number
+          default_warranty_text: string
+          email: string
+          id: string
+          phone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string
+          cnpj?: string
+          company_name?: string
+          default_delivery_terms?: string
+          default_observations?: string
+          default_validity_days?: number
+          default_warranty_text?: string
+          email?: string
+          id?: string
+          phone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string
+          cnpj?: string
+          company_name?: string
+          default_delivery_terms?: string
+          default_observations?: string
+          default_validity_days?: number
+          default_warranty_text?: string
+          email?: string
+          id?: string
+          phone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       prospection_campaigns: {
         Row: {
           converted: number | null
