@@ -26,11 +26,17 @@ export function usePricingSettings() {
 export function useUpdatePricingSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, default_markup }: { id: string; default_markup: number }) => {
+    mutationFn: async ({ default_markup }: { default_markup: number }) => {
+      const { data: existing } = await supabase
+        .from("pricing_settings")
+        .select("id")
+        .limit(1)
+        .single();
+      if (!existing) throw new Error("Configurações não encontradas");
       const { error } = await supabase
         .from("pricing_settings")
         .update({ default_markup, updated_at: new Date().toISOString() } as any)
-        .eq("id", id);
+        .eq("id", existing.id);
       if (error) throw error;
     },
     onSuccess: () => {
