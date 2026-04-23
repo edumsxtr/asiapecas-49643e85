@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+// Sheet primitives are used inside Customer360Section
 import {
   ArrowLeft, Mail, Phone, MapPin, Building2, Sparkles, Plus, Target, ShoppingCart,
   Wrench, Receipt, LifeBuoy, FileText, BadgeCheck,
