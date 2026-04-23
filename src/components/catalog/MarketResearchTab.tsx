@@ -193,7 +193,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                         {e.is_genuine === true ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Badge className="text-[10px] gap-0.5 bg-green-600 hover:bg-green-600 text-white">
+                              <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
                                 <ShieldCheck className="h-2.5 w-2.5" /> Original XCMG
                               </Badge>
                             </TooltipTrigger>
