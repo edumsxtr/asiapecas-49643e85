@@ -921,6 +921,7 @@ export type Database = {
         Args: { col_name: string; stock_min?: number }
         Returns: string[]
       }
+      get_stock_analytics: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
