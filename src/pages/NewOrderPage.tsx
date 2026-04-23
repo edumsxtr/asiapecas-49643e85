@@ -343,6 +343,36 @@ export default function NewOrderPage() {
                 )}
               </div>
 
+              {suggestions.length > 0 && (
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Sugestões para {selectedCustomer?.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => addToCart(s)}
+                          className="text-left text-xs bg-background hover:bg-primary/10 border rounded-md px-2 py-1.5 flex items-center gap-2 transition-colors disabled:opacity-50"
+                          disabled={!!cart.find((i) => i.part_id === s.id)}
+                        >
+                          <Plus className="h-3 w-3 text-primary shrink-0" />
+                          <div>
+                            <p className="font-mono">{s.material} <span className="text-muted-foreground">— {s.description.slice(0, 40)}</span></p>
+                            <p className="text-[10px] text-muted-foreground">{s.reason} · est. {s.stock} · R$ {applySellPrice(s.estimated_price, markup).toLocaleString("pt-BR")}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {cart.length > 0 ? (
                 <>
                   <Table>
