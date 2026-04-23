@@ -137,7 +137,12 @@ Deno.serve(async (req) => {
           last_proposal_at: r.last_proposal_at || null,
         };
 
-        const existingMatch = existingByKey.get(key);
+        let existingMatch = existingByKey.get(key);
+        if (decision?.action === "merge" && decision.target_id) {
+          const forced = (existing || []).find((x) => x.id === decision.target_id) as typeof existingMatch | undefined;
+          if (forced) existingMatch = forced;
+        }
+        if (decision?.action === "create") existingMatch = undefined;
         if (existingMatch) {
           if (!update_existing) {
             skipped++;
