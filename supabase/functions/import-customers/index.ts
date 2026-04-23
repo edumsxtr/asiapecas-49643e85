@@ -103,13 +103,14 @@ Deno.serve(async (req) => {
     for (let i = 0; i < allCustomerRows.length; i += chunk) {
       const slice = allCustomerRows.slice(i, i + chunk);
 
-      for (const row of slice) {
+      for (let idx = 0; idx < slice.length; idx++) {
+        const row = slice[idx];
+        const globalIdx = i + idx;
         const r = row as Record<string, unknown>;
         const name = String(r.name || "").trim();
-        if (!name) {
-          skipped++;
-          continue;
-        }
+        if (!name) { skipped++; continue; }
+        const decision = decisionsByIdx.get(globalIdx);
+        if (decision?.action === "ignore") { skipped++; continue; }
         const key = dedupKey({
           cnpj_cpf: r.cnpj_cpf as string | null,
           email: r.email as string | null,
