@@ -1,105 +1,106 @@
 
 
-# Plano: Pesquisa de Mercado IA — Zero margem de erro no link do anúncio
+# Plano: CRM com CRUD em lote, WhatsApp direto, paginação e perfil 360° unificado
 
-## Problema confirmado
+## O que muda
 
-Hoje a edge function `auto-market-research`:
-1. Pede à IA um `source_url` do anúncio
-2. Valida apenas se a URL **responde HTTP 200** (`checkUrl` faz HEAD)
-3. Marca como `url_verified: true` e tipo `"page"` se passou
+### 1. CRUD em lote na lista (`CustomersPage.tsx`)
 
-**Falha grave**: HTTP 200 só prova que a página existe — **não prova que ela contém o código `${material}` da peça pesquisada**. Resultado: clico no link e abro a homepage do distribuidor, ou um anúncio de outra peça, ou uma listagem genérica. O vendedor perde confiança.
+- **Coluna de checkbox** em cada linha + checkbox "selecionar todos" no cabeçalho (respeita filtros e página atual)
+- **Barra flutuante de ações em massa** aparece quando ≥1 cliente selecionado, ancorada acima da tabela:
+  - **Editar em lote** → dialog com campos opcionais: `segment`, `relationship_status`, `state`, `city` — só aplica os preenchidos via `update().in("id", ids)`
+  - **Excluir em lote** → AlertDialog com confirmação ("Excluir N clientes?") usando `delete().in("id", ids)`
+  - **Enriquecer com IA** → loop sequencial pela mutation existente
+  - **Prospectar com IA** → reusa `useProspectFromCustomer`
+  - **Exportar CSV** dos selecionados (reusa `export-csv.ts`)
+  - **Mensagem em lote no WhatsApp** → abre dialog com template (`Olá {nome}, ...`), botões "Abrir conversa" um por um (não dá pra disparar para vários simultaneamente — limitação técnica do `wa.me`)
+- Hooks novos em `use-customers.ts`: `useBulkUpdateCustomers`, `useBulkDeleteCustomers`
 
-Casos reais de falso positivo:
-- IA retorna `tracbel.com.br/produtos` (200 OK, mas é catálogo geral)
-- IA retorna `mercadolivre.com.br/MLB-12345-OUTRA-PECA` (200 OK, peça diferente)
-- IA "alucina" um slug plausível que existe mas não é o anúncio
+### 2. Botão WhatsApp direto
 
-## Solução: validação de conteúdo, não só de status
+- Helper `formatWhatsAppLink(phone, name?)` em `src/lib/whatsapp.ts`:
+  - Sanitiza telefone (remove tudo que não é dígito), adiciona `55` se faltar DDI
+  - Retorna `https://wa.me/55XXXXXXXXXXX?text=...` com saudação pré-preenchida em PT-BR
+  - Se telefone inválido/vazio → retorna `null` e o botão fica desabilitado com tooltip "Sem telefone"
+- Posições do botão (ícone verde do WhatsApp, lucide `MessageCircle`):
+  - **Linha da tabela** em `CustomersPage` (ao lado de "Ver detalhe")
+  - **Header do perfil 360°** em `CustomerDetailPage`
+  - **Tabela de prospects** (`ProspectionPage` / `CustomerProspectionTab`) — também usa o mesmo helper
+- Abre nova aba (`target="_blank"` + `rel="noopener noreferrer"`)
 
-### 1. `checkUrl` vira `verifyUrlContainsPartNumber`
+### 3. Paginação real na lista
 
-Substituir a verificação atual por uma que **baixa o HTML da página** (até 200 KB) e procura o `material` literalmente — em forma exata, normalizada (sem hífen/espaço/ponto) e em meta-tags.
+- Hoje: `useCustomers` faz um único `.limit(2000)` e renderiza tudo
+- Novo: `useCustomers({ search, page, pageSize, filters })` retorna `{ rows, total, page, pageSize }` usando `.range()` + `count: "exact"`
+  - Move filtros (UF, segmento, enriquecimento) para o servidor — performance e contagem real
+  - `pageSize` padrão = 25, opções: 25 / 50 / 100
+- Componente de paginação no rodapé da tabela (Anterior/Próximo + número de páginas + jump-to)
+- Sincroniza com URL via `useSearchParams` (`?page=3&q=...&uf=SP`) — link compartilhável e refresh preserva estado
+- Skeleton loading em vez do "Carregando..." de texto puro
 
-```ts
-async function verifyUrlContainsPartNumber(url, material): Promise<{ ok, evidence }>
+### 4. Perfil 360° unificado em **uma única aba** (`CustomerDetailPage.tsx`)
+
+Hoje: 7 abas (`Resumo, IA, Equipamentos, Faturamento, Pedidos, Pós-Venda, Prospecção`). 
+Novo: **uma aba "Visão 360°" rolável** com seções enxutas, navegação lateral sticky e ações inline.
+
+Estrutura da aba 360°:
+
+```text
+┌───────────────────────────────────────────────────────────┐
+│  Header sticky: nome + badges + botões (WhatsApp, Pedido) │
+├──────────────┬────────────────────────────────────────────┤
+│  Sidebar     │  ┌─ Contato & Localização (cards densos) ─┐│
+│  sticky      │  ├─ Inteligência IA (resumo + insights)  ─┤│
+│  com âncoras │  ├─ Equipamentos (tabela compacta + add) ─┤│
+│  de scroll:  │  ├─ Faturamento SAP (último 12m + total) ─┤│
+│  • Contato   │  ├─ Pedidos (timeline + total + status)  ─┤│
+│  • IA        │  ├─ Pós-Venda (tickets abertos primeiro) ─┤│
+│  • Equipam.  │  ├─ Prospecção (status + ações rápidas)  ─┤│
+│  • Faturam.  │  └─ Observações & histórico              ─┘│
+│  • Pedidos   │                                            │
+│  • Pós-venda │  Cada seção: header colapsável + "Ver +"  │
+│  • Prospec.  │  para abrir a lista completa em Sheet     │
+└──────────────┴────────────────────────────────────────────┘
 ```
 
-Regras:
-- HEAD primeiro para descartar 404/timeout
-- GET com `Range: bytes=0-204800` (cap 200KB; a maioria dos anúncios cabe no `<head>` + título)
-- Decodifica HTML, remove tags via regex leve, normaliza com `normalizePartNumber()`
-- Procura `material` em 3 formas: literal, normalizada, e em `<title>`/`<meta name="description">`/`<h1>` (extraídos por regex)
-- Retorna `evidence`: trecho de até 120 chars onde o código foi encontrado (vai virar tooltip "comprovação")
-- Bloqueia URLs claramente genéricas: domínios sem path (`tracbel.com.br/`), `/produtos`, `/categorias`, `/busca`, `/search`, `/?q=` — mesmo se contiverem o código no HTML
-
-### 2. Resultado da validação determina a UI
-
-| Situação | `source_url_type` | `url_verified` | UI |
-|---|---|---|---|
-| Página contém o código no HTML/title | `"page"` | `true` | Badge verde "Página verificada ✓" + tooltip mostra `evidence` |
-| Página existe mas NÃO contém o código | descartada | — | Substituída por `buildSearchUrl()` ("Busca") |
-| Página 404/timeout | descartada | — | Substituída por busca |
-| URL genérica (homepage/listagem) | descartada | — | Substituída por busca |
-
-Resultado nunca mais leva o usuário a "Página verificada" que não é o anúncio certo.
-
-### 3. Reforço no prompt + descarte de resultados sem URL útil
-
-No `systemPrompt`:
-- Exigir que `source_url` seja **a URL da página do anúncio individual** (não listagem/categoria/home). Se a IA não tem essa URL exata, **omitir o campo** — melhor sem URL do que URL errada.
-- Adicionar exemplos de URLs ACEITÁVEIS (`mercadolivre.com.br/MLB-12345-pistao-xcmg-860126593-_JM`) e RECUSÁVEIS (`tracbel.com.br/`, `mercadolivre.com.br/ofertas`).
-
-No pós-processamento da edge function:
-- Resultado com `match_confidence === "exact"` mas URL não-verificável → mantém o resultado, mas força `source_url_type = "search"` e adiciona nota: "Anúncio confirmado pela IA, link direto não disponível — use a busca para abrir".
-- Resultado SEM `matched_part_number` literal verificado **na URL nem no HTML** → descartado (`droppedMismatch++`).
-
-### 4. Re-verificação sob demanda na UI (`MarketResearchTab.tsx`)
-
-Adicionar botão **"Reverificar link"** ao lado do botão "Reportar quebrado" em cada linha:
-- Chama nova edge function `verify-market-url` (input: `{ research_id, material, url }`) que reaplica `verifyUrlContainsPartNumber`
-- Atualiza `market_research.notes` com o resultado e `source_url` (mantém ou troca por busca)
-- Toast: "Link confirma o código X" / "Link não contém o código — substituído por busca"
-
-Isso permite ao vendedor **provar na hora** que o link é confiável antes de mostrar para o cliente.
-
-### 5. Coluna nova `match_evidence` (opcional, sem migração obrigatória)
-
-Em vez de criar coluna nova, gravar a `evidence` dentro de `notes` no formato:
-```
-[verificado: "...título do anúncio com código 860126593..."]
-```
-Renderizar como tooltip do badge "Página verificada". Zero migração, retrocompatível.
-
-### 6. Cache de verificação (1 hora)
-
-Para evitar re-baixar a mesma URL em chamadas seguidas (ex.: várias peças no mesmo distribuidor), `Map<url, {ok, evidence, ts}>` em memória do worker, TTL 1h. Reduz custo e latência.
+- Mantém abas antigas como fallback de tela cheia? **Não** — substituídas pela navegação por âncora (`scrollIntoView` suave + highlight no item ativo do menu lateral)
+- Conteúdo pesado (listas com muitos itens) carrega só o **resumo** inline; "Ver todos N" abre `Sheet` lateral com a lista completa (reusando os componentes atuais `CustomerEquipmentTab`, `CustomerInvoicesTab`, etc.)
+- 4 KPIs do header viram inline no card "Visão geral" no topo
+- **Botões de contato** (WhatsApp, e-mail, telefone) ficam sempre visíveis no header sticky
+- Layout responsivo: `lg:grid-cols-[220px_1fr]` desktop; mobile vira tabs colapsáveis ou navegação superior compacta
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/auto-market-research/index.ts` | Substituir `checkUrl` por `verifyUrlContainsPartNumber`; bloquear URLs genéricas; reforçar prompt; descartar/rebaixar resultados sem prova; gravar `evidence` em `notes` |
-| `supabase/functions/verify-market-url/index.ts` | **Novo** — reverificação on-demand de uma única URL |
-| `src/hooks/use-market-research.ts` | Novo `useVerifyMarketUrl()` mutation |
-| `src/components/catalog/MarketResearchTab.tsx` | Botão "Reverificar link" por linha; tooltip do badge mostra `evidence` extraída de `notes`; badge muda para "Verificado ✓" só quando `url_verified === true` |
+| `src/lib/whatsapp.ts` | **Novo** — helper de formatação e link |
+| `src/components/customers/WhatsAppButton.tsx` | **Novo** — botão reutilizável (icon + texto opcional + tooltip) |
+| `src/hooks/use-customers.ts` | Reescrever `useCustomers` com paginação + filtros server-side; adicionar `useBulkUpdateCustomers`, `useBulkDeleteCustomers` |
+| `src/pages/CustomersPage.tsx` | Adicionar checkboxes, barra de ações em lote, paginação, sync URL, dialogs de edição/exclusão em lote, botão WhatsApp por linha |
+| `src/components/customers/BulkEditDialog.tsx` | **Novo** — dialog com campos opcionais |
+| `src/components/customers/BulkActionsBar.tsx` | **Novo** — barra flutuante com contador e ações |
+| `src/components/customers/CustomerPagination.tsx` | **Novo** — controle de paginação com page-size |
+| `src/pages/CustomerDetailPage.tsx` | Reescrever para layout 360° com sidebar sticky e seções inline |
+| `src/components/customers/Customer360Section.tsx` | **Novo** — wrapper para cada seção (header + colapso + "Ver mais" → Sheet) |
+| `src/components/customers/CustomerEquipmentTab.tsx`, `CustomerInvoicesTab.tsx`, `CustomerSalesTab.tsx`, `CustomerAfterSalesTab.tsx`, `CustomerProspectionTab.tsx` | Receber prop `compact?: boolean` para render inline (top 5) ou full (Sheet). Mínima refatoração |
 
 ## Detalhes técnicos
 
-- **Performance**: GET parcial (200KB) com timeout 5s; verificação em paralelo (`Promise.allSettled`) já existe — mantida. Cache 1h evita reprocessar.
-- **Robustez do match no HTML**: HTML pode ter o código com entidades (`&shy;`, `&#45;`) ou dentro de JSON-LD. Estratégia: depois de strip-tags, decodificar entidades comuns + normalizar antes de comparar. Fallback procura também o `matched_part_number` retornado pela IA, não só `body.material`.
-- **URLs bloqueadas (lista)**: pathnames `/`, `/produtos`, `/categoria(s)`, `/busca`, `/search`, `/ofertas`, `/loja`, `/marca/xcmg`, `?q=`, `?search=`. Configurável no topo do arquivo.
-- **Mercado Livre**: anúncios têm padrão `/MLB-NNNNN-` ou `/p/MLB...`. Se a URL é ML mas não contém esse padrão, marca como busca.
-- **Segurança**: Zod valida input em `verify-market-url` (`research_id: uuid, url: string.url, material: string.min(1)`); JWT obrigatório.
-- **Sem regressão de UX**: usuário continua vendo resultados — só muda que "Página" agora **garante** conter o código; quando não, fica "Busca" (com aviso).
-- **Telemetria leve**: log no Edge `console.info("verify ok|reject reason ...")` para debug futuro sem expor PII.
+- **Performance da lista**: paginação server-side com `count: "exact"` é mais lenta em tabelas grandes; usar `count: "estimated"` quando não houver filtros para velocidade, "exact" quando filtros ativos
+- **Sync URL**: `useSearchParams` do `react-router-dom`, debounce 300ms na busca
+- **WhatsApp**: regex `/\D/g` para limpar; valida pelo menos 10 dígitos após limpeza; assume DDI Brasil quando faltar; template padrão `Olá ${nome}, sou da Ásia Peças & Máquinas. ` (encoded com `encodeURIComponent`)
+- **Bulk**: limita 500 IDs por operação client-side; mostra toast com progresso
+- **Bulk WhatsApp**: como `wa.me` exige interação humana, abrir N abas seguidas é bloqueado pelo browser — fluxo correto é mostrar lista clicável com botão "Abrir" um por um
+- **Perfil 360°**: usar `IntersectionObserver` para destacar seção ativa na sidebar; `scroll-margin-top` nas seções para o sticky header não cobrir
+- **Acessibilidade**: foco navegável, `aria-current="true"` no item ativo da sidebar, checkboxes com label oculto
+- **Sem mudança de RLS**: políticas atuais já permitem update/delete em massa para `authenticated`
 
 ## Resultado esperado
 
-- **Zero falsos positivos** em "Página verificada" — clicar SEMPRE leva a anúncio que contém o código pesquisado, com evidência textual visível em tooltip.
-- Vendedor pode **reverificar manualmente** qualquer link antigo em 1 clique.
-- URLs genéricas (homepage, busca, categoria) deixam de ser apresentadas como "página direta".
-- Resultados confirmados pela IA mas sem URL precisa continuam aparecendo — apenas com link de busca, com nota explícita.
-- Cache reduz custo de verificação repetida; performance praticamente igual à atual.
+- Vendedor seleciona vários clientes e atualiza segmento/status em 1 ação
+- 1 clique no ícone do WhatsApp abre conversa com saudação pronta
+- Lista carrega rapidamente mesmo com 10k+ clientes (paginação real)
+- Perfil 360° mostra **toda a história do cliente em uma rolagem**, sem trocar de aba
+- Estado da tela compartilhável via URL (link de busca filtrada)
+- Zero perda funcional — tudo que existia em abas continua acessível inline ou via "Ver mais"
 
