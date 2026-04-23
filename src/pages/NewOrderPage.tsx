@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,9 @@ import { useCreateSale } from "@/hooks/use-sales";
 import { usePricingSettings, useUpdatePricingSettings, applySellPrice } from "@/hooks/use-pricing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShoppingCart, Plus, Trash2, Search, Check, UserPlus, Settings2 } from "lucide-react";
+import { ShoppingCart, Plus, Trash2, Search, Check, UserPlus, Settings2, Sparkles } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useQuery } from "@tanstack/react-query";
 
 type CartItem = {
   part_id: string;
@@ -33,6 +34,8 @@ const PAYMENT_TERMS = ["À vista", "30 dias", "30/60 dias", "30/60/90 dias"];
 
 export default function NewOrderPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedCustomerId = searchParams.get("customer_id") || "";
   const { data: customers = [] } = useCustomers();
   const createSale = useCreateSale();
   const createCustomer = useCreateCustomer();
@@ -42,8 +45,8 @@ export default function NewOrderPage() {
 
   const markup = pricing?.default_markup ?? 30;
 
-  const [step, setStep] = useState(1);
-  const [customerId, setCustomerId] = useState("");
+  const [step, setStep] = useState(preselectedCustomerId ? 2 : 1);
+  const [customerId, setCustomerId] = useState(preselectedCustomerId);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Load items from global cart on mount
