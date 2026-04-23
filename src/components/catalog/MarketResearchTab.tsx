@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMarketResearch, useAddMarketResearch, useUpdateMarketResearch, useDeleteMarketResearch, type MarketResearch } from "@/hooks/use-market-research";
+import { useMarketResearch, useAddMarketResearch, useUpdateMarketResearch, useDeleteMarketResearch, useVerifyMarketUrl, type MarketResearch } from "@/hooks/use-market-research";
 import { formatBRL } from "@/hooks/use-parts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
@@ -36,6 +36,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
   const addMutation = useAddMarketResearch();
   const updateMutation = useUpdateMarketResearch();
   const deleteMutation = useDeleteMarketResearch();
+  const verifyMutation = useVerifyMarketUrl();
   const aiResearch = useAutoMarketResearch();
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState<MarketResearch | null>(null);
@@ -143,6 +144,23 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
     toast.success("Link removido. Obrigado pelo feedback!");
   };
 
+  const handleReverify = (e: EnrichedResearch) => {
+    if (!e.source_url || !part) return;
+    verifyMutation.mutate({
+      research_id: e.id,
+      url: e.source_url,
+      material: part.material,
+      matched_part_number: e.matched_part_number,
+      part_id: partId,
+    });
+  };
+
+  const extractEvidence = (notes: string | null | undefined): string | null => {
+    if (!notes) return null;
+    const m = notes.match(/\[verificado:\s*"([^"]+)"\]/);
+    return m ? m[1] : null;
+  };
+
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
@@ -185,6 +203,9 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                 const price = Number(e.price_found);
                 const isNoRef = price === 0;
                 const urlType = (e.source_url_type as "page" | "search" | null | undefined) ?? detectUrlType(e.source_url);
+                const evidence = extractEvidence(e.notes);
+                const isVerifiedPage = urlType === "page" && (e.url_verified === true || !!evidence);
+                const isReverifying = verifyMutation.isPending && verifyMutation.variables?.research_id === e.id;
                 return (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
@@ -239,18 +260,25 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                                 href={e.source_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                aria-label={urlType === "page" ? "Abrir página do produto" : "Abrir busca pelo produto"}
-                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-accent"
+                                aria-label={isVerifiedPage ? "Abrir página verificada do produto" : "Abrir busca pelo produto"}
+                                className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border hover:bg-accent ${
+                                  isVerifiedPage ? "border-success text-success" : "border-border"
+                                }`}
                               >
-                                {urlType === "page" ? <LinkIcon className="h-2.5 w-2.5" /> : <SearchIcon className="h-2.5 w-2.5" />}
-                                <span>{urlType === "page" ? "Página" : "Busca"}</span>
+                                {isVerifiedPage ? <CheckCircle2 className="h-2.5 w-2.5" /> : urlType === "page" ? <LinkIcon className="h-2.5 w-2.5" /> : <SearchIcon className="h-2.5 w-2.5" />}
+                                <span>{isVerifiedPage ? "Verificado" : urlType === "page" ? "Página" : "Busca"}</span>
                                 <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                               </a>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              {urlType === "page"
-                                ? "Página direta validada"
-                                : "Link de busca — verificar resultado manualmente"}
+                            <TooltipContent className="max-w-xs">
+                              {isVerifiedPage ? (
+                                <div className="space-y-1">
+                                  <p className="font-semibold">Página verificada — código encontrado no anúncio</p>
+                                  {evidence && <p className="text-xs italic opacity-90">"{evidence}"</p>}
+                                </div>
+                              ) : (
+                                "Link de busca — verificar resultado manualmente"
+                              )}
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -271,14 +299,24 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                     <TableCell>
                       <div className="flex gap-1">
                         {e.source_url && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
-                                <AlertOctagon className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Reportar link quebrado</TooltipContent>
-                          </Tooltip>
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-primary/70 hover:text-primary" onClick={() => handleReverify(e)} disabled={isReverifying || !part} aria-label="Reverificar conteúdo do link">
+                                  {isReverifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Reverificar conteúdo do link</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
+                                  <AlertOctagon className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Reportar link quebrado</TooltipContent>
+                            </Tooltip>
+                          </>
                         )}
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /></Button>
                         <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => setDeleteEntry(e)}><Trash2 className="h-3 w-3" /></Button>

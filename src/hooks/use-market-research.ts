@@ -1,5 +1,47 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+/** Re-verify a single market_research URL by content (server downloads the page and looks for the part code). */
+export function useVerifyMarketUrl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { research_id: string; url: string; material: string; matched_part_number?: string | null; part_id: string }) => {
+      const { data, error } = await supabase.functions.invoke<{
+        verified: boolean;
+        url: string;
+        evidence: string | null;
+        reason?: string;
+      }>("verify-market-url", {
+        body: {
+          research_id: input.research_id,
+          url: input.url,
+          material: input.material,
+          matched_part_number: input.matched_part_number ?? null,
+        },
+      });
+      if (error) throw new Error(error.message || "Falha na reverificação");
+      return { ...data!, part_id: input.part_id, material: input.material };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["market-research", res.part_id] });
+      qc.invalidateQueries({ queryKey: ["market-research-overview"] });
+      if (res.verified) {
+        toast.success(`Link confirma o código ${res.material}`);
+      } else {
+        const reason = res.reason === "generic_url"
+          ? "URL genérica (homepage/listagem)"
+          : res.reason === "no_match"
+            ? "código não encontrado na página"
+            : res.reason?.startsWith("http_")
+              ? `página retornou ${res.reason.replace("http_", "HTTP ")}`
+              : "página inacessível";
+        toast.warning(`Link não contém o código (${reason}) — substituído por busca`);
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
 
 export interface MarketResearch {
   id: string;
