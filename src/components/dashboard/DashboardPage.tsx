@@ -13,6 +13,7 @@ import { StockByTimeChart } from "./StockByTimeChart";
 import { ManufacturerChart } from "./ManufacturerChart";
 import { TopModelsChart } from "./TopModelsChart";
 import { ValueDistributionChart } from "./ValueDistributionChart";
+import { CategoryPartsChart } from "./CategoryPartsChart";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export function DashboardPage() {
@@ -149,10 +150,16 @@ export function DashboardPage() {
               <CardContent><StockByTimeChart data={stats.byTime} /></CardContent>
             </Card>
           </div>
-          <Card className="border-none shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="font-display text-base">Distribuição de Valor por Categoria</CardTitle></CardHeader>
-            <CardContent><ValueDistributionChart data={stats.byCategory} /></CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-none shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="font-display text-base">Distribuição de Valor por Categoria</CardTitle></CardHeader>
+              <CardContent><ValueDistributionChart data={stats.byCategory} /></CardContent>
+            </Card>
+            <Card className="border-none shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="font-display text-base">Estoque por Categoria de Peça</CardTitle></CardHeader>
+              <CardContent><CategoryPartsChart /></CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="sales" className="space-y-6 mt-4">
