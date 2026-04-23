@@ -204,6 +204,8 @@ export type Database = {
           distributor_name: string
           id: string
           is_genuine: boolean | null
+          match_confidence: string | null
+          matched_part_number: string | null
           notes: string | null
           part_id: string
           payment_terms: string | null
@@ -219,6 +221,8 @@ export type Database = {
           distributor_name: string
           id?: string
           is_genuine?: boolean | null
+          match_confidence?: string | null
+          matched_part_number?: string | null
           notes?: string | null
           part_id: string
           payment_terms?: string | null
@@ -234,6 +238,8 @@ export type Database = {
           distributor_name?: string
           id?: string
           is_genuine?: boolean | null
+          match_confidence?: string | null
+          matched_part_number?: string | null
           notes?: string | null
           part_id?: string
           payment_terms?: string | null

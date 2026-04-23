@@ -15,6 +15,8 @@ export interface MarketResearch {
   researched_by: string | null;
   created_at: string;
   is_genuine?: boolean | null;
+  matched_part_number?: string | null;
+  match_confidence?: string | null;
 }
 
 export function useMarketResearch(partId: string | undefined) {
@@ -100,7 +102,7 @@ export function useMarketResearchOverview() {
         .order("researched_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data || []) as (MarketResearch & { is_genuine: boolean | null; parts: { material: string; description: string; estimated_price: number; part_category: string | null } | null })[];
+      return (data || []) as (MarketResearch & { is_genuine: boolean | null; matched_part_number: string | null; match_confidence: string | null; parts: { material: string; description: string; estimated_price: number; part_category: string | null } | null })[];
     },
   });
 }

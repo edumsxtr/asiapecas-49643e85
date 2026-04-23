@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal } from "lucide-react";
 import { toast } from "sonner";
 import { PART_CATEGORIES } from "@/components/quote/part-categories";
 import { downloadCsv, todayStamp, type CsvColumn } from "@/lib/export-csv";
@@ -39,6 +39,7 @@ export default function MarketResearchPage() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterGenuine, setFilterGenuine] = useState<string>("all");
+  const [filterMatch, setFilterMatch] = useState<string>("all");
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [editEntry, setEditEntry] = useState<ResearchEntry | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<ResearchEntry | null>(null);
@@ -67,6 +68,12 @@ export default function MarketResearchPage() {
       if (filterGenuine === "parallel" && g !== false) return false;
       if (filterGenuine === "unknown" && g !== null && g !== undefined) return false;
     }
+    if (filterMatch !== "all") {
+      const mc = (r as any).match_confidence;
+      if (filterMatch === "exact" && mc !== "exact") return false;
+      if (filterMatch === "normalized" && mc !== "normalized") return false;
+      if (filterMatch === "any_match" && mc !== "exact" && mc !== "normalized") return false;
+    }
     if (search) {
       const s = search.toLowerCase();
       const partName = r.parts?.material || "";
@@ -74,7 +81,7 @@ export default function MarketResearchPage() {
       if (!r.distributor_name.toLowerCase().includes(s) && !partName.toLowerCase().includes(s) && !partDesc.toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, filterGenuine, search]);
+  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, filterGenuine, filterMatch, search]);
 
   // KPIs
   const uniqueParts = new Set(research.map(r => r.part_id)).size;
@@ -162,6 +169,19 @@ export default function MarketResearchPage() {
           return "Não confirmado";
         },
       },
+      {
+        header: "Match",
+        value: r => {
+          const mc = (r as any).match_confidence;
+          if (mc === "exact") return "Exato";
+          if (mc === "normalized") return "Equivalente";
+          return "—";
+        },
+      },
+      {
+        header: "Código encontrado",
+        value: r => (r as any).matched_part_number || "",
+      },
       { header: "Tipo de URL", value: r => detectUrlType(r.source_url) === "page" ? "Página" : "Busca" },
       { header: "URL", value: r => r.source_url || "" },
       { header: "Data", value: r => new Date(r.researched_at).toLocaleDateString("pt-BR") },
@@ -184,6 +204,7 @@ export default function MarketResearchPage() {
           <TableHead>Disp.</TableHead>
           <TableHead>Fonte</TableHead>
           <TableHead>Tipo</TableHead>
+          <TableHead>Match</TableHead>
           <TableHead>Data</TableHead>
           <TableHead className="w-[80px]">Ações</TableHead>
         </TableRow>
@@ -258,6 +279,29 @@ export default function MarketResearchPage() {
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-[10px]">Não confirmado</Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {(r as any).match_confidence === "exact" ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> Exato
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{(r as any).matched_part_number || "Código bate caractere por caractere"}</TooltipContent>
+                  </Tooltip>
+                ) : (r as any).match_confidence === "normalized" ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-[10px] gap-0.5 border-warning text-warning">
+                        <Equal className="h-2.5 w-2.5" /> Equivalente
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{(r as any).matched_part_number || "Mesmo código ignorando hífens/espaços"}</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">—</span>
                 )}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">{new Date(r.researched_at).toLocaleDateString("pt-BR")}</TableCell>
@@ -367,6 +411,15 @@ export default function MarketResearchPage() {
                 <SelectItem value="genuine">Apenas Original XCMG</SelectItem>
                 <SelectItem value="parallel">Apenas Paralelas</SelectItem>
                 <SelectItem value="unknown">Não confirmado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterMatch} onValueChange={setFilterMatch}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Match do código" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os matches</SelectItem>
+                <SelectItem value="exact">Apenas código exato</SelectItem>
+                <SelectItem value="normalized">Apenas equivalente</SelectItem>
+                <SelectItem value="any_match">Exato + equivalente</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2 px-3 rounded-md border border-border">
