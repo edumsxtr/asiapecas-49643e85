@@ -9,8 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain } from "lucide-react";
 import { toast } from "sonner";
+import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   partId: string;
