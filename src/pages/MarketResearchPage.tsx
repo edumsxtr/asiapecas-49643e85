@@ -360,6 +360,15 @@ export default function MarketResearchPage() {
                 <SelectItem value="manual">Manual</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterGenuine} onValueChange={setFilterGenuine}>
+              <SelectTrigger className="w-[170px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="genuine">Apenas Original XCMG</SelectItem>
+                <SelectItem value="parallel">Apenas Paralelas</SelectItem>
+                <SelectItem value="unknown">Não confirmado</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="flex items-center gap-2 px-3 rounded-md border border-border">
               <Switch id="group-cat" checked={groupByCategory} onCheckedChange={setGroupByCategory} />
               <Label htmlFor="group-cat" className="text-xs cursor-pointer">Agrupar por categoria</Label>
