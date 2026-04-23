@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal } from "lucide-react";
 import { toast } from "sonner";
 import { PART_CATEGORIES } from "@/components/quote/part-categories";
 import { downloadCsv, todayStamp, type CsvColumn } from "@/lib/export-csv";
@@ -39,6 +39,7 @@ export default function MarketResearchPage() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterGenuine, setFilterGenuine] = useState<string>("all");
+  const [filterMatch, setFilterMatch] = useState<string>("all");
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [editEntry, setEditEntry] = useState<ResearchEntry | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<ResearchEntry | null>(null);
@@ -67,6 +68,12 @@ export default function MarketResearchPage() {
       if (filterGenuine === "parallel" && g !== false) return false;
       if (filterGenuine === "unknown" && g !== null && g !== undefined) return false;
     }
+    if (filterMatch !== "all") {
+      const mc = (r as any).match_confidence;
+      if (filterMatch === "exact" && mc !== "exact") return false;
+      if (filterMatch === "normalized" && mc !== "normalized") return false;
+      if (filterMatch === "any_match" && mc !== "exact" && mc !== "normalized") return false;
+    }
     if (search) {
       const s = search.toLowerCase();
       const partName = r.parts?.material || "";
@@ -74,7 +81,7 @@ export default function MarketResearchPage() {
       if (!r.distributor_name.toLowerCase().includes(s) && !partName.toLowerCase().includes(s) && !partDesc.toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, filterGenuine, search]);
+  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, filterGenuine, filterMatch, search]);
 
   // KPIs
   const uniqueParts = new Set(research.map(r => r.part_id)).size;

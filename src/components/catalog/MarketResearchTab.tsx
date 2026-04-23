@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
@@ -22,7 +22,7 @@ interface Props {
   ourPrice: number;
 }
 
-type EnrichedResearch = MarketResearch & { source_url_type?: string | null; url_verified?: boolean | null; is_genuine?: boolean | null };
+type EnrichedResearch = MarketResearch & { source_url_type?: string | null; url_verified?: boolean | null; is_genuine?: boolean | null; matched_part_number?: string | null; match_confidence?: string | null };
 
 function detectUrlType(url: string | null | undefined): "page" | "search" {
   if (!url) return "search";
@@ -207,6 +207,29 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                               </Badge>
                             </TooltipTrigger>
                             <TooltipContent>Peça paralela / não original — comparação não-equivalente</TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                        {e.match_confidence === "exact" ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
+                                <CheckCircle2 className="h-2.5 w-2.5" /> Código exato
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Código bate caractere por caractere{e.matched_part_number ? `: ${e.matched_part_number}` : ""}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : e.match_confidence === "normalized" ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="text-[10px] gap-0.5 bg-yellow-500/15 text-yellow-700 hover:bg-yellow-500/20">
+                                <Equal className="h-2.5 w-2.5" /> Código equivalente
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Mesmo código ignorando hífens/espaços{e.matched_part_number ? `: ${e.matched_part_number}` : ""}
+                            </TooltipContent>
                           </Tooltip>
                         ) : null}
                         {e.source_url && (
