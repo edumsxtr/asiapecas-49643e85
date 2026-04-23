@@ -1,67 +1,96 @@
 
 
-# Plano: Precificação + Proposta Personalizada na Área de Vendas
+# Plano Revisado: Auditoria + Pesquisa de Mercado IA + Catálogo por Categoria + Visão Tabela
 
-## Resumo
+## Diagnóstico do que já existe (auditoria)
 
-Adicionar na página de Vendas: (1) uma aba/seção de **Configuração de Proposta** onde o usuário define dados da empresa, margem global, validade, prazo de entrega, garantia e observações padrão; (2) um **dialog de personalização** antes de gerar o PDF, permitindo revisar/editar os dados da proposta; (3) usar `sell_price` nos itens do PDF em vez de `unit_price` (preço de custo).
+Antes de adicionar coisas novas, identifiquei **redundâncias** e **conexões faltantes** que precisam ser resolvidas para o sistema ficar fluido:
 
-## Problemas Atuais
+### Redundâncias encontradas
+- **Catálogo principal** (`/catalogo`) e **Estoque** (`/estoque`) mostram peças com filtros parecidos — manter como visões diferentes mas unificar o componente de tabela/cards
+- **Pesquisa de Mercado** existe em 2 lugares: página dedicada `/pesquisa-mercado` e aba dentro do `PartDetailDialog` — manter ambas mas garantir que **compartilham o mesmo hook e o mesmo botão de IA**
+- **Margem global** aparece em 2 lugares (`pricing_settings` na NewOrderPage + `proposal_settings` em Vendas) — unificar: a aba Configurações de Vendas passa a ser **a única fonte de verdade**, NewOrderPage apenas lê
 
-- O PDF usa `unit_price` (preço de custo) nos itens em vez do `sell_price`
-- Dados da empresa estão hardcoded no código (`generate-proposal-pdf.ts`)
-- Não há como editar validade, prazo de entrega, garantia antes de gerar
-- Não há acesso à precificação (margem) na página de Vendas -- só no Novo Pedido
+### Conexões faltantes (fluxo de informação)
+- Pesquisa de mercado **não influencia** o preço sugerido na hora de vender — vamos puxar o menor preço de concorrente como referência no carrinho
+- Categoria da peça **não aparece** no carrinho nem na proposta PDF — vamos exibir
+- Peça pesquisada por IA **não marca visualmente** no catálogo que já tem dados de mercado — adicionar badge "Pesquisado"
+- Cotação recebida (`quote_requests`) → conversão em venda **já existe** mas não preserva os dados de pesquisa — garantir continuidade
 
-## Solução
+## O que será construído
 
-### 1. Tabela `proposal_settings` no banco
+### 1. Pesquisa de Mercado por IA (item por item)
 
-Armazenar configurações editáveis da proposta:
-- `company_name`, `cnpj`, `address`, `phone`, `email` (dados da empresa)
-- `default_validity_days` (validade padrão, ex: 15)
-- `default_delivery_terms` (prazo de entrega padrão)
-- `default_warranty_text` (texto de garantia)
-- `default_observations` (observações padrão)
-- `default_markup` -- reutilizar da `pricing_settings` existente
+- Edge function `auto-market-research` usando **Lovable AI (`google/gemini-2.5-pro`) com Google Search** retornando JSON estruturado: `{ distribuidor, preço, prazo_dias, disponibilidade, url_fonte, observação }`
+- Botão **"Pesquisar com IA"** no `MarketResearchTab` (dentro do `PartDetailDialog`) e na linha de cada peça na página `/pesquisa-mercado`
+- Resultados salvos em `market_research` com `researched_by = "IA"` e `source_url` preenchida
+- Tratamento de **429/402** com toasts amigáveis
+- Se IA não encontrar referências, salva 1 linha com `notes = "IA não encontrou referências confiáveis"` em vez de inventar dados
+- Badge "Pesquisado" no `PartCard` e `PartTable` quando a peça já tem ≥1 entrada em `market_research`
 
-### 2. Aba "Configurações" na página de Vendas
+### 2. Catálogo por Categoria (nova página `/catalogo/categorias`)
 
-Nova aba nas Tabs existentes (Vendas | Cotações Recebidas | **Configurações**) com:
-- Card "Dados da Empresa" -- editar nome, CNPJ, endereço, telefone, email
-- Card "Precificação" -- margem global (%) com botão salvar
-- Card "Padrões da Proposta" -- validade, prazo de entrega, garantia, observações
+- **Sidebar lateral** com as 11 categorias de `part_category` + contador de peças e ícones (reutilizar `part-categories.ts`)
+- **Header de KPIs** da categoria selecionada: nº peças, unidades, valor total, preço médio, peça destaque
+- **Toggle Cards/Tabela** persistido em `localStorage` (`catalog-view-mode`)
+- Filtros locais: busca por código/descrição, fabricante, modelo, faixa de estoque
+- Paginação (50/página)
+- Botão "Pesquisar preços com IA" em lote opcional dentro da categoria (futuro — sinalizado como próximo passo, mas não implementado nesta fase)
 
-### 3. Dialog de personalização antes de gerar PDF
+### 3. Visão Tabela reutilizável
 
-Ao clicar "Gerar Proposta", abrir um dialog com campos pré-preenchidos (dos `proposal_settings`) que o usuário pode ajustar antes de confirmar:
-- Validade da proposta
-- Prazo de entrega
-- Condições de garantia
-- Observações extras
-- Preview dos preços (sell_price vs cost)
+- Estender o `PartTable.tsx` existente com colunas: código, descrição, **categoria** (badge), modelo, fabricante, estoque, preço custo, **preço sugerido** (markup aplicado), **menor preço de mercado** (se houver), badge "Pesquisado", ações (ver detalhe, adicionar ao pedido)
+- Toggle Cards/Tabela também no `CatalogContent.tsx` principal (mesmo componente, mesmo localStorage)
 
-### 4. Corrigir PDF para usar sell_price
+### 4. Conexão Pesquisa de Mercado → Vendas
 
-Atualizar `generate-proposal-pdf.ts` para:
-- Receber as configurações da proposta como parâmetro
-- Usar `sell_price` (ou `unit_price * markup` como fallback) nos itens
-- Usar dados da empresa do banco em vez de hardcoded
+- No `NewOrderPage` (carrinho), ao adicionar uma peça que já tem `market_research`, mostrar **"Menor concorrente: R$ X (distribuidor Y)"** abaixo do preço sugerido — ajuda a calibrar o preço de venda
+- Indicador visual quando o preço de venda está **abaixo do menor concorrente** (oportunidade) ou **muito acima** (risco de perder venda)
 
-## Arquivos Afetados
+### 5. Card "Estoque por Categoria de Peça" no Dashboard
+
+- Novo gráfico de pizza usando `part_category` (complementa o atual que é por tipo de máquina)
+- Reutiliza `chart.tsx` (recharts) já presente
+
+### 6. Limpeza de redundâncias
+
+- Remover duplicação de leitura de `pricing_settings` — `useProposalSettings` passa a ser a fonte única que o NewOrderPage também consome
+- Garantir que `MarketResearchTab` e `MarketResearchPage` usam **o mesmo hook** `useAutoMarketResearch` e o mesmo componente de listagem de resultados
+
+## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/migrations/new.sql` | Criar tabela `proposal_settings` com RLS |
-| `src/hooks/use-proposal-settings.ts` | **Novo** -- CRUD para `proposal_settings` |
-| `src/components/sales/ProposalConfigTab.tsx` | **Novo** -- aba de configurações |
-| `src/components/sales/ProposalCustomizeDialog.tsx` | **Novo** -- dialog de personalização pré-PDF |
-| `src/pages/SalesPage.tsx` | Adicionar aba Configurações + dialog de personalização |
-| `src/lib/generate-proposal-pdf.ts` | Usar sell_price + dados dinâmicos da empresa |
+| `supabase/functions/auto-market-research/index.ts` | **Novo** — Lovable AI + Google Search, JSON estruturado, trata 429/402 |
+| `src/hooks/use-auto-market-research.ts` | **Novo** — invoca função, salva em `market_research`, invalida queries |
+| `src/components/catalog/MarketResearchTab.tsx` | Adicionar botão "Pesquisar com IA" + loading state |
+| `src/pages/MarketResearchPage.tsx` | Adicionar botão "Pesquisar com IA" por linha + filtro "Apenas pesquisadas por IA" |
+| `src/pages/CategoriesPage.tsx` | **Nova** — sidebar + KPIs + toggle Cards/Tabela |
+| `src/components/catalog/CategoryDetailView.tsx` | **Novo** — conteúdo da categoria selecionada |
+| `src/components/catalog/PartTable.tsx` | Estender colunas: categoria, preço sugerido, menor concorrente, badge pesquisado |
+| `src/components/catalog/PartCard.tsx` | Adicionar badge "Pesquisado" quando houver `market_research` |
+| `src/components/catalog/CatalogContent.tsx` | Adicionar toggle Cards/Tabela |
+| `src/components/AppSidebar.tsx` | Adicionar item "Categorias" |
+| `src/App.tsx` | Adicionar rota `/catalogo/categorias` |
+| `src/components/dashboard/CategoryPartsChart.tsx` | **Novo** — pizza por `part_category` |
+| `src/components/dashboard/DashboardPage.tsx` | Renderizar novo card |
+| `src/pages/NewOrderPage.tsx` | Mostrar menor concorrente + indicadores visuais de competitividade |
+| `src/hooks/use-parts.ts` | Adicionar query auxiliar `useMarketResearchByPart` para enriquecer cards/tabela |
+| `src/hooks/use-pricing.ts` | Confirmar fonte única de markup (sem duplicação com `useProposalSettings`) |
 
-## Detalhes Técnicos
+## Detalhes técnicos
 
-- A tabela `proposal_settings` terá uma única linha (como `pricing_settings`), com RLS para authenticated
-- O dialog de personalização receberá o `Sale` + `proposal_settings` e permitirá override temporário dos campos antes de chamar `generateProposalPDF`
-- O PDF mostrará `sell_price` quando disponível, senão aplicará markup sobre `unit_price`
+- **Edge function** com `LOVABLE_API_KEY` (já existe), modelo `google/gemini-2.5-pro`, tool calling para garantir JSON estruturado, prompt focado em distribuidores brasileiros XCMG/equipamentos pesados (Tracbel, Solar, Mercado Livre, distribuidores oficiais)
+- **Validação Zod** dos inputs da edge function
+- **`useMarketResearchByPart`** retorna o menor preço/distribuidor para enriquecer cards e carrinho — uma única query agregada para evitar N+1
+- **Acessibilidade**: tabela com `<caption>`, headers semânticos, toggle Cards/Tabela com `aria-pressed`
+- **Responsividade**: tabela vira lista compacta abaixo de 768px; sidebar de categorias vira drawer no mobile
+- **Performance**: paginação 50/página, `useMemo` nos filtros locais, `react-query` com `staleTime: 60s` para market_research
+
+## Resultado esperado
+
+- Sistema fluido onde **pesquisa de mercado alimenta a venda**, **categoria organiza tudo**, e **margem é configurada num único lugar**
+- Gestor consegue ver no carrinho se está cobrando barato/caro vs concorrência
+- Catálogo navegável por categoria com tabela densa para gestão rápida
+- Zero duplicação de regras de preço entre páginas
 
