@@ -83,6 +83,22 @@ export type CustomersListResult = {
   pageSize: number;
 };
 
+/** Lightweight unpaginated list — for selects & lookups. Capped at 5000. */
+export function useAllCustomers() {
+  return useQuery({
+    queryKey: ["customers-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id,name,company,cnpj_cpf,phone,email,city,state,segment,relationship_status,enrichment_status,total_invoiced")
+        .order("name")
+        .limit(5000);
+      if (error) throw error;
+      return (data || []) as Customer[];
+    },
+  });
+}
+
 export function useCustomers(params: CustomersListParams = {}) {
   const { search = "", state = "all", segment = "all", enrichment = "all", page = 1, pageSize = 25 } = params;
   return useQuery({
