@@ -2,11 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Package, ArrowRight, ShoppingCart, Brain } from "lucide-react";
+import { Package, ArrowRight, ShoppingCart, Brain, TrendingUp } from "lucide-react";
 import { type Part, formatBRL, getActiveCategories } from "@/hooks/use-parts";
 import { useCart } from "@/contexts/CartContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useHasMarketResearch } from "@/hooks/use-auto-market-research";
 import { toast } from "sonner";
 
 interface PartCardProps {
