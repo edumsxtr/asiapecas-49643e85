@@ -228,7 +228,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                         {e.source_url && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 text-amber-600" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
                                 <AlertOctagon className="h-3 w-3" />
                               </Button>
                             </TooltipTrigger>
