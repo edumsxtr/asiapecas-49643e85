@@ -222,11 +222,9 @@ Deno.serve(async (req) => {
     if (invoiceRows.length > 0) {
       for (let i = 0; i < invoiceRows.length; i += 200) {
         const batch = invoiceRows.slice(i, i + 200);
-        const { error, data } = await supabase.from("customer_invoices").upsert(batch, {
-          onConflict: "customer_id,document_number",
-          ignoreDuplicates: false,
-        }).select("id");
-        if (!error) invoices_inserted += data?.length || batch.length;
+        const { error, data } = await supabase.from("customer_invoices").insert(batch).select("id");
+        if (error) console.error("invoice insert error", error);
+        else invoices_inserted += data?.length || batch.length;
       }
     }
 
