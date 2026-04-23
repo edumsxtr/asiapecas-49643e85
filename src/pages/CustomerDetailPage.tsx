@@ -4,11 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Mail, Phone, MapPin, Building2, Sparkles } from "lucide-react";
-import { useCustomerById, useCustomerEquipment, useCustomerInvoices } from "@/hooks/use-customers";
+import { ArrowLeft, Mail, Phone, MapPin, Building2, Sparkles, Plus, Target } from "lucide-react";
+import { useCustomerById, useCustomerEquipment, useCustomerInvoices, useProspectFromCustomer } from "@/hooks/use-customers";
 import { EnrichmentPanel } from "@/components/customers/EnrichmentPanel";
 import { CustomerEquipmentTab } from "@/components/customers/CustomerEquipmentTab";
 import { CustomerInvoicesTab } from "@/components/customers/CustomerInvoicesTab";
+import { CustomerSalesTab } from "@/components/customers/CustomerSalesTab";
+import { CustomerAfterSalesTab } from "@/components/customers/CustomerAfterSalesTab";
+import { CustomerProspectionTab } from "@/components/customers/CustomerProspectionTab";
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
@@ -16,6 +19,7 @@ export default function CustomerDetailPage() {
   const { data: customer, isLoading } = useCustomerById(id);
   const { data: equipment = [] } = useCustomerEquipment(id);
   const { data: invoices = [] } = useCustomerInvoices(id);
+  const prospectMut = useProspectFromCustomer();
 
   if (isLoading) {
     return <AppLayout><div className="p-6 text-muted-foreground">Carregando…</div></AppLayout>;
@@ -25,6 +29,7 @@ export default function CustomerDetailPage() {
   }
 
   const totalInv = invoices.reduce((s, i) => s + i.total_value, 0);
+  const isEmpty = !customer.email && !customer.phone && !customer.cnpj_cpf && equipment.length === 0 && invoices.length === 0;
 
   return (
     <AppLayout>
@@ -43,7 +48,18 @@ export default function CustomerDetailPage() {
               {customer.enrichment_status === "enriched" && (
                 <Badge className="gap-1"><Sparkles className="h-3 w-3" /> Enriquecido</Badge>
               )}
+              {isEmpty && <Badge variant="destructive">📭 Cadastro vazio</Badge>}
             </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {isEmpty && (
+              <Button variant="outline" onClick={() => prospectMut.mutate([customer.id])} disabled={prospectMut.isPending} className="gap-2">
+                <Target className="h-4 w-4" /> {prospectMut.isPending ? "Pesquisando…" : "Prospectar com IA"}
+              </Button>
+            )}
+            <Button onClick={() => navigate(`/pedidos/novo?customer_id=${customer.id}`)} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Pedido
+            </Button>
           </div>
         </div>
 
@@ -67,11 +83,14 @@ export default function CustomerDetailPage() {
         </div>
 
         <Tabs defaultValue="overview">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="overview">Resumo</TabsTrigger>
             <TabsTrigger value="ai">Inteligência IA</TabsTrigger>
             <TabsTrigger value="equipment">Equipamentos ({equipment.length})</TabsTrigger>
             <TabsTrigger value="invoices">Faturamento SAP ({invoices.length})</TabsTrigger>
+            <TabsTrigger value="sales">Pedidos</TabsTrigger>
+            <TabsTrigger value="aftersales">Pós-Venda</TabsTrigger>
+            <TabsTrigger value="prospection">Prospecção</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-3 pt-4">
@@ -100,17 +119,12 @@ export default function CustomerDetailPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="ai" className="pt-4">
-            <EnrichmentPanel customer={customer} />
-          </TabsContent>
-
-          <TabsContent value="equipment" className="pt-4">
-            <CustomerEquipmentTab customerId={customer.id} />
-          </TabsContent>
-
-          <TabsContent value="invoices" className="pt-4">
-            <CustomerInvoicesTab customerId={customer.id} />
-          </TabsContent>
+          <TabsContent value="ai" className="pt-4"><EnrichmentPanel customer={customer} /></TabsContent>
+          <TabsContent value="equipment" className="pt-4"><CustomerEquipmentTab customerId={customer.id} /></TabsContent>
+          <TabsContent value="invoices" className="pt-4"><CustomerInvoicesTab customerId={customer.id} /></TabsContent>
+          <TabsContent value="sales" className="pt-4"><CustomerSalesTab customerId={customer.id} /></TabsContent>
+          <TabsContent value="aftersales" className="pt-4"><CustomerAfterSalesTab customerId={customer.id} /></TabsContent>
+          <TabsContent value="prospection" className="pt-4"><CustomerProspectionTab customerId={customer.id} /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>

@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useEnrichCustomer, type Customer, type CustomerInsert } from "@/hooks/use-customers";
-import { Plus, Search, Trash2, Pencil, Upload, Sparkles, Eye } from "lucide-react";
+import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useEnrichCustomer, useProspectFromCustomer, type Customer, type CustomerInsert } from "@/hooks/use-customers";
+import { Plus, Search, Trash2, Pencil, Upload, Sparkles, Eye, Target } from "lucide-react";
 import { ImportXlsxWizard } from "@/components/customers/ImportXlsxWizard";
 import { customerDedupKey } from "@/lib/normalize";
 
@@ -40,6 +40,9 @@ export default function CustomersPage() {
   const updateMut = useUpdateCustomer();
   const deleteMut = useDeleteCustomer();
   const enrichMut = useEnrichCustomer();
+  const prospectMut = useProspectFromCustomer();
+
+  const isEmptyCustomer = (c: Customer) => !c.email && !c.phone && !c.cnpj_cpf;
 
   const filtered = useMemo(() => {
     return customers.filter((c) => {
@@ -47,9 +50,13 @@ export default function CustomersPage() {
       if (segmentFilter !== "all" && c.segment !== segmentFilter) return false;
       if (enrichmentFilter === "enriched" && c.enrichment_status !== "enriched") return false;
       if (enrichmentFilter === "pending" && c.enrichment_status === "enriched") return false;
+      if (enrichmentFilter === "empty" && !isEmptyCustomer(c)) return false;
       return true;
     });
   }, [customers, stateFilter, segmentFilter, enrichmentFilter]);
+
+  const emptyCount = useMemo(() => customers.filter(isEmptyCustomer).length, [customers]);
+  const emptyFilteredCount = useMemo(() => filtered.filter(isEmptyCustomer).length, [filtered]);
 
   const states = useMemo(() => {
     const s = new Set(customers.map((c) => c.state).filter(Boolean) as string[]);
@@ -108,6 +115,19 @@ export default function CustomersPage() {
               <Sparkles className="h-4 w-4 mr-2" />
               Enriquecer pendentes ({Math.min(pendingCount, 10)})
             </Button>
+            {emptyFilteredCount > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const ids = filtered.filter(isEmptyCustomer).slice(0, 20).map((c) => c.id);
+                  prospectMut.mutate(ids);
+                }}
+                disabled={prospectMut.isPending}
+              >
+                <Target className="h-4 w-4 mr-2" />
+                Prospectar vazios ({Math.min(emptyFilteredCount, 20)})
+              </Button>
+            )}
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
           </div>
         </div>
@@ -148,6 +168,7 @@ export default function CustomersPage() {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="enriched">✨ Enriquecidos</SelectItem>
               <SelectItem value="pending">⏳ Pendentes</SelectItem>
+              <SelectItem value="empty">📭 Vazios ({emptyCount})</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -174,7 +195,10 @@ export default function CustomersPage() {
                 ) : filtered.map(c => (
                   <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/clientes/${c.id}`)}>
                     <TableCell className="font-medium">
-                      {c.name}
+                      <div className="flex items-center gap-2">
+                        {c.name}
+                        {isEmptyCustomer(c) && <Badge variant="destructive" className="text-[10px] px-1">📭</Badge>}
+                      </div>
                       {c.company && <p className="text-xs text-muted-foreground truncate max-w-xs">{c.company}</p>}
                     </TableCell>
                     <TableCell className="text-sm">{[c.state, c.city].filter(Boolean).join(" / ") || "—"}</TableCell>
