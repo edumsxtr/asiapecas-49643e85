@@ -1,96 +1,76 @@
 
 
-# Plano Revisado: Auditoria + Pesquisa de Mercado IA + Catálogo por Categoria + Visão Tabela
+# Plano: Links Confiáveis + Categorização + Exportação na Pesquisa de Mercado
 
-## Diagnóstico do que já existe (auditoria)
+## Problemas atuais
 
-Antes de adicionar coisas novas, identifiquei **redundâncias** e **conexões faltantes** que precisam ser resolvidas para o sistema ficar fluido:
+1. **Links quebrados/inventados**: a IA gera `source_url` que muitas vezes não existe (alucinação). Hoje salvamos sem validar, e o usuário clica num link 404.
+2. **Sem categorização** na aba `/pesquisa-mercado`: não dá para filtrar por categoria de peça (Filtros, Hidráulico, Elétrica…) nem por fonte (IA vs manual).
+3. **Sem exportação**: gestor não consegue baixar a pesquisa em planilha para análise externa ou envio.
 
-### Redundâncias encontradas
-- **Catálogo principal** (`/catalogo`) e **Estoque** (`/estoque`) mostram peças com filtros parecidos — manter como visões diferentes mas unificar o componente de tabela/cards
-- **Pesquisa de Mercado** existe em 2 lugares: página dedicada `/pesquisa-mercado` e aba dentro do `PartDetailDialog` — manter ambas mas garantir que **compartilham o mesmo hook e o mesmo botão de IA**
-- **Margem global** aparece em 2 lugares (`pricing_settings` na NewOrderPage + `proposal_settings` em Vendas) — unificar: a aba Configurações de Vendas passa a ser **a única fonte de verdade**, NewOrderPage apenas lê
+## Solução
 
-### Conexões faltantes (fluxo de informação)
-- Pesquisa de mercado **não influencia** o preço sugerido na hora de vender — vamos puxar o menor preço de concorrente como referência no carrinho
-- Categoria da peça **não aparece** no carrinho nem na proposta PDF — vamos exibir
-- Peça pesquisada por IA **não marca visualmente** no catálogo que já tem dados de mercado — adicionar badge "Pesquisado"
-- Cotação recebida (`quote_requests`) → conversão em venda **já existe** mas não preserva os dados de pesquisa — garantir continuidade
+### 1. Links confiáveis (correção do problema central)
 
-## O que será construído
+**Edge function `auto-market-research`:**
+- Reforçar o prompt: "URL deve ser exatamente a página visitada na busca; se não tiver certeza absoluta, OMITA o campo".
+- **Validação server-side** de cada `source_url` antes de retornar:
+  - Validar formato (URL válida, http/https)
+  - Fazer `fetch HEAD` (timeout 4s) — se retornar 404/410/erro de rede, **descarta a URL** e mantém o restante do registro
+  - URLs validadas ganham flag `url_verified: true`
+- **Fallback inteligente**: quando a URL específica falha ou não existe, gerar uma URL de busca confiável (ex: `https://www.google.com/search?q=<material>+<distribuidor>` ou `https://lista.mercadolivre.com.br/<material>`) marcada como `source_url_type: "search"` em vez de inventar uma URL de produto.
 
-### 1. Pesquisa de Mercado por IA (item por item)
+**Frontend (`MarketResearchTab` e `MarketResearchPage`):**
+- Renderizar o link com ícone diferente quando for "busca" vs "página direta" (badge "🔎 Busca" vs "🔗 Página")
+- Tooltip avisando "Link de busca — verificar resultado" quando for fallback
+- Botão "Reportar link quebrado" — marca o registro com `notes` adicional e remove a URL
 
-- Edge function `auto-market-research` usando **Lovable AI (`google/gemini-2.5-pro`) com Google Search** retornando JSON estruturado: `{ distribuidor, preço, prazo_dias, disponibilidade, url_fonte, observação }`
-- Botão **"Pesquisar com IA"** no `MarketResearchTab` (dentro do `PartDetailDialog`) e na linha de cada peça na página `/pesquisa-mercado`
-- Resultados salvos em `market_research` com `researched_by = "IA"` e `source_url` preenchida
-- Tratamento de **429/402** com toasts amigáveis
-- Se IA não encontrar referências, salva 1 linha com `notes = "IA não encontrou referências confiáveis"` em vez de inventar dados
-- Badge "Pesquisado" no `PartCard` e `PartTable` quando a peça já tem ≥1 entrada em `market_research`
+### 2. Categorização da aba Pesquisa de Mercado
 
-### 2. Catálogo por Categoria (nova página `/catalogo/categorias`)
+Na página `/pesquisa-mercado`:
+- **Carregar `part_category`** no `useMarketResearchOverview` (incluir no select da query)
+- Adicionar **filtro "Categoria"** ao lado dos filtros existentes (Distribuidor, Disponibilidade)
+- **Card de KPI extra**: distribuição por categoria (mini barras horizontais)
+- **Coluna "Categoria"** na tabela com badge colorido (reutiliza ícones de `part-categories.ts`)
+- Adicionar **filtro "Fonte"**: Todas / IA / Manual (`researched_by`)
+- Adicionar **agrupamento opcional** "Agrupar por categoria" — toggle que separa a tabela em seções
 
-- **Sidebar lateral** com as 11 categorias de `part_category` + contador de peças e ícones (reutilizar `part-categories.ts`)
-- **Header de KPIs** da categoria selecionada: nº peças, unidades, valor total, preço médio, peça destaque
-- **Toggle Cards/Tabela** persistido em `localStorage` (`catalog-view-mode`)
-- Filtros locais: busca por código/descrição, fabricante, modelo, faixa de estoque
-- Paginação (50/página)
-- Botão "Pesquisar preços com IA" em lote opcional dentro da categoria (futuro — sinalizado como próximo passo, mas não implementado nesta fase)
+### 3. Exportação
 
-### 3. Visão Tabela reutilizável
+Botão **"Exportar CSV"** no header da página `/pesquisa-mercado`:
+- Exporta os registros **filtrados** atualmente visíveis
+- Colunas: Código da Peça, Descrição, Categoria, Distribuidor, Preço, Nosso Preço, Diferença %, Prazo, Disponibilidade, Fonte, URL, Data, Observações
+- Nome do arquivo: `pesquisa-mercado-YYYY-MM-DD.csv` com BOM UTF-8 (abre certinho no Excel BR)
+- Sem dependência nova: gera CSV puro em JS
 
-- Estender o `PartTable.tsx` existente com colunas: código, descrição, **categoria** (badge), modelo, fabricante, estoque, preço custo, **preço sugerido** (markup aplicado), **menor preço de mercado** (se houver), badge "Pesquisado", ações (ver detalhe, adicionar ao pedido)
-- Toggle Cards/Tabela também no `CatalogContent.tsx` principal (mesmo componente, mesmo localStorage)
+### 4. Pequenas melhorias de robustez
 
-### 4. Conexão Pesquisa de Mercado → Vendas
-
-- No `NewOrderPage` (carrinho), ao adicionar uma peça que já tem `market_research`, mostrar **"Menor concorrente: R$ X (distribuidor Y)"** abaixo do preço sugerido — ajuda a calibrar o preço de venda
-- Indicador visual quando o preço de venda está **abaixo do menor concorrente** (oportunidade) ou **muito acima** (risco de perder venda)
-
-### 5. Card "Estoque por Categoria de Peça" no Dashboard
-
-- Novo gráfico de pizza usando `part_category` (complementa o atual que é por tipo de máquina)
-- Reutiliza `chart.tsx` (recharts) já presente
-
-### 6. Limpeza de redundâncias
-
-- Remover duplicação de leitura de `pricing_settings` — `useProposalSettings` passa a ser a fonte única que o NewOrderPage também consome
-- Garantir que `MarketResearchTab` e `MarketResearchPage` usam **o mesmo hook** `useAutoMarketResearch` e o mesmo componente de listagem de resultados
+- Adicionar **Zod** na validação do body da edge function
+- Nas linhas onde a IA retornou "sem resultados" (`price_found = 0`), exibir badge "Sem referências" em vez de R$ 0,00 confuso
+- Ordenar resultados por menor preço dentro de cada peça
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/auto-market-research/index.ts` | **Novo** — Lovable AI + Google Search, JSON estruturado, trata 429/402 |
-| `src/hooks/use-auto-market-research.ts` | **Novo** — invoca função, salva em `market_research`, invalida queries |
-| `src/components/catalog/MarketResearchTab.tsx` | Adicionar botão "Pesquisar com IA" + loading state |
-| `src/pages/MarketResearchPage.tsx` | Adicionar botão "Pesquisar com IA" por linha + filtro "Apenas pesquisadas por IA" |
-| `src/pages/CategoriesPage.tsx` | **Nova** — sidebar + KPIs + toggle Cards/Tabela |
-| `src/components/catalog/CategoryDetailView.tsx` | **Novo** — conteúdo da categoria selecionada |
-| `src/components/catalog/PartTable.tsx` | Estender colunas: categoria, preço sugerido, menor concorrente, badge pesquisado |
-| `src/components/catalog/PartCard.tsx` | Adicionar badge "Pesquisado" quando houver `market_research` |
-| `src/components/catalog/CatalogContent.tsx` | Adicionar toggle Cards/Tabela |
-| `src/components/AppSidebar.tsx` | Adicionar item "Categorias" |
-| `src/App.tsx` | Adicionar rota `/catalogo/categorias` |
-| `src/components/dashboard/CategoryPartsChart.tsx` | **Novo** — pizza por `part_category` |
-| `src/components/dashboard/DashboardPage.tsx` | Renderizar novo card |
-| `src/pages/NewOrderPage.tsx` | Mostrar menor concorrente + indicadores visuais de competitividade |
-| `src/hooks/use-parts.ts` | Adicionar query auxiliar `useMarketResearchByPart` para enriquecer cards/tabela |
-| `src/hooks/use-pricing.ts` | Confirmar fonte única de markup (sem duplicação com `useProposalSettings`) |
+| `supabase/functions/auto-market-research/index.ts` | Validação de URL (HEAD fetch), fallback para URL de busca, flag `url_verified`, prompt reforçado, Zod no body |
+| `src/hooks/use-market-research.ts` | Incluir `part_category` no select de `useMarketResearchOverview` |
+| `src/pages/MarketResearchPage.tsx` | Filtro Categoria + Fonte, coluna Categoria, agrupamento opcional, botão Exportar CSV, badge "Sem referências" |
+| `src/components/catalog/MarketResearchTab.tsx` | Renderização melhorada do link (tooltip + tipo), botão "Reportar link quebrado", ordenar por menor preço |
+| `src/lib/export-csv.ts` | **Novo** — utilitário genérico para exportar arrays como CSV com BOM UTF-8 |
 
 ## Detalhes técnicos
 
-- **Edge function** com `LOVABLE_API_KEY` (já existe), modelo `google/gemini-2.5-pro`, tool calling para garantir JSON estruturado, prompt focado em distribuidores brasileiros XCMG/equipamentos pesados (Tracbel, Solar, Mercado Livre, distribuidores oficiais)
-- **Validação Zod** dos inputs da edge function
-- **`useMarketResearchByPart`** retorna o menor preço/distribuidor para enriquecer cards e carrinho — uma única query agregada para evitar N+1
-- **Acessibilidade**: tabela com `<caption>`, headers semânticos, toggle Cards/Tabela com `aria-pressed`
-- **Responsividade**: tabela vira lista compacta abaixo de 768px; sidebar de categorias vira drawer no mobile
-- **Performance**: paginação 50/página, `useMemo` nos filtros locais, `react-query` com `staleTime: 60s` para market_research
+- **Validação de URL na edge function**: `Promise.allSettled` com timeout via `AbortController` (4s) para não travar em sites lentos; se >50% falhar, ainda assim retorna os dados (sem URL)
+- **Fallback de URL de busca**: distribuidor reconhecido (Mercado Livre, Tracbel, Solar) → URL de busca específica do site; senão → Google search
+- **CSV**: separador `;` (padrão BR Excel), aspas duplas escapadas, `\r\n` como quebra de linha, prefixo `\uFEFF` (BOM)
+- **Performance**: filtros e agrupamento client-side com `useMemo`; categoria já vem no payload (1 query a mais nada)
+- **Acessibilidade**: link com `aria-label` descritivo do tipo (página/busca)
 
 ## Resultado esperado
 
-- Sistema fluido onde **pesquisa de mercado alimenta a venda**, **categoria organiza tudo**, e **margem é configurada num único lugar**
-- Gestor consegue ver no carrinho se está cobrando barato/caro vs concorrência
-- Catálogo navegável por categoria com tabela densa para gestão rápida
-- Zero duplicação de regras de preço entre páginas
+- Zero links 404 — ou validados, ou substituídos por URL de busca útil
+- Pesquisa de Mercado navegável por categoria e fonte (IA/manual)
+- Export CSV pronto para análise no Excel ou envio por email
+- Sistema mais confiável e gerenciável
 
