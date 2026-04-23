@@ -11,6 +11,7 @@ import CatalogPage from "./pages/CatalogPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import StockPage from "./pages/StockPage";
 import CustomersPage from "./pages/CustomersPage";
+import CustomerDetailPage from "./pages/CustomerDetailPage";
 import SalesPage from "./pages/SalesPage";
 import AfterSalesPage from "./pages/AfterSalesPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
               <Route path="/clientes" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
+              <Route path="/clientes/:id" element={<ProtectedRoute><CustomerDetailPage /></ProtectedRoute>} />
               <Route path="/vendas" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />
               <Route path="/pos-venda" element={<ProtectedRoute><AfterSalesPage /></ProtectedRoute>} />
               <Route path="/pedidos/novo" element={<ProtectedRoute><NewOrderPage /></ProtectedRoute>} />
