@@ -203,6 +203,9 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                 const price = Number(e.price_found);
                 const isNoRef = price === 0;
                 const urlType = (e.source_url_type as "page" | "search" | null | undefined) ?? detectUrlType(e.source_url);
+                const evidence = extractEvidence(e.notes);
+                const isVerifiedPage = urlType === "page" && (e.url_verified === true || !!evidence);
+                const isReverifying = verifyMutation.isPending && verifyMutation.variables?.research_id === e.id;
                 return (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
@@ -257,18 +260,25 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                                 href={e.source_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                aria-label={urlType === "page" ? "Abrir página do produto" : "Abrir busca pelo produto"}
-                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-accent"
+                                aria-label={isVerifiedPage ? "Abrir página verificada do produto" : "Abrir busca pelo produto"}
+                                className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border hover:bg-accent ${
+                                  isVerifiedPage ? "border-success text-success" : "border-border"
+                                }`}
                               >
-                                {urlType === "page" ? <LinkIcon className="h-2.5 w-2.5" /> : <SearchIcon className="h-2.5 w-2.5" />}
-                                <span>{urlType === "page" ? "Página" : "Busca"}</span>
+                                {isVerifiedPage ? <CheckCircle2 className="h-2.5 w-2.5" /> : urlType === "page" ? <LinkIcon className="h-2.5 w-2.5" /> : <SearchIcon className="h-2.5 w-2.5" />}
+                                <span>{isVerifiedPage ? "Verificado" : urlType === "page" ? "Página" : "Busca"}</span>
                                 <ExternalLink className="h-2.5 w-2.5 opacity-60" />
                               </a>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              {urlType === "page"
-                                ? "Página direta validada"
-                                : "Link de busca — verificar resultado manualmente"}
+                            <TooltipContent className="max-w-xs">
+                              {isVerifiedPage ? (
+                                <div className="space-y-1">
+                                  <p className="font-semibold">Página verificada — código encontrado no anúncio</p>
+                                  {evidence && <p className="text-xs italic opacity-90">"{evidence}"</p>}
+                                </div>
+                              ) : (
+                                "Link de busca — verificar resultado manualmente"
+                              )}
                             </TooltipContent>
                           </Tooltip>
                         )}
