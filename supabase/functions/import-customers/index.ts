@@ -71,8 +71,10 @@ Deno.serve(async (req) => {
     }
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { file_name, customers = [], equipment = [], invoices = [], brasim_leads = [], update_existing = true } =
+    const { file_name, customers = [], equipment = [], invoices = [], brasim_leads = [], update_existing = true, decisions = null } =
       await req.json();
+    const decisionsByIdx: Map<number, { action: string; target_id?: string }> = new Map();
+    if (Array.isArray(decisions)) for (const d of decisions) decisionsByIdx.set(d.row_index, d);
 
     // 1. Load existing customers (id, cnpj_cpf, email, name, city) for dedup
     const { data: existing, error: exErr } = await supabase
