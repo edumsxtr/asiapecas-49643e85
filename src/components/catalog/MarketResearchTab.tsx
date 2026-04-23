@@ -36,6 +36,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
   const addMutation = useAddMarketResearch();
   const updateMutation = useUpdateMarketResearch();
   const deleteMutation = useDeleteMarketResearch();
+  const verifyMutation = useVerifyMarketUrl();
   const aiResearch = useAutoMarketResearch();
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState<MarketResearch | null>(null);
@@ -141,6 +142,23 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
       notes: `${prevNotes}Link reportado como quebrado em ${new Date().toLocaleDateString("pt-BR")}`,
     });
     toast.success("Link removido. Obrigado pelo feedback!");
+  };
+
+  const handleReverify = (e: EnrichedResearch) => {
+    if (!e.source_url || !part) return;
+    verifyMutation.mutate({
+      research_id: e.id,
+      url: e.source_url,
+      material: part.material,
+      matched_part_number: e.matched_part_number,
+      part_id: partId,
+    });
+  };
+
+  const extractEvidence = (notes: string | null | undefined): string | null => {
+    if (!notes) return null;
+    const m = notes.match(/\[verificado:\s*"([^"]+)"\]/);
+    return m ? m[1] : null;
   };
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
