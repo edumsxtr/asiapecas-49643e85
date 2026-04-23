@@ -9,8 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain } from "lucide-react";
 import { toast } from "sonner";
+import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   partId: string;
@@ -22,12 +25,39 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
   const addMutation = useAddMarketResearch();
   const updateMutation = useUpdateMarketResearch();
   const deleteMutation = useDeleteMarketResearch();
+  const aiResearch = useAutoMarketResearch();
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState<MarketResearch | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<MarketResearch | null>(null);
   const [form, setForm] = useState({
     distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "",
   });
+
+  // Fetch part metadata for AI prompt context
+  const { data: part } = useQuery({
+    queryKey: ["part-meta", partId],
+    enabled: !!partId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parts")
+        .select("material, description, manufacturer, machine_model")
+        .eq("id", partId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const handleAIResearch = () => {
+    if (!part) return;
+    aiResearch.mutate({
+      partId,
+      material: part.material,
+      description: part.description,
+      manufacturer: part.manufacturer,
+      machine_model: part.machine_model,
+    });
+  };
 
   const resetForm = () => setForm({ distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "" });
 
@@ -149,7 +179,20 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
       {showForm ? (
         <ResearchForm form={form} setForm={setForm} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); resetForm(); }} isPending={addMutation.isPending} label="Salvar" />
       ) : (
-        <Button size="sm" variant="outline" onClick={() => setShowForm(true)} className="w-full"><Plus className="h-3 w-3 mr-1" /> Adicionar Pesquisa</Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            onClick={handleAIResearch}
+            disabled={aiResearch.isPending || !part}
+            className="gap-1"
+          >
+            {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
+            {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+            <Plus className="h-3 w-3 mr-1" /> Manual
+          </Button>
+        </div>
       )}
 
       {/* Edit Dialog */}

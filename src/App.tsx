@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import CatalogPage from "./pages/CatalogPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import StockPage from "./pages/StockPage";
 import CustomersPage from "./pages/CustomersPage";
 import SalesPage from "./pages/SalesPage";
@@ -43,6 +44,7 @@ const App = () => (
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
+              <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
               <Route path="/clientes" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
               <Route path="/vendas" element={<ProtectedRoute><SalesPage /></ProtectedRoute>} />

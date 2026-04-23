@@ -2,11 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Package, ArrowRight, ShoppingCart, Brain } from "lucide-react";
+import { Package, ArrowRight, ShoppingCart, Brain, TrendingUp } from "lucide-react";
 import { type Part, formatBRL, getActiveCategories } from "@/hooks/use-parts";
 import { useCart } from "@/contexts/CartContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useHasMarketResearch } from "@/hooks/use-auto-market-research";
 import { toast } from "sonner";
 
 interface PartCardProps {
@@ -32,6 +33,8 @@ export function PartCard({ part, onClick }: PartCardProps) {
     staleTime: 600_000,
   });
 
+  const { data: hasResearch } = useHasMarketResearch(part.id);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addItem({
@@ -53,6 +56,11 @@ export function PartCard({ part, onClick }: PartCardProps) {
         <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
       )}
       <div className="absolute top-2 right-2 flex gap-1">
+        {hasResearch && (
+          <Badge variant="secondary" className="text-[10px] gap-0.5">
+            <TrendingUp className="h-2.5 w-2.5" /> Pesquisado
+          </Badge>
+        )}
         {hasAI && (
           <Badge variant="default" className="text-[10px] bg-primary/90 gap-0.5">
             <Brain className="h-2.5 w-2.5" /> IA
