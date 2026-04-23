@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,15 @@ import { supabase } from "@/integrations/supabase/client";
 interface Props {
   partId: string;
   ourPrice: number;
+}
+
+type EnrichedResearch = MarketResearch & { source_url_type?: string | null; url_verified?: boolean | null };
+
+function detectUrlType(url: string | null | undefined): "page" | "search" {
+  if (!url) return "search";
+  const lower = url.toLowerCase();
+  if (lower.includes("google.com/search") || lower.includes("lista.mercadolivre")) return "search";
+  return "page";
 }
 
 export function MarketResearchTab({ partId, ourPrice }: Props) {
@@ -33,7 +43,6 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
     distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "",
   });
 
-  // Fetch part metadata for AI prompt context
   const { data: part } = useQuery({
     queryKey: ["part-meta", partId],
     enabled: !!partId,
@@ -61,9 +70,20 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
 
   const resetForm = () => setForm({ distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "" });
 
-  const avgMarket = entries.length > 0 ? entries.reduce((s, e) => s + Number(e.price_found), 0) / entries.length : 0;
-  const minMarket = entries.length > 0 ? Math.min(...entries.map(e => Number(e.price_found))) : 0;
-  const maxMarket = entries.length > 0 ? Math.max(...entries.map(e => Number(e.price_found))) : 0;
+  // Sorted by lowest price first; entries with price 0 (no references) go last
+  const sortedEntries = [...entries].sort((a, b) => {
+    const pa = Number(a.price_found) || 0;
+    const pb = Number(b.price_found) || 0;
+    if (pa === 0 && pb === 0) return 0;
+    if (pa === 0) return 1;
+    if (pb === 0) return -1;
+    return pa - pb;
+  });
+
+  const pricedEntries = sortedEntries.filter((e) => Number(e.price_found) > 0);
+  const avgMarket = pricedEntries.length > 0 ? pricedEntries.reduce((s, e) => s + Number(e.price_found), 0) / pricedEntries.length : 0;
+  const minMarket = pricedEntries.length > 0 ? Math.min(...pricedEntries.map(e => Number(e.price_found))) : 0;
+  const maxMarket = pricedEntries.length > 0 ? Math.max(...pricedEntries.map(e => Number(e.price_found))) : 0;
   const competitiveness = avgMarket > 0 ? ((ourPrice - avgMarket) / avgMarket) * 100 : 0;
 
   const handleSubmit = async () => {
@@ -110,110 +130,161 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
     setDeleteEntry(null);
   };
 
+  const handleReportBroken = async (e: MarketResearch) => {
+    const prevNotes = e.notes ? `${e.notes} | ` : "";
+    await updateMutation.mutateAsync({
+      id: e.id,
+      source_url: null,
+      notes: `${prevNotes}Link reportado como quebrado em ${new Date().toLocaleDateString("pt-BR")}`,
+    });
+    toast.success("Link removido. Obrigado pelo feedback!");
+  };
+
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <div className="space-y-4">
-      {entries.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase">Menor Preço</p>
-            <p className="font-bold text-sm">{formatBRL(minMarket)}</p>
+    <TooltipProvider>
+      <div className="space-y-4">
+        {pricedEntries.length > 0 && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase">Menor Preço</p>
+              <p className="font-bold text-sm">{formatBRL(minMarket)}</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase">Média Mercado</p>
+              <p className="font-bold text-sm">{formatBRL(avgMarket)}</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase">Maior Preço</p>
+              <p className="font-bold text-sm">{formatBRL(maxMarket)}</p>
+            </div>
           </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase">Média Mercado</p>
-            <p className="font-bold text-sm">{formatBRL(avgMarket)}</p>
+        )}
+
+        {pricedEntries.length > 0 && (
+          <div className={`flex items-center gap-2 rounded-lg p-3 text-sm font-medium ${
+            competitiveness < -5 ? "bg-green-500/10 text-green-600" :
+            competitiveness > 5 ? "bg-red-500/10 text-red-600" :
+            "bg-yellow-500/10 text-yellow-600"
+          }`}>
+            {competitiveness < -5 ? <TrendingDown className="h-4 w-4" /> : competitiveness > 5 ? <TrendingUp className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+            <span>Nosso preço ({formatBRL(ourPrice)}) está {competitiveness < -5 ? `${Math.abs(competitiveness).toFixed(1)}% abaixo` : competitiveness > 5 ? `${competitiveness.toFixed(1)}% acima` : "na faixa"} da média</span>
           </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase">Maior Preço</p>
-            <p className="font-bold text-sm">{formatBRL(maxMarket)}</p>
+        )}
+
+        {sortedEntries.length > 0 ? (
+          <Table>
+            <TableHeader><TableRow><TableHead>Distribuidor</TableHead><TableHead>Preço</TableHead><TableHead>Prazo</TableHead><TableHead>Disp.</TableHead><TableHead className="w-[100px]">Ações</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {sortedEntries.map((raw) => {
+                const e = raw as EnrichedResearch;
+                const price = Number(e.price_found);
+                const isNoRef = price === 0;
+                const urlType = (e.source_url_type as "page" | "search" | null | undefined) ?? detectUrlType(e.source_url);
+                return (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{e.distributor_name}</span>
+                        {e.source_url && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a
+                                href={e.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={urlType === "page" ? "Abrir página do produto" : "Abrir busca pelo produto"}
+                                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-accent"
+                              >
+                                {urlType === "page" ? <LinkIcon className="h-2.5 w-2.5" /> : <SearchIcon className="h-2.5 w-2.5" />}
+                                <span>{urlType === "page" ? "Página" : "Busca"}</span>
+                                <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {urlType === "page"
+                                ? "Página direta validada"
+                                : "Link de busca — verificar resultado manualmente"}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      {e.payment_terms && <p className="text-[10px] text-muted-foreground">{e.payment_terms}</p>}
+                    </TableCell>
+                    <TableCell>
+                      {isNoRef ? (
+                        <Badge variant="outline" className="text-[10px]">Sem referências</Badge>
+                      ) : (
+                        <span className={price < ourPrice ? "text-green-600 font-semibold" : price > ourPrice ? "text-red-600" : ""}>
+                          {formatBRL(price)}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>{e.delivery_days ? `${e.delivery_days}d` : "—"}</TableCell>
+                    <TableCell><Badge variant={e.availability === "em estoque" ? "default" : "secondary"} className="text-[10px]">{e.availability}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {e.source_url && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-amber-600" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
+                                <AlertOctagon className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Reportar link quebrado</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => setDeleteEntry(e)}><Trash2 className="h-3 w-3" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">Nenhuma pesquisa registrada para esta peça.</p>
+        )}
+
+        {showForm ? (
+          <ResearchForm form={form} setForm={setForm} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); resetForm(); }} isPending={addMutation.isPending} label="Salvar" />
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              onClick={handleAIResearch}
+              disabled={aiResearch.isPending || !part}
+              className="gap-1"
+            >
+              {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
+              {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+              <Plus className="h-3 w-3 mr-1" /> Manual
+            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      {entries.length > 0 && (
-        <div className={`flex items-center gap-2 rounded-lg p-3 text-sm font-medium ${
-          competitiveness < -5 ? "bg-green-500/10 text-green-600" :
-          competitiveness > 5 ? "bg-red-500/10 text-red-600" :
-          "bg-yellow-500/10 text-yellow-600"
-        }`}>
-          {competitiveness < -5 ? <TrendingDown className="h-4 w-4" /> : competitiveness > 5 ? <TrendingUp className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-          <span>Nosso preço ({formatBRL(ourPrice)}) está {competitiveness < -5 ? `${Math.abs(competitiveness).toFixed(1)}% abaixo` : competitiveness > 5 ? `${competitiveness.toFixed(1)}% acima` : "na faixa"} da média</span>
-        </div>
-      )}
+        <Dialog open={!!editEntry} onOpenChange={o => { if (!o) { setEditEntry(null); resetForm(); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Editar Pesquisa</DialogTitle><DialogDescription>Atualize os dados.</DialogDescription></DialogHeader>
+            <ResearchForm form={form} setForm={setForm} onSubmit={handleSaveEdit} onCancel={() => { setEditEntry(null); resetForm(); }} isPending={updateMutation.isPending} label="Salvar" />
+          </DialogContent>
+        </Dialog>
 
-      {entries.length > 0 ? (
-        <Table>
-          <TableHeader><TableRow><TableHead>Distribuidor</TableHead><TableHead>Preço</TableHead><TableHead>Prazo</TableHead><TableHead>Disp.</TableHead><TableHead className="w-[70px]"></TableHead></TableRow></TableHeader>
-          <TableBody>
-            {entries.map((e) => (
-              <TableRow key={e.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-1">
-                    {e.distributor_name}
-                    {e.source_url && <a href={e.source_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3 text-muted-foreground" /></a>}
-                  </div>
-                  {e.payment_terms && <p className="text-[10px] text-muted-foreground">{e.payment_terms}</p>}
-                </TableCell>
-                <TableCell>
-                  <span className={Number(e.price_found) < ourPrice ? "text-green-600 font-semibold" : Number(e.price_found) > ourPrice ? "text-red-600" : ""}>
-                    {formatBRL(Number(e.price_found))}
-                  </span>
-                </TableCell>
-                <TableCell>{e.delivery_days ? `${e.delivery_days}d` : "—"}</TableCell>
-                <TableCell><Badge variant={e.availability === "em estoque" ? "default" : "secondary"} className="text-[10px]">{e.availability}</Badge></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /></Button>
-                    <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => setDeleteEntry(e)}><Trash2 className="h-3 w-3" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">Nenhuma pesquisa registrada para esta peça.</p>
-      )}
-
-      {showForm ? (
-        <ResearchForm form={form} setForm={setForm} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); resetForm(); }} isPending={addMutation.isPending} label="Salvar" />
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            size="sm"
-            onClick={handleAIResearch}
-            disabled={aiResearch.isPending || !part}
-            className="gap-1"
-          >
-            {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
-            {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
-            <Plus className="h-3 w-3 mr-1" /> Manual
-          </Button>
-        </div>
-      )}
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editEntry} onOpenChange={o => { if (!o) { setEditEntry(null); resetForm(); } }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Editar Pesquisa</DialogTitle><DialogDescription>Atualize os dados.</DialogDescription></DialogHeader>
-          <ResearchForm form={form} setForm={setForm} onSubmit={handleSaveEdit} onCancel={() => { setEditEntry(null); resetForm(); }} isPending={updateMutation.isPending} label="Salvar" />
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete */}
-      <AlertDialog open={!!deleteEntry} onOpenChange={o => !o && setDeleteEntry(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Excluir pesquisa?</AlertDialogTitle><AlertDialogDescription>Pesquisa de "{deleteEntry?.distributor_name}" será excluída.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        <AlertDialog open={!!deleteEntry} onOpenChange={o => !o && setDeleteEntry(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader><AlertDialogTitle>Excluir pesquisa?</AlertDialogTitle><AlertDialogDescription>Pesquisa de "{deleteEntry?.distributor_name}" será excluída.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </TooltipProvider>
   );
 }
 
