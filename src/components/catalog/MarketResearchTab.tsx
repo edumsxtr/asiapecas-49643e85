@@ -25,12 +25,39 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
   const addMutation = useAddMarketResearch();
   const updateMutation = useUpdateMarketResearch();
   const deleteMutation = useDeleteMarketResearch();
+  const aiResearch = useAutoMarketResearch();
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState<MarketResearch | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<MarketResearch | null>(null);
   const [form, setForm] = useState({
     distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "",
   });
+
+  // Fetch part metadata for AI prompt context
+  const { data: part } = useQuery({
+    queryKey: ["part-meta", partId],
+    enabled: !!partId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parts")
+        .select("material, description, manufacturer, machine_model")
+        .eq("id", partId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const handleAIResearch = () => {
+    if (!part) return;
+    aiResearch.mutate({
+      partId,
+      material: part.material,
+      description: part.description,
+      manufacturer: part.manufacturer,
+      machine_model: part.machine_model,
+    });
+  };
 
   const resetForm = () => setForm({ distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "" });
 
