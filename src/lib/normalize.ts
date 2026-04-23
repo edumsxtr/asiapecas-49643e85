@@ -30,14 +30,56 @@ export function normalizeEmail(value?: string | null): string | null {
   return trimmed;
 }
 
-export function slugifyName(value?: string | null): string {
-  if (!value) return "";
-  return String(value)
+// Brazilian corporate suffixes & noise tokens that should be stripped before name comparison
+const COMPANY_SUFFIXES = new Set([
+  "ltda", "ltd", "me", "epp", "eireli", "sa", "s/a", "s.a", "sas",
+  "cia", "cias", "company", "comp", "co", "inc", "corp", "corporation",
+  "filial", "matriz", "grupo", "group", "holding", "holdings",
+  "comercio", "comercial", "industria", "industrial", "industrias",
+  "servicos", "servico", "ltdame", "ltdaepp",
+  // Acronyms/words that often appear and add noise
+  "construcoes", "construcao", "construtora",
+  "mineracao", "mineracoes", "mineradora",
+  "transportes", "transporte", "logistica",
+  "engenharia", "tecnologia",
+  "do", "da", "de", "dos", "das", "e", "&",
+]);
+
+function basicSlug(value: string): string {
+  return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function slugifyName(value?: string | null): string {
+  if (!value) return "";
+  return basicSlug(String(value)).replace(/\s+/g, "-").replace(/^-|-$/g, "");
+}
+
+/**
+ * Canonicalize a company/customer name for fuzzy deduplication:
+ * - removes accents, punctuation, lowercases
+ * - drops Brazilian corporate suffixes (LTDA, EPP, ME, S/A, EIRELI, ...)
+ * - drops common noise tokens (do/da/de, comercio, industria, ...)
+ * - collapses whitespace
+ *
+ * Examples:
+ *   "Construtora Santa Maria LTDA"     -> "santamaria"
+ *   "CONSTRUTORA SANTA MARIA EIRELI EPP" -> "santamaria"
+ *   "Bemisa Holding S.A."              -> "bemisa"
+ */
+export function canonicalCompanyName(value?: string | null): string {
+  if (!value) return "";
+  const slug = basicSlug(String(value));
+  if (!slug) return "";
+  const tokens = slug.split(" ").filter((t) => t && !COMPANY_SUFFIXES.has(t));
+  // After stripping suffixes, drop very short noise (single letters)
+  const cleaned = tokens.filter((t) => t.length > 1);
+  return (cleaned.length > 0 ? cleaned : tokens).join("");
 }
 
 export function customerDedupKey(c: {
@@ -50,5 +92,7 @@ export function customerDedupKey(c: {
   if (cnpj) return `cnpj:${cnpj}`;
   const email = normalizeEmail(c.email);
   if (email) return `email:${email}`;
-  return `name:${slugifyName(c.name)}|${slugifyName(c.city)}`;
+  const canon = canonicalCompanyName(c.name);
+  const cityCanon = canonicalCompanyName(c.city);
+  return `name:${canon}|${cityCanon}`;
 }

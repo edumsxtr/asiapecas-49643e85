@@ -17,21 +17,45 @@ function normalizeEmail(v?: string | null): string | null {
   const t = String(v).trim().toLowerCase();
   return t.includes("@") ? t : null;
 }
-function slugify(v?: string | null): string {
-  if (!v) return "";
-  return String(v)
+
+const COMPANY_SUFFIXES = new Set([
+  "ltda", "ltd", "me", "epp", "eireli", "sa", "s/a", "s.a", "sas",
+  "cia", "cias", "company", "comp", "co", "inc", "corp", "corporation",
+  "filial", "matriz", "grupo", "group", "holding", "holdings",
+  "comercio", "comercial", "industria", "industrial", "industrias",
+  "servicos", "servico", "ltdame", "ltdaepp",
+  "construcoes", "construcao", "construtora",
+  "mineracao", "mineracoes", "mineradora",
+  "transportes", "transporte", "logistica",
+  "engenharia", "tecnologia",
+  "do", "da", "de", "dos", "das", "e", "&",
+]);
+
+function basicSlug(v: string): string {
+  return v
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
+
+function canonicalCompanyName(v?: string | null): string {
+  if (!v) return "";
+  const slug = basicSlug(String(v));
+  if (!slug) return "";
+  const tokens = slug.split(" ").filter((t) => t && !COMPANY_SUFFIXES.has(t));
+  const cleaned = tokens.filter((t) => t.length > 1);
+  return (cleaned.length > 0 ? cleaned : tokens).join("");
+}
+
 function dedupKey(c: { cnpj_cpf?: string | null; email?: string | null; name?: string | null; city?: string | null }) {
   const cnpj = normalizeCnpj(c.cnpj_cpf);
   if (cnpj) return `cnpj:${cnpj}`;
   const e = normalizeEmail(c.email);
   if (e) return `email:${e}`;
-  return `name:${slugify(c.name)}|${slugify(c.city)}`;
+  return `name:${canonicalCompanyName(c.name)}|${canonicalCompanyName(c.city)}`;
 }
 
 Deno.serve(async (req) => {
