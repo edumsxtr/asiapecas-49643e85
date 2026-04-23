@@ -136,6 +136,59 @@ export default function NewOrderPage() {
 
   const selectedCustomer = customers.find((c) => c.id === customerId);
 
+  // Sugestões de peças baseadas em equipamentos do cliente + histórico
+  const { data: suggestions = [] } = useQuery({
+    queryKey: ["order-suggestions", customerId],
+    enabled: !!customerId,
+    queryFn: async () => {
+      const out: Array<{ id: string; material: string; description: string; estimated_price: number; stock: number; reason: string }> = [];
+      const seen = new Set<string>();
+
+      // 1) histórico de compras (top 8 mais comprados)
+      const { data: hist } = await supabase
+        .from("sale_items")
+        .select("part_id, quantity, sales!inner(customer_id), parts(id,material,description,estimated_price,stock)")
+        .eq("sales.customer_id", customerId)
+        .limit(50);
+      const counts = new Map<string, { qty: number; part: { id: string; material: string; description: string; estimated_price: number; stock: number } }>();
+      for (const r of (hist || []) as Array<{ part_id: string; quantity: number; parts: { id: string; material: string; description: string; estimated_price: number; stock: number } | null }>) {
+        if (!r.parts || !r.part_id) continue;
+        const cur = counts.get(r.part_id);
+        if (cur) cur.qty += r.quantity; else counts.set(r.part_id, { qty: r.quantity, part: r.parts });
+      }
+      Array.from(counts.values()).sort((a, b) => b.qty - a.qty).slice(0, 8).forEach((x) => {
+        seen.add(x.part.id);
+        out.push({ ...x.part, reason: `Comprou ${x.qty}x antes` });
+      });
+
+      // 2) peças compatíveis com equipamentos
+      const { data: equipment } = await supabase
+        .from("customer_equipment").select("model").eq("customer_id", customerId);
+      const models = (equipment || []).map((e) => e.model).filter(Boolean) as string[];
+      const interest = selectedCustomer?.interest_models || [];
+      const allModels = Array.from(new Set([...models, ...interest]));
+      if (allModels.length > 0) {
+        const { data: compat } = await supabase
+          .from("parts")
+          .select("id,material,description,estimated_price,stock,compatible_models,machine_model")
+          .gt("stock", 0)
+          .limit(200);
+        for (const p of (compat || []) as Array<{ id: string; material: string; description: string; estimated_price: number; stock: number; compatible_models: string[] | null; machine_model: string | null }>) {
+          if (seen.has(p.id) || out.length >= 12) continue;
+          const matchedModel = allModels.find((m) =>
+            (p.compatible_models || []).some((cm) => cm.toLowerCase().includes(m.toLowerCase())) ||
+            (p.machine_model || "").toLowerCase().includes(m.toLowerCase())
+          );
+          if (matchedModel) {
+            seen.add(p.id);
+            out.push({ id: p.id, material: p.material, description: p.description, estimated_price: p.estimated_price, stock: p.stock, reason: `Compatível ${matchedModel}` });
+          }
+        }
+      }
+      return out;
+    },
+  });
+
   const handleCreateCustomer = () => {
     if (!newCustomer.name.trim()) return;
     createCustomer.mutate(newCustomer, {
