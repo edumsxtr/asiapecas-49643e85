@@ -33,6 +33,8 @@ export function PartCard({ part, onClick }: PartCardProps) {
     staleTime: 600_000,
   });
 
+  const { data: hasResearch } = useHasMarketResearch(part.id);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addItem({
@@ -54,6 +56,11 @@ export function PartCard({ part, onClick }: PartCardProps) {
         <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
       )}
       <div className="absolute top-2 right-2 flex gap-1">
+        {hasResearch && (
+          <Badge variant="default" className="text-[10px] bg-emerald-600 gap-0.5">
+            <TrendingUp className="h-2.5 w-2.5" /> Pesquisado
+          </Badge>
+        )}
         {hasAI && (
           <Badge variant="default" className="text-[10px] bg-primary/90 gap-0.5">
             <Brain className="h-2.5 w-2.5" /> IA
