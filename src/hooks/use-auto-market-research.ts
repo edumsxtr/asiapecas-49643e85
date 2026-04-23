@@ -8,12 +8,14 @@ interface AIResultItem {
   delivery_days?: number;
   availability?: string;
   source_url?: string;
+  is_genuine?: boolean;
   notes?: string;
 }
 
 interface AIResponse {
   search_summary: string;
   results: AIResultItem[];
+  dropped_parallel_count?: number;
   error?: string;
 }
 
@@ -23,6 +25,7 @@ interface RunInput {
   description: string;
   manufacturer?: string | null;
   machine_model?: string | null;
+  genuineOnly?: boolean;
 }
 
 export function useAutoMarketResearch() {
@@ -30,6 +33,7 @@ export function useAutoMarketResearch() {
 
   return useMutation({
     mutationFn: async (input: RunInput) => {
+      const genuineOnly = input.genuineOnly !== false;
       const { data, error } = await supabase.functions.invoke<AIResponse>(
         "auto-market-research",
         {
@@ -38,6 +42,7 @@ export function useAutoMarketResearch() {
             description: input.description,
             manufacturer: input.manufacturer ?? null,
             machine_model: input.machine_model ?? null,
+            genuine_only: genuineOnly,
           },
         },
       );
@@ -55,16 +60,22 @@ export function useAutoMarketResearch() {
       const now = new Date().toISOString();
 
       if (results.length === 0) {
+        const droppedAll = (data?.dropped_parallel_count ?? 0) > 0;
         await supabase.from("market_research").insert({
           part_id: input.partId,
-          distributor_name: "IA — sem resultados",
+          distributor_name: droppedAll ? "IA — apenas paralelas" : "IA — sem resultados",
           price_found: 0,
           availability: "indisponível",
-          notes: summary || "IA não encontrou referências confiáveis",
+          notes:
+            summary ||
+            (droppedAll
+              ? "IA encontrou apenas peças paralelas — sem referência de original XCMG"
+              : "IA não encontrou referências confiáveis"),
           researched_at: now,
           researched_by: "IA",
+          is_genuine: null,
         });
-        return { inserted: 0, summary };
+        return { inserted: 0, summary, droppedAll };
       }
 
       const rows = results
@@ -80,6 +91,7 @@ export function useAutoMarketResearch() {
           notes: r.notes ?? summary,
           researched_at: now,
           researched_by: "IA",
+          is_genuine: r.is_genuine === true,
         }));
 
       if (rows.length > 0) {
@@ -87,7 +99,7 @@ export function useAutoMarketResearch() {
         if (insErr) throw insErr;
       }
 
-      return { inserted: rows.length, summary };
+      return { inserted: rows.length, summary, droppedAll: false };
     },
     onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ["market-research", vars.partId] });
@@ -95,9 +107,13 @@ export function useAutoMarketResearch() {
       qc.invalidateQueries({ queryKey: ["lowest-market-price", vars.partId] });
       qc.invalidateQueries({ queryKey: ["has-market-research", vars.partId] });
       if (res.inserted === 0) {
-        toast.warning("IA não encontrou referências confiáveis para esta peça.");
+        if (res.droppedAll) {
+          toast.warning("IA só encontrou peças paralelas — nenhuma referência de Original XCMG.");
+        } else {
+          toast.warning("IA não encontrou referências confiáveis para esta peça.");
+        }
       } else {
-        toast.success(`IA encontrou ${res.inserted} referência(s) de mercado.`);
+        toast.success(`IA encontrou ${res.inserted} referência(s) de Original XCMG.`);
       }
     },
     onError: (e: Error) => toast.error(e.message),

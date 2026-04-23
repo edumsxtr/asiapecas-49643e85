@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +22,7 @@ interface Props {
   ourPrice: number;
 }
 
-type EnrichedResearch = MarketResearch & { source_url_type?: string | null; url_verified?: boolean | null };
+type EnrichedResearch = MarketResearch & { source_url_type?: string | null; url_verified?: boolean | null; is_genuine?: boolean | null };
 
 function detectUrlType(url: string | null | undefined): "page" | "search" {
   if (!url) return "search";
@@ -39,6 +40,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState<MarketResearch | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<MarketResearch | null>(null);
+  const [includeParallel, setIncludeParallel] = useState(false);
   const [form, setForm] = useState({
     distributor_name: "", price_found: "", delivery_days: "", payment_terms: "", availability: "em estoque", source_url: "", notes: "",
   });
@@ -65,6 +67,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
       description: part.description,
       manufacturer: part.manufacturer,
       machine_model: part.machine_model,
+      genuineOnly: !includeParallel,
     });
   };
 
@@ -187,6 +190,25 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{e.distributor_name}</span>
+                        {e.is_genuine === true ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
+                                <ShieldCheck className="h-2.5 w-2.5" /> Original XCMG
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>Confirmado como peça original/genuína XCMG</TooltipContent>
+                          </Tooltip>
+                        ) : e.is_genuine === false ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="text-[10px] gap-0.5">
+                                <ShieldQuestion className="h-2.5 w-2.5" /> Paralela
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>Peça paralela / não original — comparação não-equivalente</TooltipContent>
+                          </Tooltip>
+                        ) : null}
                         {e.source_url && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -251,19 +273,39 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
         {showForm ? (
           <ResearchForm form={form} setForm={setForm} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); resetForm(); }} isPending={addMutation.isPending} label="Salvar" />
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              size="sm"
-              onClick={handleAIResearch}
-              disabled={aiResearch.isPending || !part}
-              className="gap-1"
-            >
-              {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
-              {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
-              <Plus className="h-3 w-3 mr-1" /> Manual
-            </Button>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Switch id="include-parallel" checked={includeParallel} onCheckedChange={setIncludeParallel} />
+                <Label htmlFor="include-parallel" className="text-xs cursor-pointer">
+                  Incluir peças paralelas na busca
+                </Label>
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[10px] text-muted-foreground">
+                    {includeParallel ? "Original + paralelas" : "Apenas Original XCMG"}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Por padrão, a IA busca SOMENTE peças originais XCMG. Ative para também ver paralelas.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                onClick={handleAIResearch}
+                disabled={aiResearch.isPending || !part}
+                className="gap-1"
+              >
+                {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
+                {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+                <Plus className="h-3 w-3 mr-1" /> Manual
+              </Button>
+            </div>
           </div>
         )}
 

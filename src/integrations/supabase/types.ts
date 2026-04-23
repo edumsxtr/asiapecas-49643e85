@@ -203,6 +203,7 @@ export type Database = {
           delivery_days: number | null
           distributor_name: string
           id: string
+          is_genuine: boolean | null
           notes: string | null
           part_id: string
           payment_terms: string | null
@@ -217,6 +218,7 @@ export type Database = {
           delivery_days?: number | null
           distributor_name: string
           id?: string
+          is_genuine?: boolean | null
           notes?: string | null
           part_id: string
           payment_terms?: string | null
@@ -231,6 +233,7 @@ export type Database = {
           delivery_days?: number | null
           distributor_name?: string
           id?: string
+          is_genuine?: boolean | null
           notes?: string | null
           part_id?: string
           payment_terms?: string | null

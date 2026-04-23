@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { PART_CATEGORIES } from "@/components/quote/part-categories";
 import { downloadCsv, todayStamp, type CsvColumn } from "@/lib/export-csv";
@@ -38,6 +38,7 @@ export default function MarketResearchPage() {
   const [filterAvailability, setFilterAvailability] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterGenuine, setFilterGenuine] = useState<string>("all");
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [editEntry, setEditEntry] = useState<ResearchEntry | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<ResearchEntry | null>(null);
@@ -60,6 +61,12 @@ export default function MarketResearchPage() {
       if (filterSource === "ia" && !isAI) return false;
       if (filterSource === "manual" && isAI) return false;
     }
+    if (filterGenuine !== "all") {
+      const g = (r as any).is_genuine;
+      if (filterGenuine === "genuine" && g !== true) return false;
+      if (filterGenuine === "parallel" && g !== false) return false;
+      if (filterGenuine === "unknown" && g !== null && g !== undefined) return false;
+    }
     if (search) {
       const s = search.toLowerCase();
       const partName = r.parts?.material || "";
@@ -67,7 +74,7 @@ export default function MarketResearchPage() {
       if (!r.distributor_name.toLowerCase().includes(s) && !partName.toLowerCase().includes(s) && !partDesc.toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, search]);
+  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, filterGenuine, search]);
 
   // KPIs
   const uniqueParts = new Set(research.map(r => r.part_id)).size;
@@ -146,6 +153,15 @@ export default function MarketResearchPage() {
       { header: "Prazo (dias)", value: r => r.delivery_days ?? "" },
       { header: "Disponibilidade", value: r => r.availability || "" },
       { header: "Fonte", value: r => ((r.researched_by || "").toLowerCase() === "ia" ? "IA" : "Manual") },
+      {
+        header: "Tipo",
+        value: r => {
+          const g = (r as any).is_genuine;
+          if (g === true) return "Original XCMG";
+          if (g === false) return "Paralela";
+          return "Não confirmado";
+        },
+      },
       { header: "Tipo de URL", value: r => detectUrlType(r.source_url) === "page" ? "Página" : "Busca" },
       { header: "URL", value: r => r.source_url || "" },
       { header: "Data", value: r => new Date(r.researched_at).toLocaleDateString("pt-BR") },
@@ -167,6 +183,7 @@ export default function MarketResearchPage() {
           <TableHead>Prazo</TableHead>
           <TableHead>Disp.</TableHead>
           <TableHead>Fonte</TableHead>
+          <TableHead>Tipo</TableHead>
           <TableHead>Data</TableHead>
           <TableHead className="w-[80px]">Ações</TableHead>
         </TableRow>
@@ -229,6 +246,19 @@ export default function MarketResearchPage() {
               </TableCell>
               <TableCell>
                 <Badge variant={isAI ? "default" : "outline"} className="text-[10px]">{isAI ? "IA" : "Manual"}</Badge>
+              </TableCell>
+              <TableCell>
+                {(r as any).is_genuine === true ? (
+                  <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
+                    <ShieldCheck className="h-2.5 w-2.5" /> Original
+                  </Badge>
+                ) : (r as any).is_genuine === false ? (
+                  <Badge variant="secondary" className="text-[10px] gap-0.5">
+                    <ShieldQuestion className="h-2.5 w-2.5" /> Paralela
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px]">Não confirmado</Badge>
+                )}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">{new Date(r.researched_at).toLocaleDateString("pt-BR")}</TableCell>
               <TableCell>
@@ -328,6 +358,15 @@ export default function MarketResearchPage() {
                 <SelectItem value="all">Todas fontes</SelectItem>
                 <SelectItem value="ia">IA</SelectItem>
                 <SelectItem value="manual">Manual</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterGenuine} onValueChange={setFilterGenuine}>
+              <SelectTrigger className="w-[170px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="genuine">Apenas Original XCMG</SelectItem>
+                <SelectItem value="parallel">Apenas Paralelas</SelectItem>
+                <SelectItem value="unknown">Não confirmado</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2 px-3 rounded-md border border-border">
