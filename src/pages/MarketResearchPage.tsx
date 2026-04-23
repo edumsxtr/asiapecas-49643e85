@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader2, AlertTriangle, Download, ExternalLink, Link as LinkIcon, Search as SearchIcon, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { PART_CATEGORIES } from "@/components/quote/part-categories";
 import { downloadCsv, todayStamp, type CsvColumn } from "@/lib/export-csv";
@@ -38,6 +38,7 @@ export default function MarketResearchPage() {
   const [filterAvailability, setFilterAvailability] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterGenuine, setFilterGenuine] = useState<string>("all");
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [editEntry, setEditEntry] = useState<ResearchEntry | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<ResearchEntry | null>(null);
@@ -60,6 +61,12 @@ export default function MarketResearchPage() {
       if (filterSource === "ia" && !isAI) return false;
       if (filterSource === "manual" && isAI) return false;
     }
+    if (filterGenuine !== "all") {
+      const g = (r as any).is_genuine;
+      if (filterGenuine === "genuine" && g !== true) return false;
+      if (filterGenuine === "parallel" && g !== false) return false;
+      if (filterGenuine === "unknown" && g !== null && g !== undefined) return false;
+    }
     if (search) {
       const s = search.toLowerCase();
       const partName = r.parts?.material || "";
@@ -67,7 +74,7 @@ export default function MarketResearchPage() {
       if (!r.distributor_name.toLowerCase().includes(s) && !partName.toLowerCase().includes(s) && !partDesc.toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, search]);
+  }), [research, filterDistributor, filterAvailability, filterCategory, filterSource, filterGenuine, search]);
 
   // KPIs
   const uniqueParts = new Set(research.map(r => r.part_id)).size;
@@ -146,6 +153,15 @@ export default function MarketResearchPage() {
       { header: "Prazo (dias)", value: r => r.delivery_days ?? "" },
       { header: "Disponibilidade", value: r => r.availability || "" },
       { header: "Fonte", value: r => ((r.researched_by || "").toLowerCase() === "ia" ? "IA" : "Manual") },
+      {
+        header: "Tipo",
+        value: r => {
+          const g = (r as any).is_genuine;
+          if (g === true) return "Original XCMG";
+          if (g === false) return "Paralela";
+          return "Não confirmado";
+        },
+      },
       { header: "Tipo de URL", value: r => detectUrlType(r.source_url) === "page" ? "Página" : "Busca" },
       { header: "URL", value: r => r.source_url || "" },
       { header: "Data", value: r => new Date(r.researched_at).toLocaleDateString("pt-BR") },
