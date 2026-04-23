@@ -14,6 +14,7 @@ import {
   FileText,
   LogOut,
   GraduationCap,
+  Tags,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import asiaLogo from "@/assets/asia-logo.png";
@@ -37,6 +38,7 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Catálogo", url: "/catalogo", icon: Package },
+  { title: "Categorias", url: "/catalogo/categorias", icon: Tags },
   { title: "Estoque", url: "/estoque", icon: TrendingUp },
 ];
 
