@@ -96,3 +96,35 @@ export function customerDedupKey(c: {
   const cityCanon = canonicalCompanyName(c.city);
   return `name:${canon}|${cityCanon}`;
 }
+
+// Jaro-Winkler similarity 0..1
+export function jaroWinkler(s1: string, s2: string): number {
+  if (!s1 || !s2) return 0;
+  if (s1 === s2) return 1;
+  const m1 = s1.length, m2 = s2.length;
+  const matchDist = Math.max(0, Math.floor(Math.max(m1, m2) / 2) - 1);
+  const a1 = new Array(m1).fill(false);
+  const a2 = new Array(m2).fill(false);
+  let matches = 0;
+  for (let i = 0; i < m1; i++) {
+    const start = Math.max(0, i - matchDist);
+    const end = Math.min(i + matchDist + 1, m2);
+    for (let j = start; j < end; j++) {
+      if (a2[j] || s1[i] !== s2[j]) continue;
+      a1[i] = true; a2[j] = true; matches++; break;
+    }
+  }
+  if (!matches) return 0;
+  let t = 0, k = 0;
+  for (let i = 0; i < m1; i++) {
+    if (!a1[i]) continue;
+    while (!a2[k]) k++;
+    if (s1[i] !== s2[k]) t++;
+    k++;
+  }
+  t /= 2;
+  const jaro = (matches / m1 + matches / m2 + (matches - t) / matches) / 3;
+  let prefix = 0;
+  for (let i = 0; i < Math.min(4, m1, m2); i++) { if (s1[i] === s2[i]) prefix++; else break; }
+  return jaro + prefix * 0.1 * (1 - jaro);
+}

@@ -296,3 +296,39 @@ export function useEnrichCustomer() {
     onError: (e: Error) => toast.error("Erro no enriquecimento: " + e.message),
   });
 }
+
+export type PreviewMatch = {
+  customer_id: string; name: string; score: number; reason: string;
+  existing: { cnpj_cpf: string | null; email: string | null; phone: string | null; city: string | null; state: string | null; company: string | null };
+};
+export type PreviewResult = { row_index: number; status: "new" | "match" | "ambiguous"; matches: PreviewMatch[] };
+
+export function usePreviewImport() {
+  return useMutation({
+    mutationFn: async (rows: Array<Record<string, unknown>>) => {
+      const payload = rows.map((r, i) => ({ row_index: i, ...r }));
+      const { data, error } = await supabase.functions.invoke("preview-customer-import", { body: { rows: payload } });
+      if (error) throw error;
+      return (data as { results: PreviewResult[] }).results;
+    },
+    onError: (e: Error) => toast.error("Erro no preview: " + e.message),
+  });
+}
+
+export function useProspectFromCustomer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (customer_ids: string[]) => {
+      const { data, error } = await supabase.functions.invoke("prospect-from-customer", { body: { customer_ids } });
+      if (error) throw error;
+      return data as { created: Array<{ customer_id: string; prospect_id: string; score: number }>; failed: Array<{ customer_id: string; error: string }> };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["prospects"] });
+      qc.invalidateQueries({ queryKey: ["customer-prospects"] });
+      toast.success(`${r.created.length} prospects gerados${r.failed.length ? `, ${r.failed.length} falhas` : ""}`);
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}

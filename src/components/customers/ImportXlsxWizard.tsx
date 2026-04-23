@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, FileSpreadsheet, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
-import { useImportCustomers } from "@/hooks/use-customers";
+import { useImportCustomers, usePreviewImport, type PreviewResult } from "@/hooks/use-customers";
 import { customerDedupKey, normalizeCnpj } from "@/lib/normalize";
+import { ImportReviewStep, type Decision } from "./ImportReviewStep";
 import { toast } from "sonner";
 
 type Props = { open: boolean; onOpenChange: (v: boolean) => void; existingKeys: Set<string> };
@@ -173,11 +174,14 @@ function parseWorkbook(file: File): Promise<Parsed> {
 }
 
 export function ImportXlsxWizard({ open, onOpenChange, existingKeys }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [updateExisting, setUpdateExisting] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [preview, setPreview] = useState<PreviewResult[] | null>(null);
+  const [decisions, setDecisions] = useState<Decision[] | null>(null);
   const importMut = useImportCustomers();
+  const previewMut = usePreviewImport();
 
   const handleFile = async (file: File) => {
     try {

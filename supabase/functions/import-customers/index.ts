@@ -71,8 +71,10 @@ Deno.serve(async (req) => {
     }
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { file_name, customers = [], equipment = [], invoices = [], brasim_leads = [], update_existing = true } =
+    const { file_name, customers = [], equipment = [], invoices = [], brasim_leads = [], update_existing = true, decisions = null } =
       await req.json();
+    const decisionsByIdx: Map<number, { action: string; target_id?: string }> = new Map();
+    if (Array.isArray(decisions)) for (const d of decisions) decisionsByIdx.set(d.row_index, d);
 
     // 1. Load existing customers (id, cnpj_cpf, email, name, city) for dedup
     const { data: existing, error: exErr } = await supabase
@@ -101,13 +103,14 @@ Deno.serve(async (req) => {
     for (let i = 0; i < allCustomerRows.length; i += chunk) {
       const slice = allCustomerRows.slice(i, i + chunk);
 
-      for (const row of slice) {
+      for (let idx = 0; idx < slice.length; idx++) {
+        const row = slice[idx];
+        const globalIdx = i + idx;
         const r = row as Record<string, unknown>;
         const name = String(r.name || "").trim();
-        if (!name) {
-          skipped++;
-          continue;
-        }
+        if (!name) { skipped++; continue; }
+        const decision = decisionsByIdx.get(globalIdx);
+        if (decision?.action === "ignore") { skipped++; continue; }
         const key = dedupKey({
           cnpj_cpf: r.cnpj_cpf as string | null,
           email: r.email as string | null,
@@ -134,7 +137,12 @@ Deno.serve(async (req) => {
           last_proposal_at: r.last_proposal_at || null,
         };
 
-        const existingMatch = existingByKey.get(key);
+        let existingMatch = existingByKey.get(key);
+        if (decision?.action === "merge" && decision.target_id) {
+          const forced = (existing || []).find((x) => x.id === decision.target_id) as typeof existingMatch | undefined;
+          if (forced) existingMatch = forced;
+        }
+        if (decision?.action === "create") existingMatch = undefined;
         if (existingMatch) {
           if (!update_existing) {
             skipped++;
