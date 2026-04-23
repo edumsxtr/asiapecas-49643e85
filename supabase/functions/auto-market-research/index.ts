@@ -1,5 +1,5 @@
 // Auto Market Research — Lovable AI Gateway with Google Search
-// Validates URLs server-side and falls back to search URLs when needed.
+// Focused on ORIGINAL XCMG parts. Validates URLs server-side and falls back to search URLs when needed.
 
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
@@ -14,6 +14,7 @@ const BodySchema = z.object({
   description: z.string().min(1).max(1000),
   manufacturer: z.string().max(255).nullable().optional(),
   machine_model: z.string().max(255).nullable().optional(),
+  genuine_only: z.boolean().optional().default(true),
 });
 
 interface ResultItem {
@@ -24,8 +25,13 @@ interface ResultItem {
   source_url?: string;
   source_url_type?: "page" | "search";
   url_verified?: boolean;
+  is_genuine?: boolean;
   notes?: string;
 }
+
+// Keywords that indicate a non-original / aftermarket / parallel part — must be discarded when genuine_only=true
+const PARALLEL_REGEX =
+  /\b(paralel|similar|compat[íi]vel|alternativ|gen[ée]ric|recondicionad|remanufaturad|aftermarket|n[ãa]o\s+original)\b/i;
 
 function isValidHttpUrl(raw: string): boolean {
   try {
@@ -46,7 +52,6 @@ async function checkUrl(url: string, timeoutMs = 4000): Promise<boolean> {
       signal: ctrl.signal,
       headers: { "User-Agent": "Mozilla/5.0 (compatible; AsiaPecasBot/1.0)" },
     });
-    // Some sites block HEAD — retry with GET (range)
     if (resp.status === 405 || resp.status === 403) {
       resp = await fetch(url, {
         method: "GET",
@@ -66,11 +71,13 @@ async function checkUrl(url: string, timeoutMs = 4000): Promise<boolean> {
   }
 }
 
-function buildSearchUrl(distributor: string, material: string): string {
+function buildSearchUrl(distributor: string, material: string, genuineOnly: boolean): string {
   const d = distributor.toLowerCase();
-  const q = encodeURIComponent(material);
+  const suffix = genuineOnly ? ' "original XCMG"' : "";
+  const q = encodeURIComponent(`${material}${suffix}`);
   if (d.includes("mercado livre") || d.includes("mercadolivre")) {
-    return `https://lista.mercadolivre.com.br/${encodeURIComponent(material)}`;
+    const term = genuineOnly ? `${material} original XCMG` : material;
+    return `https://lista.mercadolivre.com.br/${encodeURIComponent(term)}`;
   }
   if (d.includes("tracbel")) {
     return `https://www.google.com/search?q=site%3Atracbel.com.br+${q}`;
@@ -81,7 +88,7 @@ function buildSearchUrl(distributor: string, material: string): string {
   if (d.includes("sotreq")) {
     return `https://www.google.com/search?q=site%3Asotreq.com.br+${q}`;
   }
-  return `https://www.google.com/search?q=${encodeURIComponent(`${distributor} ${material}`)}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(`${distributor} ${material}${suffix}`)}`;
 }
 
 Deno.serve(async (req) => {
@@ -105,26 +112,29 @@ Deno.serve(async (req) => {
       );
     }
     const body = parsed.data;
+    const genuineOnly = body.genuine_only !== false;
 
-    const systemPrompt = `Você é um pesquisador de preços de peças para máquinas pesadas (XCMG, Caterpillar, Komatsu, escavadeiras, mineração, perfuratrizes, guindastes) no mercado brasileiro.
-Sua tarefa é encontrar preços de concorrentes/distribuidores reais no Brasil para uma peça específica.
+    const systemPrompt = `Você é um pesquisador de preços de peças GENUÍNAS / ORIGINAIS XCMG no mercado brasileiro.
+A empresa que está pesquisando vende EXCLUSIVAMENTE peças ORIGINAIS XCMG (OEM/genuínas) — a comparação de preços precisa refletir isso.
 
 REGRAS CRÍTICAS:
-- Foque em distribuidores brasileiros: Tracbel, Solar Equipamentos, Mercado Livre, distribuidores oficiais XCMG, Sotreq, etc.
+- Foque SOMENTE em peças GENUÍNAS / ORIGINAIS / OEM XCMG. ${genuineOnly ? "IGNORE COMPLETAMENTE peças paralelas, similares, compatíveis, recondicionadas, remanufaturadas, aftermarket ou de marcas alternativas." : "Inclua tanto originais quanto paralelas, mas marque cada uma corretamente em is_genuine."}
+- Distribuidores prioritários: XCMG Brasil oficial (xcmgbrasil), Tracbel (dealer XCMG), Sotreq, Solar Equipamentos, distribuidores AUTORIZADOS XCMG, e Mercado Livre APENAS quando o anúncio diz explicitamente "Original XCMG" ou "Genuína XCMG".
 - Retorne APENAS dados que você tenha alta confiança que existem. NUNCA invente preços.
 - IMPORTANTÍSSIMO sobre source_url: a URL deve ser EXATAMENTE a página visitada na busca (Google Search). Se você não tiver certeza absoluta de que a URL existe e é a página correta do produto, OMITA o campo source_url. NUNCA invente URLs. URLs inventadas serão descartadas.
-- Se não encontrar referências confiáveis, retorne array vazio em "results" e explique em "search_summary".
+- Para cada resultado, defina is_genuine: true SOMENTE quando o anúncio/distribuidor confirma explicitamente "original XCMG", "genuína XCMG", "OEM XCMG" ou é dealer autorizado. Caso contrário, is_genuine: false.
+${genuineOnly ? '- Se você só encontrar peças paralelas/genéricas, retorne results: [] e explique em search_summary que não há referências de peças originais XCMG no mercado.' : ""}
 - Preços em REAIS (BRL). Prazo em dias úteis.
 - Máximo de 5 resultados.`;
 
-    const userPrompt = `Pesquise preços para esta peça no mercado brasileiro:
+    const userPrompt = `Pesquise preços para esta peça ${genuineOnly ? "ORIGINAL XCMG (genuína / OEM)" : ""} no mercado brasileiro:
 
 Código: ${body.material}
 Descrição: ${body.description}
 ${body.manufacturer ? `Fabricante: ${body.manufacturer}` : ""}
 ${body.machine_model ? `Modelo de máquina: ${body.machine_model}` : ""}
 
-Use busca na web (Google Search) para encontrar distribuidores brasileiros vendendo esta peça ou equivalente. Inclua source_url APENAS se tiver certeza absoluta da URL exata da página visitada.`;
+Use busca na web (Google Search) com os termos "${body.material} original XCMG", "${body.material} OEM XCMG" ou "${body.material} genuína XCMG" para encontrar SOMENTE peças originais. ${genuineOnly ? "Descarte qualquer resultado paralelo, similar, compatível, recondicionado ou aftermarket." : ""} Inclua source_url APENAS se tiver certeza absoluta da URL exata da página visitada.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -150,7 +160,7 @@ Use busca na web (Google Search) para encontrar distribuidores brasileiros vende
                 properties: {
                   search_summary: {
                     type: "string",
-                    description: "Breve resumo da busca: o que foi pesquisado e o que foi encontrado.",
+                    description: "Breve resumo da busca: o que foi pesquisado e o que foi encontrado, indicando se foram encontradas peças originais XCMG ou apenas paralelas.",
                   },
                   results: {
                     type: "array",
@@ -165,9 +175,13 @@ Use busca na web (Google Search) para encontrar distribuidores brasileiros vende
                           enum: ["em estoque", "sob encomenda", "indisponível"],
                         },
                         source_url: { type: "string" },
+                        is_genuine: {
+                          type: "boolean",
+                          description: "true SOMENTE quando o anúncio/distribuidor confirma explicitamente que é peça ORIGINAL XCMG (genuína / OEM). false em qualquer outro caso.",
+                        },
                         notes: { type: "string" },
                       },
-                      required: ["distributor_name", "price_brl"],
+                      required: ["distributor_name", "price_brl", "is_genuine"],
                       additionalProperties: false,
                     },
                   },
@@ -219,9 +233,27 @@ Use busca na web (Google Search) para encontrar distribuidores brasileiros vende
       parsedAI = { search_summary: "Falha ao interpretar resposta da IA.", results: [] };
     }
 
+    // Server-side filter: drop parallel/aftermarket entries when genuine_only is on
+    const rawResults = parsedAI.results || [];
+    const droppedParallel: string[] = [];
+    const filteredResults = rawResults.filter((r) => {
+      const haystack = `${r.distributor_name || ""} ${r.notes || ""}`;
+      const looksParallel = PARALLEL_REGEX.test(haystack);
+      if (genuineOnly && (looksParallel || r.is_genuine === false)) {
+        droppedParallel.push(r.distributor_name);
+        return false;
+      }
+      return true;
+    });
+
+    let summary = parsedAI.search_summary;
+    if (genuineOnly && filteredResults.length === 0 && rawResults.length > 0) {
+      summary = `IA encontrou apenas peças paralelas/genéricas — sem referência confiável de original XCMG. ${summary || ""}`.trim();
+    }
+
     // Validate URLs in parallel and fall back to search URLs when invalid
     const validations = await Promise.allSettled(
-      (parsedAI.results || []).map(async (r) => {
+      filteredResults.map(async (r) => {
         const candidate = r.source_url?.trim();
         let finalUrl: string | undefined;
         let urlType: "page" | "search" = "search";
@@ -237,7 +269,7 @@ Use busca na web (Google Search) para encontrar distribuidores brasileiros vende
         }
 
         if (!finalUrl) {
-          finalUrl = buildSearchUrl(r.distributor_name, body.material);
+          finalUrl = buildSearchUrl(r.distributor_name, body.material, genuineOnly);
           urlType = "search";
           verified = false;
         }
@@ -247,6 +279,7 @@ Use busca na web (Google Search) para encontrar distribuidores brasileiros vende
           source_url: finalUrl,
           source_url_type: urlType,
           url_verified: verified,
+          is_genuine: r.is_genuine === true,
         } as ResultItem;
       }),
     );
@@ -256,7 +289,11 @@ Use busca na web (Google Search) para encontrar distribuidores brasileiros vende
       .filter((x): x is ResultItem => !!x);
 
     return new Response(
-      JSON.stringify({ search_summary: parsedAI.search_summary, results: enriched }),
+      JSON.stringify({
+        search_summary: summary,
+        results: enriched,
+        dropped_parallel_count: droppedParallel.length,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
