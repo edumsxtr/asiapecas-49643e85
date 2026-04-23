@@ -1,76 +1,62 @@
 
 
-# Plano: Links Confiáveis + Categorização + Exportação na Pesquisa de Mercado
+# Plano: Reforçar pesquisa de mercado para peças ORIGINAIS XCMG
 
-## Problemas atuais
+## Contexto
 
-1. **Links quebrados/inventados**: a IA gera `source_url` que muitas vezes não existe (alucinação). Hoje salvamos sem validar, e o usuário clica num link 404.
-2. **Sem categorização** na aba `/pesquisa-mercado`: não dá para filtrar por categoria de peça (Filtros, Hidráulico, Elétrica…) nem por fonte (IA vs manual).
-3. **Sem exportação**: gestor não consegue baixar a pesquisa em planilha para análise externa ou envio.
+Hoje a pesquisa de mercado por IA busca preços de forma genérica em distribuidores brasileiros. O foco precisa ser ajustado: estamos vendendo **peças originais XCMG** e a comparação de mercado deve refletir isso — não adianta comparar com peças paralelas/genéricas baratas, distorce o preço.
 
-## Solução
+## O que será ajustado
 
-### 1. Links confiáveis (correção do problema central)
+### 1. Edge function `auto-market-research` — prompt focado em ORIGINAL XCMG
 
-**Edge function `auto-market-research`:**
-- Reforçar o prompt: "URL deve ser exatamente a página visitada na busca; se não tiver certeza absoluta, OMITA o campo".
-- **Validação server-side** de cada `source_url` antes de retornar:
-  - Validar formato (URL válida, http/https)
-  - Fazer `fetch HEAD` (timeout 4s) — se retornar 404/410/erro de rede, **descarta a URL** e mantém o restante do registro
-  - URLs validadas ganham flag `url_verified: true`
-- **Fallback inteligente**: quando a URL específica falha ou não existe, gerar uma URL de busca confiável (ex: `https://www.google.com/search?q=<material>+<distribuidor>` ou `https://lista.mercadolivre.com.br/<material>`) marcada como `source_url_type: "search"` em vez de inventar uma URL de produto.
+- **Reescrever o system prompt** deixando explícito:
+  - Foco em peças **GENUÍNAS / ORIGINAIS XCMG** (não paralelas, não recondicionadas, não genéricas)
+  - Distribuidores prioritários: **XCMG Brasil oficial, Tracbel (dealer XCMG), Sotreq, Solar Equipamentos, distribuidores autorizados XCMG, Mercado Livre apenas anúncios marcados como "Original XCMG"**
+  - Ignorar resultados de peças paralelas, "similar", "compatível", "recondicionada" — se só houver paralelas, retornar `results: []` e explicar no `search_summary`
+  - Adicionar campo `is_genuine: boolean` em cada resultado para sinalizar quando a IA tem confiança que é original
+- **Reforçar a query de busca**: incluir termos `"original XCMG"`, `"genuína"`, `"OEM"` na consulta enviada ao Google Search
+- **Validação extra**: se `distributor_name` contém palavras-chave de paralelo (paralela, similar, compatível, alternativa, genérico), descartar o resultado server-side
 
-**Frontend (`MarketResearchTab` e `MarketResearchPage`):**
-- Renderizar o link com ícone diferente quando for "busca" vs "página direta" (badge "🔎 Busca" vs "🔗 Página")
-- Tooltip avisando "Link de busca — verificar resultado" quando for fallback
-- Botão "Reportar link quebrado" — marca o registro com `notes` adicional e remove a URL
+### 2. UI — sinalização visual de "Original"
 
-### 2. Categorização da aba Pesquisa de Mercado
+- **`MarketResearchTab`**: badge verde **"Original XCMG"** ao lado do distribuidor quando `is_genuine = true`; badge cinza **"Não confirmado"** quando dúvida
+- **`MarketResearchPage`**: nova coluna **"Tipo"** (Original / Não confirmado) + filtro "Apenas originais"
+- **CSV export**: incluir coluna `Tipo` (Original/Não confirmado)
 
-Na página `/pesquisa-mercado`:
-- **Carregar `part_category`** no `useMarketResearchOverview` (incluir no select da query)
-- Adicionar **filtro "Categoria"** ao lado dos filtros existentes (Distribuidor, Disponibilidade)
-- **Card de KPI extra**: distribuição por categoria (mini barras horizontais)
-- **Coluna "Categoria"** na tabela com badge colorido (reutiliza ícones de `part-categories.ts`)
-- Adicionar **filtro "Fonte"**: Todas / IA / Manual (`researched_by`)
-- Adicionar **agrupamento opcional** "Agrupar por categoria" — toggle que separa a tabela em seções
+### 3. Configuração persistida
 
-### 3. Exportação
+- Pequeno ajuste no `auto-market-research`: aceitar parâmetro opcional `genuine_only: boolean` (default `true`) — permite no futuro o usuário relaxar o filtro pela UI se quiser ver paralelas também
+- Toggle **"Incluir paralelas na busca"** (off por padrão) na aba `MarketResearchTab` ao lado do botão "Pesquisar com IA"
 
-Botão **"Exportar CSV"** no header da página `/pesquisa-mercado`:
-- Exporta os registros **filtrados** atualmente visíveis
-- Colunas: Código da Peça, Descrição, Categoria, Distribuidor, Preço, Nosso Preço, Diferença %, Prazo, Disponibilidade, Fonte, URL, Data, Observações
-- Nome do arquivo: `pesquisa-mercado-YYYY-MM-DD.csv` com BOM UTF-8 (abre certinho no Excel BR)
-- Sem dependência nova: gera CSV puro em JS
+### 4. Schema — campo opcional `is_genuine`
 
-### 4. Pequenas melhorias de robustez
-
-- Adicionar **Zod** na validação do body da edge function
-- Nas linhas onde a IA retornou "sem resultados" (`price_found = 0`), exibir badge "Sem referências" em vez de R$ 0,00 confuso
-- Ordenar resultados por menor preço dentro de cada peça
+- Adicionar coluna `is_genuine boolean` em `market_research` (nullable, default `null` para preservar registros antigos)
+- Hook `useAutoMarketResearch` passa a salvar esse campo
+- Hook `useMarketResearchOverview` passa a expor o campo
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/auto-market-research/index.ts` | Validação de URL (HEAD fetch), fallback para URL de busca, flag `url_verified`, prompt reforçado, Zod no body |
-| `src/hooks/use-market-research.ts` | Incluir `part_category` no select de `useMarketResearchOverview` |
-| `src/pages/MarketResearchPage.tsx` | Filtro Categoria + Fonte, coluna Categoria, agrupamento opcional, botão Exportar CSV, badge "Sem referências" |
-| `src/components/catalog/MarketResearchTab.tsx` | Renderização melhorada do link (tooltip + tipo), botão "Reportar link quebrado", ordenar por menor preço |
-| `src/lib/export-csv.ts` | **Novo** — utilitário genérico para exportar arrays como CSV com BOM UTF-8 |
+| `supabase/functions/auto-market-research/index.ts` | Prompt focado em XCMG original, query reforçada com "original XCMG/OEM", filtro server-side de paralelas, novo campo `is_genuine`, parâmetro `genuine_only` |
+| Migração SQL | Adicionar coluna `is_genuine boolean` em `market_research` |
+| `src/hooks/use-auto-market-research.ts` | Aceitar/passar `genuineOnly`, salvar `is_genuine` nos inserts |
+| `src/hooks/use-market-research.ts` | Expor `is_genuine` no overview |
+| `src/components/catalog/MarketResearchTab.tsx` | Badge "Original XCMG", toggle "Incluir paralelas" |
+| `src/pages/MarketResearchPage.tsx` | Coluna Tipo + filtro "Apenas originais" + coluna Tipo no CSV |
+| `src/lib/export-csv.ts` | Sem mudanças (já genérico) |
 
 ## Detalhes técnicos
 
-- **Validação de URL na edge function**: `Promise.allSettled` com timeout via `AbortController` (4s) para não travar em sites lentos; se >50% falhar, ainda assim retorna os dados (sem URL)
-- **Fallback de URL de busca**: distribuidor reconhecido (Mercado Livre, Tracbel, Solar) → URL de busca específica do site; senão → Google search
-- **CSV**: separador `;` (padrão BR Excel), aspas duplas escapadas, `\r\n` como quebra de linha, prefixo `\uFEFF` (BOM)
-- **Performance**: filtros e agrupamento client-side com `useMemo`; categoria já vem no payload (1 query a mais nada)
-- **Acessibilidade**: link com `aria-label` descritivo do tipo (página/busca)
+- **Lista de palavras-chave de paralelo** (regex case-insensitive): `paralela|similar|compatível|alternativa|genérico|recondicionad|remanufaturad|aftermarket`
+- Quando todos os resultados forem descartados como paralelos, salvar 1 linha com `notes = "IA encontrou apenas peças paralelas — sem referência de original"` para o usuário entender o vazio
+- Migração é aditiva (coluna nullable) — não quebra registros antigos nem leitura existente
+- Filtro UI "Apenas originais" filtra `is_genuine = true` client-side a partir do overview já carregado
 
 ## Resultado esperado
 
-- Zero links 404 — ou validados, ou substituídos por URL de busca útil
-- Pesquisa de Mercado navegável por categoria e fonte (IA/manual)
-- Export CSV pronto para análise no Excel ou envio por email
-- Sistema mais confiável e gerenciável
+- Pesquisa de mercado comparando **maçã com maçã**: peça original XCMG vs peça original XCMG no mercado
+- Gestor enxerga claramente quando o preço de referência é confiável (Original) ou não (Não confirmado)
+- Possibilidade futura de incluir paralelas pontualmente sem perder o foco padrão
 
