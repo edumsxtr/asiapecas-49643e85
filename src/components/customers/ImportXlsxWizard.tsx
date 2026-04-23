@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, FileSpreadsheet, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
-import { useImportCustomers } from "@/hooks/use-customers";
+import { useImportCustomers, usePreviewImport, type PreviewResult } from "@/hooks/use-customers";
 import { customerDedupKey, normalizeCnpj } from "@/lib/normalize";
+import { ImportReviewStep, type Decision } from "./ImportReviewStep";
 import { toast } from "sonner";
 
 type Props = { open: boolean; onOpenChange: (v: boolean) => void; existingKeys: Set<string> };
