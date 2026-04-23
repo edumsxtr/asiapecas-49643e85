@@ -95,11 +95,11 @@ export function useMarketResearchOverview() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("market_research")
-        .select("*, parts(material, description, estimated_price)")
+        .select("*, parts(material, description, estimated_price, part_category)")
         .order("researched_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data || []) as (MarketResearch & { parts: { material: string; description: string; estimated_price: number } | null })[];
+      return (data || []) as (MarketResearch & { parts: { material: string; description: string; estimated_price: number; part_category: string | null } | null })[];
     },
   });
 }
