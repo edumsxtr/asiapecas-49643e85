@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMarketResearch, useAddMarketResearch, useUpdateMarketResearch, useDeleteMarketResearch, type MarketResearch } from "@/hooks/use-market-research";
+import { useMarketResearch, useAddMarketResearch, useUpdateMarketResearch, useDeleteMarketResearch, useVerifyMarketUrl, type MarketResearch } from "@/hooks/use-market-research";
 import { formatBRL } from "@/hooks/use-parts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Minus, ExternalLink, Loader2, Pencil, Trash2, Brain, Search as SearchIcon, LinkIcon, AlertOctagon, ShieldCheck, ShieldQuestion, CheckCircle2, Equal, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
