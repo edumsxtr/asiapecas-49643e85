@@ -1,74 +1,150 @@
 
 
-# Plano: Garantir match exato do código da peça (mesmo item, não similar)
+# Plano: Importação Inteligente do XLSX + Enriquecimento IA do Cadastro
 
-## Problema
+## O que a planilha contém
 
-Hoje a IA pode retornar preços de peças "parecidas" ou de famílias próximas, mesmo sendo Original XCMG. Precisamos garantir que o resultado seja **exatamente o mesmo código de material** (part number) que estamos pesquisando — não um item similar, não um substituto, não uma versão diferente.
+Detectei 4 abas no `Clientes_Organizado.xlsx`:
 
-## O que será ajustado
+| Aba | Conteúdo | Quantidade |
+|---|---|---|
+| **CLIENTES — CRM** | UF, cidade, contato, telefone, email, modelos de interesse, propostas, status, visitas | 759 clientes / 49 estados |
+| **BRASIM 2025** | Leads de feira: contato, data, setor, porte, agendamentos | 19 participantes |
+| **FATURAMENTO SAP** | NFs: documento, condição pagto, pagador, data, valor com impostos | 94 NFs / R$ 1.173.037 |
+| **EQUIPAMENTOS VENDIDOS** | Histórico: modelo, série, order form, local entrega, ano, valor | 759 equip. / 730 clientes |
 
-### 1. Edge function `auto-market-research` — match exato obrigatório
+A tabela `customers` já existe com os campos certos (name, company, cnpj_cpf, email, phone, address, city, state, segment, notes, country, source). Vamos **estender** para suportar os dados ricos da planilha + cruzar com vendas e equipamentos.
 
-- **Prompt reforçado**:
-  - "Você está procurando o **código de peça EXATO**: `{material}`. Não aceite códigos parecidos, nem famílias relacionadas, nem versões alternativas."
-  - "Se o anúncio/site não mostrar literalmente o código `{material}` (ou variação trivial como hífen/espaço), DESCARTE."
-  - Exemplo no prompt: "Procurando `860126593`? Aceite `860126593`, `860-126-593`, `860 126 593`. NÃO aceite `860126594` nem `860126593-A`."
-- **Novo campo por resultado**: `matched_part_number: string` — o código exato encontrado no anúncio (texto literal)
-- **Novo campo**: `match_confidence: "exact" | "normalized" | "uncertain"`
-  - `exact`: código bate caractere por caractere
-  - `normalized`: bate ignorando espaços/hífens/case
-  - `uncertain`: IA acha que é o mesmo mas não viu o código literal → **descartar server-side**
+## Solução em 4 partes
 
-### 2. Validação server-side de match
+### 1. Schema enriquecido (migração aditiva)
 
-- Função `normalizePartNumber(s)`: lowercase, remove espaços/hífens/pontos
-- Para cada resultado, comparar `normalize(matched_part_number)` com `normalize(material)`:
-  - Igual → aceita, marca `match_confidence` final
-  - Diferente ou ausente → descarta (logado em `dropped_mismatch_count`)
-- Reforça a query Google Search incluindo o código entre aspas: `"860126593" original XCMG`
+**Tabela `customers`** — adicionar colunas:
+- `interest_models text[]` — modelos XCMG de interesse
+- `relationship_status text` — ativo / prospect / dormente / sem_contato
+- `last_visit_at timestamptz` — última visita comercial
+- `last_proposal_at timestamptz` — última proposta enviada
+- `total_invoiced numeric default 0` — soma de NFs SAP
+- `enrichment_status text default 'pending'` — pending / enriched / failed
+- `enriched_at timestamptz`
+- `enrichment_data jsonb` — payload bruto da IA (CNAE, porte, redes sociais, site, etc.)
 
-### 3. Schema — novos campos
+**Nova tabela `customer_equipment`** (1 cliente → N equipamentos):
+- `customer_id`, `model`, `serial_number`, `order_form`, `delivery_location`, `purchase_year`, `sale_value`
 
-- Migração aditiva em `market_research`:
-  - `matched_part_number text` (nullable)
-  - `match_confidence text` (nullable, valores: `exact`/`normalized`)
+**Nova tabela `customer_invoices`** (NFs SAP):
+- `customer_id`, `document_number`, `payment_terms`, `payer_name`, `invoice_date`, `total_value`
 
-### 4. UI — sinalização de match
+**Nova tabela `customer_imports`** (auditoria):
+- `file_name`, `imported_at`, `total_rows`, `inserted`, `updated`, `skipped`, `report jsonb`
 
-- **`MarketResearchTab`**: ao lado do distribuidor, badge extra:
-  - 🟢 "Código exato" (`exact`)
-  - 🟡 "Código equivalente" (`normalized`) com tooltip explicando (ex: hífens removidos)
-- **`MarketResearchPage`**: nova coluna **"Match"** com mesmo badge + filtro "Apenas código exato"
-- **CSV export**: nova coluna `Match` (Exato / Equivalente)
+Tudo com RLS `authenticated`.
 
-### 5. Mensagens ao usuário
+### 2. Importador inteligente do XLSX
 
-- Quando todos os resultados forem descartados por mismatch: salvar 1 linha com `notes = "IA não localizou anúncios com o código exato {material}"` e toast amigável
-- Diferenciar no toast: paralelas vs código diferente vs sem nenhum resultado
+**Página `/clientes` → novo botão "Importar XLSX"** que abre um wizard:
+
+**Etapa 1 — Upload e parsing**
+- `xlsx` lib (já usada em `import-catalog`) lê as 4 abas no client
+- Pré-visualização: contagem por aba, primeiras 10 linhas de cada
+
+**Etapa 2 — Mapeamento de colunas**
+- Auto-detecção dos nomes (ex: "Cliente", "CNPJ", "UF", "Cidade", "Telefone", "E-mail", "Modelo", "Status", "Última Visita", "Proposta")
+- Usuário confirma/corrige mapeamento por aba
+
+**Etapa 3 — Deduplicação**
+- Chave de match em ordem de prioridade: **CNPJ normalizado** → **email** → **(nome+cidade)**
+- Para cada linha mostrar: 🟢 novo / 🟡 atualizar / 🔴 conflito (com diff inline)
+- Toggle global "atualizar registros existentes" (default on)
+
+**Etapa 4 — Importação batch**
+- Edge function `import-customers` (nova) processa em chunks de 100
+- Insere/atualiza `customers` + faz upsert em `customer_equipment` e `customer_invoices` ligando ao `customer_id` resolvido
+- Calcula `total_invoiced` agregando as NFs
+- Marca origem (`source = 'xlsx_import'` / `'brasim_2025'` / `'sap'`)
+- Retorna `customer_imports` com relatório completo
+
+### 3. Enriquecimento por IA — "Completar cadastro"
+
+**Botão por cliente** (na tabela e no detalhe): **"Enriquecer com IA"**
+**Botão em massa** no header: **"Enriquecer pendentes (N)"**
+
+**Edge function `enrich-customer`**:
+- Input: `customer_id`
+- Usa **Lovable AI Gateway** com `google/gemini-2.5-pro` (raciocínio + busca pública via grounding) e **tool calling** para retornar JSON estruturado
+- Prompt foca em: razão social oficial, CNPJ formatado, CNAE principal, porte (ME/EPP/Médio/Grande), setor, site, LinkedIn, Instagram, telefone alternativo, endereço completo, cidade/UF (preenche faltantes), tomador de decisão típico, observações comerciais (ex: "opera 12 escavadeiras XCMG na região norte")
+- Schema do tool:
+  ```json
+  {
+    "official_name": "string",
+    "cnpj_formatted": "string|null",
+    "cnae": "string|null",
+    "company_size": "ME|EPP|Medio|Grande|null",
+    "segment": "mineração|construção|logística|energia|geral",
+    "website": "string|null",
+    "linkedin": "string|null",
+    "instagram": "string|null",
+    "alt_phone": "string|null",
+    "full_address": "string|null",
+    "decision_maker_role": "string|null",
+    "commercial_notes": "string|null",
+    "confidence": "high|medium|low",
+    "sources": ["url1","url2"]
+  }
+  ```
+- **Salva** os campos diretos em `customers` (apenas se vazios, nunca sobrescreve telefone/email já preenchido sem confirmação)
+- **Sempre** salva o payload completo em `customers.enrichment_data` (jsonb) com timestamp
+- Marca `enrichment_status = 'enriched'` e `enriched_at = now()`
+
+**UI**:
+- Na linha da tabela: badge "✨ IA" se enriquecido, ⏳ se pendente
+- No diálogo de detalhe: nova aba **"Inteligência IA"** com fontes consultadas, confiança, redes sociais clicáveis, CNAE, porte, observações
+- **Aprovar/descartar sugestões** com diff lado-a-lado quando IA propõe alterar campos já existentes
+
+### 4. Página de detalhe do cliente (nova rota `/clientes/:id`)
+
+Substitui o diálogo atual por uma **página completa 360°** com tabs:
+- **Resumo** — dados cadastrais + cards (total faturado SAP, nº equipamentos, última visita, próxima ação)
+- **Inteligência IA** — dados enriquecidos + botão re-enriquecer
+- **Equipamentos** — tabela `customer_equipment` (modelo, série, ano, valor)
+- **Faturamento SAP** — tabela `customer_invoices` com gráfico mensal
+- **Vendas internas** — `sales` ligadas via `customer_id` (cruza com sistema atual)
+- **Histórico de propostas / visitas** — texto + datas
+
+A listagem `/clientes` ganha:
+- **Filtros**: UF, segmento, porte, status relacionamento, "tem equipamento XCMG", "enriquecido"
+- **Coluna de score** combinando faturamento + equipamentos + última interação
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/auto-market-research/index.ts` | Prompt com match exato, query com aspas, validação server-side de `matched_part_number`, novos campos no JSON, contagem `dropped_mismatch_count` |
-| Migração SQL | Adicionar `matched_part_number text` e `match_confidence text` em `market_research` |
-| `src/hooks/use-auto-market-research.ts` | Salvar novos campos, toast diferenciado por motivo de descarte |
-| `src/hooks/use-market-research.ts` | Expor `matched_part_number` e `match_confidence` no overview |
-| `src/components/catalog/MarketResearchTab.tsx` | Badges "Código exato"/"Equivalente" + tooltip |
-| `src/pages/MarketResearchPage.tsx` | Coluna Match + filtro "Apenas código exato" + coluna Match no CSV |
+| Migração SQL | Adicionar colunas em `customers`, criar `customer_equipment`, `customer_invoices`, `customer_imports` + RLS |
+| `src/hooks/use-customers.ts` | Expor novos campos, novos hooks `useCustomerEquipment`, `useCustomerInvoices`, `useEnrichCustomer`, `useImportCustomers` |
+| `src/pages/CustomersPage.tsx` | Botão importar, botão enriquecer em massa, filtros, badges, link para detalhe |
+| `src/pages/CustomerDetailPage.tsx` | **Nova** — página 360° com tabs |
+| `src/components/customers/ImportXlsxWizard.tsx` | **Novo** — wizard 4 etapas |
+| `src/components/customers/EnrichmentPanel.tsx` | **Novo** — exibe payload IA + aprovar diffs |
+| `src/components/customers/CustomerEquipmentTab.tsx` | **Novo** |
+| `src/components/customers/CustomerInvoicesTab.tsx` | **Novo** |
+| `supabase/functions/import-customers/index.ts` | **Novo** — recebe linhas mapeadas, dedup, upsert em batch |
+| `supabase/functions/enrich-customer/index.ts` | **Novo** — chama Lovable AI com tool calling para JSON estruturado |
+| `src/App.tsx` | Adicionar rota `/clientes/:id` |
+| `src/lib/normalize.ts` | **Novo** — utilitários: `normalizeCnpj`, `normalizePhone`, `normalizeEmail` para deduplicação consistente |
 
 ## Detalhes técnicos
 
-- **Normalização**: `s.toLowerCase().replace(/[\s\-\._]/g, "")`
-- Migração 100% aditiva (campos nullable) — registros antigos seguem funcionando
-- Filtro UI "Apenas código exato" é client-side a partir do overview já carregado
-- Combina com filtros existentes (Original XCMG, Categoria, Fonte) sem conflito
-- Edge function retorna no payload: `{ results, dropped_parallel_count, dropped_mismatch_count, search_summary }` para o hook escolher a mensagem certa
+- **Deduplicação**: chave canônica `cnpj_normalizado || email_lower || slug(nome+cidade)`; resolvida em SQL com `ON CONFLICT` em índice único parcial
+- **Performance**: importação em chunks de 100 via edge function; UI com progresso por aba; `react-query` invalida só `customers` no fim
+- **IA**: Lovable AI Gateway com **tool calling** (não texto livre) para garantir JSON; modelo `google/gemini-2.5-pro` por padrão (qualidade), `google/gemini-2.5-flash` para enriquecimento em massa (custo); rate-limit handling 429/402 com toast
+- **Segurança**: edge functions validam JWT do usuário; Zod no body de ambas; nunca sobrescreve campo preenchido sem flag `force = true`
+- **Auditoria**: cada importação grava linha em `customer_imports` com relatório navegável (downloadable como CSV via `export-csv.ts` existente)
+- **Reuso**: aproveita `xlsx` já no projeto (`import-catalog`), `export-csv.ts`, padrões de hooks já estabelecidos
 
 ## Resultado esperado
 
-- Pesquisa de mercado retorna **somente o mesmo código de peça** que estamos vendendo
-- Gestor vê com clareza se o preço de referência é do **item idêntico** (verde) ou de uma variação equivalente (amarelo)
-- Comparação 100% confiável: peça original XCMG **e** mesmo part number
+- Importação de **759 clientes + 94 NFs + 759 equipamentos** em poucos cliques, com deduplicação visível e relatório
+- Cadastro **enriquecido por IA** sob demanda ou em massa: CNPJ, CNAE, porte, redes sociais, decisor, fontes
+- Visão **360° por cliente** integrando CRM + faturamento SAP + frota XCMG + vendas internas
+- Base limpa, sem duplicados, com origem rastreável e prontinha para a equipe comercial agir
 
