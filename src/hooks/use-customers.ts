@@ -67,17 +67,95 @@ export type CustomerImport = {
   report: Record<string, unknown> | null;
 };
 
-export function useCustomers(search?: string) {
+export type CustomersListParams = {
+  search?: string;
+  state?: string;        // "all" or UF
+  segment?: string;      // "all" or segment
+  enrichment?: string;   // "all" | "enriched" | "pending" | "empty"
+  page?: number;
+  pageSize?: number;
+};
+
+export type CustomersListResult = {
+  rows: Customer[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** Lightweight unpaginated list — for selects & lookups. Capped at 5000. */
+export function useAllCustomers() {
   return useQuery({
-    queryKey: ["customers", search],
+    queryKey: ["customers-all"],
     queryFn: async () => {
-      let query = supabase.from("customers").select("*").order("name");
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id,name,company,cnpj_cpf,phone,email,city,state,segment,relationship_status,enrichment_status,total_invoiced")
+        .order("name")
+        .limit(5000);
+      if (error) throw error;
+      return (data || []) as Customer[];
+    },
+  });
+}
+
+export function useCustomers(params: CustomersListParams = {}) {
+  const { search = "", state = "all", segment = "all", enrichment = "all", page = 1, pageSize = 25 } = params;
+  return useQuery({
+    queryKey: ["customers", { search, state, segment, enrichment, page, pageSize }],
+    queryFn: async (): Promise<CustomersListResult> => {
+      const hasFilters = !!search || state !== "all" || segment !== "all" || enrichment !== "all";
+      let query = supabase
+        .from("customers")
+        .select("*", { count: hasFilters ? "exact" : "estimated" })
+        .order("name");
+
       if (search) {
         query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,cnpj_cpf.ilike.%${search}%`);
       }
-      const { data, error } = await query.limit(2000);
+      if (state !== "all") query = query.eq("state", state);
+      if (segment !== "all") query = query.eq("segment", segment);
+      if (enrichment === "enriched") query = query.eq("enrichment_status", "enriched");
+      else if (enrichment === "pending") query = query.neq("enrichment_status", "enriched");
+      else if (enrichment === "empty") {
+        // empty = no email AND no phone AND no cnpj_cpf
+        query = query.is("email", null).is("phone", null).is("cnpj_cpf", null);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const { data, error, count } = await query.range(from, to);
       if (error) throw error;
-      return data as Customer[];
+      return {
+        rows: (data || []) as Customer[],
+        total: count || 0,
+        page,
+        pageSize,
+      };
+    },
+  });
+}
+
+/** Lightweight global stats for header cards (independent of pagination). */
+export function useCustomersStats() {
+  return useQuery({
+    queryKey: ["customers-stats"],
+    queryFn: async () => {
+      const [{ count: total }, { count: enriched }, { data: states }, { data: invoiced }] = await Promise.all([
+        supabase.from("customers").select("id", { count: "exact", head: true }),
+        supabase.from("customers").select("id", { count: "exact", head: true }).eq("enrichment_status", "enriched"),
+        supabase.from("customers").select("state").not("state", "is", null).limit(5000),
+        supabase.from("customers").select("total_invoiced").gt("total_invoiced", 0).limit(5000),
+      ]);
+      const uniqueStates = new Set((states || []).map((s) => s.state).filter(Boolean));
+      const totalInvoiced = (invoiced || []).reduce((s, x) => s + Number(x.total_invoiced || 0), 0);
+      return {
+        total: total || 0,
+        enriched: enriched || 0,
+        statesCount: uniqueStates.size,
+        states: Array.from(uniqueStates).sort() as string[],
+        totalInvoiced,
+      };
     },
   });
 }
@@ -211,6 +289,7 @@ export function useCreateCustomer() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["customers-stats"] });
       toast.success("Cliente criado com sucesso");
     },
     onError: (e: Error) => toast.error("Erro ao criar cliente: " + e.message),
@@ -242,7 +321,48 @@ export function useDeleteCustomer() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["customers-stats"] });
       toast.success("Cliente removido");
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
+/** Bulk-update many customers with the same patch. Capped at 500 ids. */
+export function useBulkUpdateCustomers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, patch }: { ids: string[]; patch: Partial<Customer> }) => {
+      const safe = ids.slice(0, 500);
+      if (safe.length === 0 || Object.keys(patch).length === 0) return { updated: 0 };
+      const { error } = await supabase.from("customers").update(patch as never).in("id", safe);
+      if (error) throw error;
+      return { updated: safe.length };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["customers-stats"] });
+      toast.success(`${r.updated} cliente(s) atualizados`);
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
+/** Bulk-delete customers. Capped at 500 ids. */
+export function useBulkDeleteCustomers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const safe = ids.slice(0, 500);
+      if (safe.length === 0) return { deleted: 0 };
+      const { error } = await supabase.from("customers").delete().in("id", safe);
+      if (error) throw error;
+      return { deleted: safe.length };
+    },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["customers-stats"] });
+      toast.success(`${r.deleted} cliente(s) excluídos`);
     },
     onError: (e: Error) => toast.error("Erro: " + e.message),
   });
@@ -274,6 +394,7 @@ export function useImportCustomers() {
     },
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["customers-stats"] });
       toast.success(`Importação concluída: ${r.inserted} novos, ${r.updated} atualizados`);
     },
     onError: (e: Error) => toast.error("Erro na importação: " + e.message),

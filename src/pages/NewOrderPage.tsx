@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useCustomers, useCreateCustomer, type CustomerInsert } from "@/hooks/use-customers";
+import { useAllCustomers, useCreateCustomer, type CustomerInsert } from "@/hooks/use-customers";
 import { useCreateSale } from "@/hooks/use-sales";
 import { usePricingSettings, useUpdatePricingSettings, applySellPrice } from "@/hooks/use-pricing";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +36,7 @@ export default function NewOrderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedCustomerId = searchParams.get("customer_id") || "";
-  const { data: customers = [] } = useCustomers();
+  const { data: customers = [] } = useAllCustomers();
   const createSale = useCreateSale();
   const createCustomer = useCreateCustomer();
   const globalCart = useCart();

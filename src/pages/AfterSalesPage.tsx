@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAfterSales, useCreateAfterSale, useUpdateAfterSale, type AfterSale } from "@/hooks/use-after-sales";
-import { useCustomers } from "@/hooks/use-customers";
+import { useAllCustomers } from "@/hooks/use-customers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil } from "lucide-react";
@@ -35,7 +35,7 @@ export default function AfterSalesPage() {
   const [editTicket, setEditTicket] = useState<AfterSale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { data: tickets = [], isLoading } = useAfterSales(statusFilter);
-  const { data: customers = [] } = useCustomers();
+  const { data: customers = [] } = useAllCustomers();
   const createMut = useCreateAfterSale();
   const updateMut = useUpdateAfterSale();
 
