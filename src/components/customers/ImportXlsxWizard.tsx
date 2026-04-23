@@ -174,11 +174,14 @@ function parseWorkbook(file: File): Promise<Parsed> {
 }
 
 export function ImportXlsxWizard({ open, onOpenChange, existingKeys }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [updateExisting, setUpdateExisting] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [preview, setPreview] = useState<PreviewResult[] | null>(null);
+  const [decisions, setDecisions] = useState<Decision[] | null>(null);
   const importMut = useImportCustomers();
+  const previewMut = usePreviewImport();
 
   const handleFile = async (file: File) => {
     try {
