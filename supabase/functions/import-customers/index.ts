@@ -188,14 +188,11 @@ Deno.serve(async (req) => {
       });
     }
     if (equipmentRows.length > 0) {
-      // upsert by (customer_id, serial_number) — fall back to insert if no serial
       for (let i = 0; i < equipmentRows.length; i += 200) {
         const batch = equipmentRows.slice(i, i + 200);
-        const { error, data } = await supabase.from("customer_equipment").upsert(batch, {
-          onConflict: "customer_id,serial_number",
-          ignoreDuplicates: false,
-        }).select("id");
-        if (!error) equipment_inserted += data?.length || batch.length;
+        const { error, data } = await supabase.from("customer_equipment").insert(batch).select("id");
+        if (error) console.error("equipment insert error", error);
+        else equipment_inserted += data?.length || batch.length;
       }
     }
 
