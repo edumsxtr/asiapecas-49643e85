@@ -1,127 +1,112 @@
 
 
-# Plano: Análise de Estoque Aprofundada — Catálogo Inteligente Interativo
+# Plano: Saúde dos Dados confiável, interativa e comercial
 
-## O que descobri analisando os dados reais
+## Diagnóstico atual (validado contra o banco real)
 
-| Métrica | Valor |
-|---|---|
-| SKUs únicos | **15.298** (consolidados de 20.436 linhas) |
-| Unidades em estoque | **460.583** |
-| Valor total | **R$ 193,7 M** |
-| Categorias mapeadas | **11** (zero não classificadas ✅) |
-| SKUs nunca vendidos | **15.291 (99,95%)** ⚠️ |
-| SKUs com vendas | apenas 7 |
-| Estoque parado >2 anos | concentrado em "Acessórios" (R$ 16,2M) e "Transmissão" (R$ 3M) |
-| Categoria mais valiosa | **Acessórios e Outros — R$ 85,7M (44%)** |
-| Categoria com melhor preço médio | **Motor e Componentes — R$ 12k/peça** |
-| Categoria com mais unidades | **Filtros — 71.873 un.** |
+| Métrica atual | Valor | Problema |
+|---|---|---|
+| Sem fabricante | 0 | ✅ Correto |
+| Sem modelo | 0 | ✅ Correto |
+| Sem categoria | 0 | ✅ Correto |
+| Descrição < 10 chars | **15** | ⚠️ Limite muito baixo — perde 802 itens problemáticos |
+| Grupos duplicados | **77** | ❌ **Falso positivo grave**: conta itens GENUINAMENTE diferentes (O-RING M8 vs O-RING M10) como duplicados, só por ter descrição idêntica |
+| Preço zerado | 0 | ✅ Correto |
+| Estoque zerado | 0 | ✅ Correto |
 
-**Insight crítico**: 44% do valor está numa categoria genérica "Acessórios e Outros" — precisa ser **subdividida com IA** para análise útil.
+**Risco comercial**: o vendedor não pode confiar nesses números — pode tentar "consolidar" 6 O-rings que são tamanhos diferentes, ou ignorar 802 peças com descrição genérica ("TUBO", "PEDAL", "BOBINA") que vendem mal por falta de info.
 
-## Solução: Página `/analise-estoque` aprofundada e interativa
+## Solução em 3 frentes
 
-Substitui a `StockPage` atual (que é rasa) por uma análise multi-dimensional com 6 abas e **insights acionáveis automáticos**.
+### 1. Regras de detecção mais inteligentes (RPC `get_stock_analytics`)
 
-### Aba 1 — Visão Executiva (resposta direta: "o que temos?")
+**Duplicados — nova fórmula em 3 níveis de confiança:**
+- 🔴 **Alta confiança** (provável duplicata real): mesma descrição + mesmo `manufacturer` + mesmo `machine_model` + materiais diferentes
+- 🟡 **Média confiança**: mesma descrição normalizada (lowercase, sem espaços extras) + mesmo `manufacturer`, modelos diferentes
+- 🟢 **Baixa** (apenas variantes): descrição igual mas modelos/fabricantes diferentes — **não conta como problema**
 
-**Header com 4 KPIs grandes contando a história**:
-- Capital total imobilizado + % saudável vs parado
-- SKUs ativos vs nunca vendidos (alerta vermelho: 99,95%)
-- Categoria líder em valor com % do total
-- "Itens que valem a pena" vs "itens que não valem" (score automático)
+Retorna apenas alta + média no contador. Estimativa: ~10-25 grupos reais (vs 77 atuais).
 
-**Card "Diagnóstico Automático"** — texto gerado a partir das métricas:
-> "Seu estoque tem R$ 193M em 15.298 SKUs. **R$ 85,7M (44%) está em 'Acessórios e Outros'** — recomendamos reclassificar com IA. Apenas 7 SKUs tiveram venda, indicando que o pipeline comercial está subutilizado vs o tamanho do catálogo. **R$ 28M parados há +2 anos** = candidatos prioritários para promoção/leilão."
+**Descrição curta — 3 faixas:**
+- Críticas: < 10 chars (ex.: "TUBO", "20A") — bloqueiam venda online
+- Atenção: 10-19 chars sem código de norma (sem "GB/T", sem dimensão "M\d+")
+- OK: ≥ 20 chars OU contém código técnico
 
-**Treemap interativo** (recharts `Treemap`): cada retângulo = categoria, tamanho = valor, cor = % parado. Click → drill-down para a aba 2 já filtrada.
+**Novos critérios comerciais adicionados:**
+- **Preço outlier por categoria** (z-score > 3 dentro da categoria) — pode indicar erro de digitação
+- **Caracteres não-latinos** na descrição (chinês/japonês) — bloqueia portal público
+- **Descrição idêntica ao código material** (ex.: "LW188BIELA" como descrição) — info insuficiente
+- **Estoque negativo ou anômalo** (>10.000 un para peça > R$ 10k)
+- **Sem `compatible_models`** preenchido (impede recomendação cruzada no /pedidos/novo)
 
-### Aba 2 — Análise por Categoria (drill-down interativo)
+Cada métrica retorna: `{ count, severity, sample_ids[] }` (até 50 IDs por categoria) para drill-down sem nova query.
 
-Tabela rica com 11 categorias + métricas por categoria:
-- SKUs / Unidades / Valor / Preço médio / % do total
-- **Health score** (0-100): combina giro, % parado, idade média, concentração
-- **Veredito IA**: "🟢 Vale a pena" / "🟡 Otimizar" / "🔴 Liquidar"
-  - Critérios: valor parado >40% = vermelho; preço médio alto + zero vendas = amarelo; baixo valor parado = verde
-- Click numa categoria abre painel lateral com:
-  - Gráfico de pizza dos modelos de máquina dentro dela
-  - Top 10 peças por valor de estoque
-  - Distribuição de tempo (6m / 1-2a / +2a) — mini stacked bar
-  - Sugestão de ação: "Promover N peças paradas há +2 anos = recupera R$ X"
+### 2. UI interativa, drill-down e ação inline (`DataHealthTab.tsx`)
 
-### Aba 3 — Matriz BCG do Estoque (o que vale a pena?)
+**Layout reescrito como dashboard comercial:**
 
-Quadrante interativo 2x2 (`recharts ScatterChart`):
-- Eixo X: **giro** (vendas / estoque)
-- Eixo Y: **valor unitário**
-- Cada bolha = SKU, tamanho = unidades em estoque
+```text
+┌──────────────────────────────────────────────────────────┐
+│  Score Global de Saúde: 87/100  🟢                       │
+│  ▰▰▰▰▰▰▰▰▱▱  15.298 SKUs · 142 com problemas (0,9%)     │
+└──────────────────────────────────────────────────────────┘
 
-Quadrantes:
-- **🌟 Estrelas** (alto valor + alto giro) → manter, repor
-- **🐄 Vacas leiteiras** (baixo valor + alto giro) → fluxo de caixa
-- **❓ Pontos de interrogação** (alto valor + baixo giro) → revisar
-- **🐕 Abacaxis** (baixo valor + baixo giro) → liquidar
+┌─ Críticos (bloqueiam venda) ─┬─ Atenção ─┬─ Informativos ─┐
+│ Cards agrupados por severidade com filtros e ações        │
+└───────────────────────────────────────────────────────────┘
+```
 
-Filtros: por categoria, fabricante, modelo. Click numa bolha → detalhe da peça.
+- Cada card é **clicável** → abre `Sheet` lateral com:
+  - Tabela das peças afetadas (top 50, ordenável)
+  - Colunas: Material · Descrição · Fabricante · Modelo · Estoque · Valor
+  - Botões inline por linha: **Editar** (abre `PartDetailDialog` reaproveitado) · **Mesclar** (para duplicados — abre wizard de merge) · **Categorizar com IA** (chama `subcategorize-parts` para o item)
+  - Botão topo: **Exportar CSV** (reaproveita `export-csv.ts`) · **Resolver tudo com IA** (lote)
 
-### Aba 4 — Subcategorização IA dos "Acessórios e Outros"
+- **Filtros globais** no topo da aba: por fabricante, categoria, faixa de valor — recalcula contadores client-side a partir dos `sample_ids` + `parts`
+- **Toggle "Mostrar apenas com estoque > 0"** — foco no que importa comercialmente
+- **Toggle "Mostrar apenas valor > R$ 1.000"** — esconde ruído de baixo impacto
+- **Indicador de confiabilidade** ao lado de cada métrica: tooltip explicando a regra exata (ex.: "Conta apenas duplicados com mesmo fabricante + modelo")
 
-Botão **"Reclassificar com IA"** dispara edge function `subcategorize-parts` que:
-- Pega lote de 100 SKUs em `Acessórios e Outros`
-- Chama Lovable AI Gateway (`google/gemini-2.5-flash`) com tool calling
-- Retorna nova subcategoria + confiança
-- Atualiza `parts.part_category` (com confirmação visual)
+### 3. Mesclagem de duplicados real (nova feature inline)
 
-Mostra preview lado-a-lado: descrição → categoria atual → categoria sugerida → confiança. Aprovação em massa ou item-a-item.
+Hoje só existe a função SQL `find_duplicate_parts` — sem UI de ação.
 
-### Aba 5 — Inteligência de Tempo & Risco
+**Nova edge function `merge-duplicate-parts`:**
+- Input: `{ keep_id, merge_ids[] }`
+- Soma `stock` no `keep_id`, transfere `sale_items.part_id` para `keep_id`, deleta os duplicados
+- Auditoria: registra em `customer_imports.report` (reutiliza tabela existente como log)
 
-- **Gráfico empilhado** valor por categoria × período (6m/1-2a/+2a)
-- **Heatmap** fabricante × categoria mostrando valor parado
-- **Top 50 peças "âncoras de capital"**: alto valor × +2 anos, com cálculo de "custo de oportunidade" (8% ao ano)
-- Botão **"Exportar lista para promoção"** → CSV pronto para campanha
-
-### Aba 6 — Saúde de Dados (qualidade do catálogo)
-
-Dashboard de problemas detectados:
-- **Duplicados** (descrição igual, código diferente) — usa `find_duplicate_parts` existente
-- **SKUs sem fabricante / modelo / categoria**
-- **SKUs com preço suspeito** (outliers via desvio-padrão por categoria)
-- **SKUs com descrição muito curta** (<10 chars) ou contendo caracteres não-latinos
-- Cada item com botão de ação inline (mesclar / editar / categorizar)
+**UI:** dialog com radio "qual peça manter" + preview do resultado (estoque consolidado, preço médio ponderado) + confirmação dupla.
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/StockPage.tsx` | **Reescrever** como hub com 6 abas |
-| `src/components/stock/ExecutiveOverview.tsx` | **Novo** — KPIs + diagnóstico automático + treemap |
-| `src/components/stock/CategoryDeepDive.tsx` | **Novo** — tabela com health score + drill-down lateral |
-| `src/components/stock/StockBCGMatrix.tsx` | **Novo** — scatter quadrantes |
-| `src/components/stock/SubcategorizeAITab.tsx` | **Novo** — preview e aprovação de reclassificação IA |
-| `src/components/stock/TimeRiskAnalysis.tsx` | **Novo** — heatmap + capital parado por idade |
-| `src/components/stock/DataHealthTab.tsx` | **Novo** — qualidade do catálogo |
-| `src/hooks/use-stock-analytics.ts` | **Novo** — queries agregadas (health score, BCG data, subcategoria stats) |
-| `supabase/migrations/...` | Função SQL `get_stock_analytics()` retornando JSON completo (categoria × tempo × fabricante × giro), evita N queries no client |
-| `supabase/functions/subcategorize-parts/index.ts` | **Novo** — IA reclassifica em lote com tool calling |
-| `src/components/AppSidebar.tsx` | Renomear "Análise de Estoque" → mantém rota `/estoque` |
+| Migration SQL | Reescrever `get_stock_analytics()` com novas regras de `dataHealth` (3 níveis de duplicados, 3 faixas de descrição, outliers, caracteres não-latinos, sem compatible_models) + retornar `sample_ids` por métrica |
+| `src/hooks/use-stock-analytics.ts` | Atualizar TS interface `dataHealth` (estrutura `{ count, severity, samples }`) + novo helper `computeHealthScore()` |
+| `src/components/stock/DataHealthTab.tsx` | **Reescrever** — score global, cards agrupados por severidade, filtros, drill-down via `Sheet`, ações inline |
+| `src/components/stock/DataHealthDrillDown.tsx` | **Novo** — Sheet com tabela das peças afetadas + ações inline |
+| `src/components/stock/MergeDuplicatesDialog.tsx` | **Novo** — wizard de mesclagem com preview |
+| `supabase/functions/merge-duplicate-parts/index.ts` | **Novo** — consolida estoque, transfere `sale_items`, deleta duplicatas |
+| `src/components/catalog/PartDetailDialog.tsx` | Reaproveitar para edição inline (já existe) |
 
 ## Detalhes técnicos
 
-- **Performance**: 1 RPC `get_stock_analytics()` retorna tudo agregado (≈15kB JSON) em <500ms vs 6 queries separadas. Cache `staleTime: 60s` no react-query.
-- **Health Score**: fórmula `100 - (stale_value_pct * 0.5) - (no_sales_pct * 0.3) - (concentration_penalty * 0.2)`, normalizado 0-100.
-- **BCG**: cálculo de giro precisa de janela 12m via `sale_items JOIN sales WHERE sale_date > now() - interval '12 months'`. Como há só 7 SKUs vendidos, mostra mensagem educativa "Estoque com baixíssimo giro histórico — matriz indicativa".
-- **IA reclassificação**: tool calling com schema fixo `{ subcategory: enum, confidence: 0-1, reasoning: string }`; processa 100/lote; rate-limit 429/402 com retry exponencial.
-- **Drill-down lateral**: usa `Sheet` do shadcn já no projeto, evita modal pesado.
-- **Treemap & Scatter**: recharts já está instalado; nada novo.
-- **Exportação**: reaproveita `src/lib/export-csv.ts`.
+- **Performance**: `sample_ids` são limitados a 50 por métrica → JSON cresce ~3kB. Cache 60s mantido.
+- **Confiabilidade**: cada regra documentada via tooltip + descrita no card. Tooltip aparece em hover/tap (mobile-friendly).
+- **Responsividade comercial**: layout `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`, cards com altura mínima fixa, números tabulares grandes (text-2xl), ícone de severidade colorido. Mobile (≤640px): cards empilhados, drill-down em `Sheet` full-screen.
+- **Idempotência da merge**: transação no edge function; se `sale_items` falhar, rollback completo.
+- **Segurança**: edge function valida JWT + Zod schema (`keep_id: uuid`, `merge_ids: uuid[].min(1).max(20)`).
+- **Score global**: `100 - (criticos × 0.5 + atencao × 0.2 + informativos × 0.05) / total × 100`, clamp 0-100.
+- **Acessibilidade**: cores com contraste AA, ícones acompanham texto, foco navegável via teclado.
 
 ## Resultado esperado
 
-- Resposta **imediata e visual** a "o que temos?": treemap + diagnóstico automático
-- Decisão clara **"vale a pena ou não"** por categoria via Health Score + Matriz BCG
-- **R$ 85,7M em "Acessórios"** finalmente subdividido com IA e analisável
-- Identificação de **R$ 28M+ em capital parado** com plano de ação por peça
-- Saúde de dados visível e corrigível em 1 tela
-- Exportações prontas para campanhas comerciais e leilões
+- **Zero falsos positivos** em duplicados (de 77 ruidosos para ~10-25 reais e acionáveis)
+- Vendedor vê **Score 0-100** instantâneo da saúde + lista priorizada do que resolver
+- **1 clique** abre a lista exata de peças afetadas; **2 cliques** edita/mescla/categoriza com IA
+- Tooltips explicam **exatamente** o que cada regra mede — nada de "número mágico"
+- Filtros comerciais (estoque > 0, valor > R$ 1k) eliminam ruído e focam no que gera receita
+- Mesclagem de duplicados consolida estoque com auditoria — fim do retrabalho manual
+- Layout responsivo de mobile a desktop, pronto para uso em campo
 
