@@ -126,6 +126,81 @@ export function useCustomerInvoices(customerId: string | null | undefined) {
   });
 }
 
+export type EquipmentInsert = Partial<Omit<CustomerEquipment, "id" | "created_at">> & { customer_id: string };
+export type InvoiceInsert = Partial<Omit<CustomerInvoice, "id" | "created_at">> & { customer_id: string; total_value: number };
+
+export function useUpsertEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...rest }: Partial<CustomerEquipment> & { customer_id: string }) => {
+      if (id) {
+        const { error } = await supabase.from("customer_equipment").update(rest as never).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("customer_equipment").insert(rest as never);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customer-equipment", vars.customer_id] });
+      toast.success("Equipamento salvo");
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
+export function useDeleteEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; customer_id: string }) => {
+      const { error } = await supabase.from("customer_equipment").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customer-equipment", vars.customer_id] });
+      toast.success("Equipamento removido");
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
+export function useUpsertInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...rest }: Partial<CustomerInvoice> & { customer_id: string; total_value: number }) => {
+      if (id) {
+        const { error } = await supabase.from("customer_invoices").update(rest as never).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("customer_invoices").insert(rest as never);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customer-invoices", vars.customer_id] });
+      qc.invalidateQueries({ queryKey: ["customer", vars.customer_id] });
+      toast.success("Nota fiscal salva");
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
+export function useDeleteInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; customer_id: string }) => {
+      const { error } = await supabase.from("customer_invoices").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customer-invoices", vars.customer_id] });
+      qc.invalidateQueries({ queryKey: ["customer", vars.customer_id] });
+      toast.success("Nota fiscal removida");
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
 export function useCreateCustomer() {
   const qc = useQueryClient();
   return useMutation({
