@@ -299,14 +299,24 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                     <TableCell>
                       <div className="flex gap-1">
                         {e.source_url && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
-                                <AlertOctagon className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Reportar link quebrado</TooltipContent>
-                          </Tooltip>
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-primary/70 hover:text-primary" onClick={() => handleReverify(e)} disabled={isReverifying || !part} aria-label="Reverificar conteúdo do link">
+                                  {isReverifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Reverificar conteúdo do link</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive/70 hover:text-destructive" onClick={() => handleReportBroken(e)} aria-label="Reportar link quebrado">
+                                  <AlertOctagon className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Reportar link quebrado</TooltipContent>
+                            </Tooltip>
+                          </>
                         )}
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /></Button>
                         <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => setDeleteEntry(e)}><Trash2 className="h-3 w-3" /></Button>
