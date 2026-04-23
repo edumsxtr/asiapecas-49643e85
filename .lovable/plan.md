@@ -1,111 +1,127 @@
 
 
-# Plano: Revisão de Duplicidades + CRM 360° Integrado (Prospecção, Pedidos, Pós-Venda)
+# Plano: Análise de Estoque Aprofundada — Catálogo Inteligente Interativo
 
-## Contexto
+## O que descobri analisando os dados reais
 
-Hoje a importação grava direto no banco e o cliente fica isolado das outras ferramentas (Prospecção, Vendas, Pós-Venda). Precisamos:
-1. **Revisar duplicatas antes de gravar** — mesclar / ignorar / criar novo
-2. **Identificar clientes vazios** (sem contato/equipamento/faturamento) e enviá-los à **Prospecção com IA**
-3. **Integrar tudo**: do CRM o vendedor cria pedido, abre chamado pós-venda, dispara prospecção, e tudo volta para a ficha 360° do cliente
+| Métrica | Valor |
+|---|---|
+| SKUs únicos | **15.298** (consolidados de 20.436 linhas) |
+| Unidades em estoque | **460.583** |
+| Valor total | **R$ 193,7 M** |
+| Categorias mapeadas | **11** (zero não classificadas ✅) |
+| SKUs nunca vendidos | **15.291 (99,95%)** ⚠️ |
+| SKUs com vendas | apenas 7 |
+| Estoque parado >2 anos | concentrado em "Acessórios" (R$ 16,2M) e "Transmissão" (R$ 3M) |
+| Categoria mais valiosa | **Acessórios e Outros — R$ 85,7M (44%)** |
+| Categoria com melhor preço médio | **Motor e Componentes — R$ 12k/peça** |
+| Categoria com mais unidades | **Filtros — 71.873 un.** |
 
-## Solução em 4 blocos
+**Insight crítico**: 44% do valor está numa categoria genérica "Acessórios e Outros" — precisa ser **subdividida com IA** para análise útil.
 
-### 1. Tela de Revisão de Duplicidades (pré-gravação)
+## Solução: Página `/analise-estoque` aprofundada e interativa
 
-Nova etapa **3.5** no `ImportXlsxWizard` antes do batch import:
+Substitui a `StockPage` atual (que é rasa) por uma análise multi-dimensional com 6 abas e **insights acionáveis automáticos**.
 
-**Edge function `preview-customer-import`** (nova) — recebe as linhas mapeadas e retorna **dry-run**:
-- Para cada linha aplica a chave canônica (CNPJ → email → `canonicalCompanyName`+cidade)
-- Retorna `{ row_index, status: "new"|"match"|"ambiguous", matches: [{customer_id, name, score, fields_diff}] }`
-- `score` 0-100 combinando match exato CNPJ (100), email (90), nome canônico (60-80 por similaridade Jaro-Winkler), cidade (+10)
-- `ambiguous` quando 2+ candidatos com score >50
+### Aba 1 — Visão Executiva (resposta direta: "o que temos?")
 
-**UI `ImportReviewStep.tsx`** (nova):
-- Tabela agrupada por status: 🟢 Novos / 🟡 Match único / 🔴 Ambíguos
-- Cada linha ambígua expansível: mostra **diff lado-a-lado** (planilha vs cada candidato), com checkboxes por campo (escolher de qual lado vem cada valor) — **merge cirúrgico**
-- Ações por linha: **Mesclar com [X]** / **Criar novo** / **Ignorar**
-- Ações em massa: "Aceitar todos os matches únicos", "Ignorar duplicados sem dados novos"
-- Contador no topo: "X serão criados, Y mesclados, Z ignorados"
-- Só ao confirmar é que dispara `import-customers` com `decisions: [{row_index, action, target_id, field_overrides}]`
+**Header com 4 KPIs grandes contando a história**:
+- Capital total imobilizado + % saudável vs parado
+- SKUs ativos vs nunca vendidos (alerta vermelho: 99,95%)
+- Categoria líder em valor com % do total
+- "Itens que valem a pena" vs "itens que não valem" (score automático)
 
-`import-customers` ganha modo `apply_decisions` que respeita escolhas do usuário em vez de re-deduplicar.
+**Card "Diagnóstico Automático"** — texto gerado a partir das métricas:
+> "Seu estoque tem R$ 193M em 15.298 SKUs. **R$ 85,7M (44%) está em 'Acessórios e Outros'** — recomendamos reclassificar com IA. Apenas 7 SKUs tiveram venda, indicando que o pipeline comercial está subutilizado vs o tamanho do catálogo. **R$ 28M parados há +2 anos** = candidatos prioritários para promoção/leilão."
 
-### 2. Detecção de "Clientes Vazios" + Prospecção integrada
+**Treemap interativo** (recharts `Treemap`): cada retângulo = categoria, tamanho = valor, cor = % parado. Click → drill-down para a aba 2 já filtrada.
 
-**View / cálculo client-side**: cliente é "vazio" quando:
-- Sem `email` E sem `phone` E sem `cnpj_cpf`, OU
-- Sem nenhum `customer_equipment` E sem `customer_invoices` E sem `sales`
+### Aba 2 — Análise por Categoria (drill-down interativo)
 
-**`CustomersPage`**: novo filtro **"Vazios / Incompletos"** + badge "📭 Vazio" na linha + ação em massa **"Prospectar com IA (N)"**
+Tabela rica com 11 categorias + métricas por categoria:
+- SKUs / Unidades / Valor / Preço médio / % do total
+- **Health score** (0-100): combina giro, % parado, idade média, concentração
+- **Veredito IA**: "🟢 Vale a pena" / "🟡 Otimizar" / "🔴 Liquidar"
+  - Critérios: valor parado >40% = vermelho; preço médio alto + zero vendas = amarelo; baixo valor parado = verde
+- Click numa categoria abre painel lateral com:
+  - Gráfico de pizza dos modelos de máquina dentro dela
+  - Top 10 peças por valor de estoque
+  - Distribuição de tempo (6m / 1-2a / +2a) — mini stacked bar
+  - Sugestão de ação: "Promover N peças paradas há +2 anos = recupera R$ X"
 
-**Edge function `prospect-from-customer`** (nova):
-- Input: `customer_id` (1 ou N)
-- Faz lookup público (web search via Lovable AI grounding) por nome/CNPJ/cidade
-- Cria/atualiza linha em `prospects` com `source = 'crm_empty'`, score IA, `ai_summary`, `matched_parts` (cruzando `interest_models` com peças em estoque)
-- Marca `customers.relationship_status = 'em_prospeccao'` e linka via `prospects.notes` o `customer_id` original (campo novo `prospects.customer_id uuid` — migração aditiva)
-- No retorno, frontend abre `/prospeccao` filtrado por essa campanha
+### Aba 3 — Matriz BCG do Estoque (o que vale a pena?)
 
-**`CustomerDetailPage` → nova aba "Prospecção"**: lista os registros em `prospects` linkados, com score, resumo IA, botão "Reenriquecer", botão "Promover a cliente ativo" (limpa o vazio e marca status `ativo`)
+Quadrante interativo 2x2 (`recharts ScatterChart`):
+- Eixo X: **giro** (vendas / estoque)
+- Eixo Y: **valor unitário**
+- Cada bolha = SKU, tamanho = unidades em estoque
 
-### 3. Pedidos direto do CRM (integração CRM ↔ Vendas)
+Quadrantes:
+- **🌟 Estrelas** (alto valor + alto giro) → manter, repor
+- **🐄 Vacas leiteiras** (baixo valor + alto giro) → fluxo de caixa
+- **❓ Pontos de interrogação** (alto valor + baixo giro) → revisar
+- **🐕 Abacaxis** (baixo valor + baixo giro) → liquidar
 
-**`CustomerDetailPage` → header**: botão **"Novo Pedido"** que navega para `/pedidos/novo?customer_id=:id`
+Filtros: por categoria, fabricante, modelo. Click numa bolha → detalhe da peça.
 
-**`NewOrderPage`** ganha:
-- Pré-seleção do cliente quando vier `?customer_id=`
-- Sugestão automática de peças baseada em:
-  - `customer_equipment.model` → filtra `parts.compatible_models`
-  - Histórico de `sale_items` desse cliente (top 10 mais comprados)
-  - `customers.interest_models`
-- Card "Sugestões para este cliente" no topo do catálogo do pedido
+### Aba 4 — Subcategorização IA dos "Acessórios e Outros"
 
-**`CustomerDetailPage` → nova aba "Pedidos"**: lista `sales WHERE customer_id = :id` com status, valor, data, link para detalhe da venda; cards de KPI (ticket médio, total comprado, última compra, dias desde último pedido)
+Botão **"Reclassificar com IA"** dispara edge function `subcategorize-parts` que:
+- Pega lote de 100 SKUs em `Acessórios e Outros`
+- Chama Lovable AI Gateway (`google/gemini-2.5-flash`) com tool calling
+- Retorna nova subcategoria + confiança
+- Atualiza `parts.part_category` (com confirmação visual)
 
-### 4. Pós-Venda integrado
+Mostra preview lado-a-lado: descrição → categoria atual → categoria sugerida → confiança. Aprovação em massa ou item-a-item.
 
-**`CustomerDetailPage` → nova aba "Pós-Venda"**: lista `after_sales WHERE customer_id = :id` (chamados, garantias, suporte) com status colorido; botão **"Abrir chamado"** que cria registro já vinculado ao cliente (e à última venda, se houver)
+### Aba 5 — Inteligência de Tempo & Risco
 
-## Esquema (migração aditiva)
+- **Gráfico empilhado** valor por categoria × período (6m/1-2a/+2a)
+- **Heatmap** fabricante × categoria mostrando valor parado
+- **Top 50 peças "âncoras de capital"**: alto valor × +2 anos, com cálculo de "custo de oportunidade" (8% ao ano)
+- Botão **"Exportar lista para promoção"** → CSV pronto para campanha
 
-- `prospects.customer_id uuid` (nullable) — link de volta ao CRM quando origem é `crm_empty`
-- Índice em `prospects.customer_id`
-- Nada mais — reaproveitamos `sales`, `after_sales`, `customers`, `customer_equipment`, `customer_invoices`
+### Aba 6 — Saúde de Dados (qualidade do catálogo)
+
+Dashboard de problemas detectados:
+- **Duplicados** (descrição igual, código diferente) — usa `find_duplicate_parts` existente
+- **SKUs sem fabricante / modelo / categoria**
+- **SKUs com preço suspeito** (outliers via desvio-padrão por categoria)
+- **SKUs com descrição muito curta** (<10 chars) ou contendo caracteres não-latinos
+- Cada item com botão de ação inline (mesclar / editar / categorizar)
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migração SQL | Adicionar `prospects.customer_id` + índice |
-| `supabase/functions/preview-customer-import/index.ts` | **Novo** — dry-run de dedup com score e diffs |
-| `supabase/functions/import-customers/index.ts` | Aceitar `apply_decisions` mode (respeita escolhas do usuário) |
-| `supabase/functions/prospect-from-customer/index.ts` | **Novo** — IA gera prospect a partir de cliente vazio |
-| `src/components/customers/ImportXlsxWizard.tsx` | Inserir etapa de revisão antes do batch |
-| `src/components/customers/ImportReviewStep.tsx` | **Novo** — tabela de revisão + merge cirúrgico |
-| `src/components/customers/CustomerProspectionTab.tsx` | **Novo** — aba Prospecção na ficha |
-| `src/components/customers/CustomerSalesTab.tsx` | **Novo** — aba Pedidos na ficha |
-| `src/components/customers/CustomerAfterSalesTab.tsx` | **Novo** — aba Pós-Venda na ficha |
-| `src/pages/CustomerDetailPage.tsx` | 3 novas abas + botão "Novo Pedido" + botão "Prospectar com IA" |
-| `src/pages/CustomersPage.tsx` | Filtro "Vazios", badge, ação em massa "Prospectar (N)" |
-| `src/pages/NewOrderPage.tsx` | Pré-seleção via `?customer_id=` + bloco "Sugestões para este cliente" |
-| `src/hooks/use-customers.ts` | Novos hooks: `usePreviewImport`, `useApplyImportDecisions`, `useProspectFromCustomer`, `useCustomerSales`, `useCustomerAfterSales`, `useCustomerProspects`, `useEmptyCustomersCount` |
-| `src/hooks/use-prospects.ts` | Filtro por `customer_id`; mutation "promover a cliente ativo" |
+| `src/pages/StockPage.tsx` | **Reescrever** como hub com 6 abas |
+| `src/components/stock/ExecutiveOverview.tsx` | **Novo** — KPIs + diagnóstico automático + treemap |
+| `src/components/stock/CategoryDeepDive.tsx` | **Novo** — tabela com health score + drill-down lateral |
+| `src/components/stock/StockBCGMatrix.tsx` | **Novo** — scatter quadrantes |
+| `src/components/stock/SubcategorizeAITab.tsx` | **Novo** — preview e aprovação de reclassificação IA |
+| `src/components/stock/TimeRiskAnalysis.tsx` | **Novo** — heatmap + capital parado por idade |
+| `src/components/stock/DataHealthTab.tsx` | **Novo** — qualidade do catálogo |
+| `src/hooks/use-stock-analytics.ts` | **Novo** — queries agregadas (health score, BCG data, subcategoria stats) |
+| `supabase/migrations/...` | Função SQL `get_stock_analytics()` retornando JSON completo (categoria × tempo × fabricante × giro), evita N queries no client |
+| `supabase/functions/subcategorize-parts/index.ts` | **Novo** — IA reclassifica em lote com tool calling |
+| `src/components/AppSidebar.tsx` | Renomear "Análise de Estoque" → mantém rota `/estoque` |
 
 ## Detalhes técnicos
 
-- **Scoring de dedup**: Jaro-Winkler (implementação leve em `src/lib/normalize.ts`) sobre nome canônico; CNPJ vale 100, email 90, nome+cidade 60-90
-- **Merge cirúrgico**: payload `field_overrides: { name?: "spreadsheet"|"existing"|"custom", phone?: ..., ... }` para o servidor montar o registro final com auditoria em `customer_imports.report.merge_log`
-- **Performance**: preview em batch de 200 linhas, retorna em <5s; UI virtualizada (`@tanstack/react-virtual` se passar de 500 linhas)
-- **IA prospecção**: Lovable AI Gateway com `google/gemini-2.5-pro` + grounding; fallback para `gemini-2.5-flash` em massa; rate-limit 429/402 com retry/backoff
-- **Sugestão de peças no pedido**: query única que cruza `customer_equipment.model` com `parts.compatible_models` (array overlap `&&`) e top vendas via `sale_items` agrupado
-- **Segurança**: todas as edge functions validam JWT; Zod no body; nunca sobrescreve campo do cliente sem decisão explícita
-- **UX**: barra de progresso por etapa do wizard; toasts diferenciados (criados / mesclados / ignorados / falhas); link direto para a ficha 360° de cada cliente afetado no relatório final
+- **Performance**: 1 RPC `get_stock_analytics()` retorna tudo agregado (≈15kB JSON) em <500ms vs 6 queries separadas. Cache `staleTime: 60s` no react-query.
+- **Health Score**: fórmula `100 - (stale_value_pct * 0.5) - (no_sales_pct * 0.3) - (concentration_penalty * 0.2)`, normalizado 0-100.
+- **BCG**: cálculo de giro precisa de janela 12m via `sale_items JOIN sales WHERE sale_date > now() - interval '12 months'`. Como há só 7 SKUs vendidos, mostra mensagem educativa "Estoque com baixíssimo giro histórico — matriz indicativa".
+- **IA reclassificação**: tool calling com schema fixo `{ subcategory: enum, confidence: 0-1, reasoning: string }`; processa 100/lote; rate-limit 429/402 com retry exponencial.
+- **Drill-down lateral**: usa `Sheet` do shadcn já no projeto, evita modal pesado.
+- **Treemap & Scatter**: recharts já está instalado; nada novo.
+- **Exportação**: reaproveita `src/lib/export-csv.ts`.
 
 ## Resultado esperado
 
-- **Importação segura**: nenhuma duplicata gravada sem revisão; merge campo a campo quando houver conflito
-- **Clientes vazios viram oportunidade**: 1 clique transforma cadastro incompleto em prospect enriquecido por IA
-- **Ficha 360° real**: Resumo, IA, Equipamentos, Faturamento, **Pedidos**, **Pós-Venda**, **Prospecção** — tudo no mesmo lugar
-- **Vendedor vende mais rápido**: do cadastro do cliente até o pedido com peças sugeridas em <30s
-- **CRM virou hub central** conectando Importação → Enriquecimento → Prospecção → Vendas → Pós-Venda
+- Resposta **imediata e visual** a "o que temos?": treemap + diagnóstico automático
+- Decisão clara **"vale a pena ou não"** por categoria via Health Score + Matriz BCG
+- **R$ 85,7M em "Acessórios"** finalmente subdividido com IA e analisável
+- Identificação de **R$ 28M+ em capital parado** com plano de ação por peça
+- Saúde de dados visível e corrigível em 1 tela
+- Exportações prontas para campanhas comerciais e leilões
 
