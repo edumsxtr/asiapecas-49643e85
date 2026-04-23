@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, type Customer, type CustomerInsert } from "@/hooks/use-customers";
-import { Plus, Search, Trash2, Pencil } from "lucide-react";
+import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, useEnrichCustomer, type Customer, type CustomerInsert } from "@/hooks/use-customers";
+import { Plus, Search, Trash2, Pencil, Upload, Sparkles, Eye } from "lucide-react";
+import { ImportXlsxWizard } from "@/components/customers/ImportXlsxWizard";
+import { customerDedupKey } from "@/lib/normalize";
 
-const SEGMENTS = ["mineração", "construção", "logística", "energia", "geral"];
+const SEGMENTS = ["mineração", "construção", "logística", "energia", "agronegócio", "geral"];
+const STATUSES = ["ativo", "prospect", "dormente", "sem_contato"];
 
 const emptyCustomer: CustomerInsert = {
   name: "", company: null, cnpj_cpf: null, email: null, phone: null,
@@ -21,8 +25,13 @@ const emptyCustomer: CustomerInsert = {
 };
 
 export default function CustomersPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [stateFilter, setStateFilter] = useState<string>("all");
+  const [segmentFilter, setSegmentFilter] = useState<string>("all");
+  const [enrichmentFilter, setEnrichmentFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CustomerInsert>(emptyCustomer);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -30,6 +39,30 @@ export default function CustomersPage() {
   const createMut = useCreateCustomer();
   const updateMut = useUpdateCustomer();
   const deleteMut = useDeleteCustomer();
+  const enrichMut = useEnrichCustomer();
+
+  const filtered = useMemo(() => {
+    return customers.filter((c) => {
+      if (stateFilter !== "all" && c.state !== stateFilter) return false;
+      if (segmentFilter !== "all" && c.segment !== segmentFilter) return false;
+      if (enrichmentFilter === "enriched" && c.enrichment_status !== "enriched") return false;
+      if (enrichmentFilter === "pending" && c.enrichment_status === "enriched") return false;
+      return true;
+    });
+  }, [customers, stateFilter, segmentFilter, enrichmentFilter]);
+
+  const states = useMemo(() => {
+    const s = new Set(customers.map((c) => c.state).filter(Boolean) as string[]);
+    return Array.from(s).sort();
+  }, [customers]);
+
+  const existingKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of customers) set.add(customerDedupKey(c));
+    return set;
+  }, [customers]);
+
+  const pendingCount = useMemo(() => customers.filter((c) => c.enrichment_status !== "enriched").length, [customers]);
 
   const openCreate = () => { setEditingId(null); setForm(emptyCustomer); setOpen(true); };
   const openEdit = (c: Customer) => {
@@ -39,7 +72,7 @@ export default function CustomersPage() {
   };
 
   const handleSave = () => {
-    if (!form.name.trim()) return;
+    if (!form.name?.trim()) return;
     if (editingId) {
       updateMut.mutate({ id: editingId, ...form }, { onSuccess: () => { setOpen(false); setEditingId(null); } });
     } else {
@@ -52,42 +85,71 @@ export default function CustomersPage() {
     deleteMut.mutate(deleteId, { onSuccess: () => setDeleteId(null) });
   };
 
-  const segmentCounts = customers.reduce<Record<string, number>>((acc, c) => {
-    const s = c.segment || "geral";
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, {});
+  const handleBulkEnrich = async () => {
+    const pending = customers.filter((c) => c.enrichment_status !== "enriched").slice(0, 10);
+    for (const c of pending) {
+      try { await enrichMut.mutateAsync(c.id); } catch (_) { /* ignore */ }
+    }
+  };
 
-  const thisMonth = customers.filter(c => {
-    const d = new Date(c.created_at);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-
+  const totalInvoiced = customers.reduce((s, c) => s + (c.total_invoiced || 0), 0);
   const isPending = createMut.isPending || updateMut.isPending;
 
   return (
     <AppLayout>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="font-display text-2xl font-bold text-foreground">CRM - Clientes</h1>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" /> Importar XLSX
+            </Button>
+            <Button variant="outline" onClick={handleBulkEnrich} disabled={enrichMut.isPending || pendingCount === 0}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Enriquecer pendentes ({Math.min(pendingCount, 10)})
+            </Button>
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Clientes</CardTitle></CardHeader>
             <CardContent><p className="text-2xl font-bold">{customers.length}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Novos este mês</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold text-primary">{thisMonth}</p></CardContent></Card>
-          {Object.entries(segmentCounts).slice(0, 2).map(([seg, count]) => (
-            <Card key={seg}><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground capitalize">{seg}</CardTitle></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{count}</p></CardContent></Card>
-          ))}
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Enriquecidos por IA</CardTitle></CardHeader>
+            <CardContent><p className="text-2xl font-bold text-primary">{customers.length - pendingCount}</p></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Faturado total</CardTitle></CardHeader>
+            <CardContent><p className="text-xl font-bold">R$ {totalInvoiced.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Estados cobertos</CardTitle></CardHeader>
+            <CardContent><p className="text-2xl font-bold">{states.length}</p></CardContent></Card>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, empresa ou CNPJ..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="flex gap-2 flex-wrap items-center">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome, empresa ou CNPJ..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <Select value={stateFilter} onValueChange={setStateFilter}>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="UF" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas UFs</SelectItem>
+              {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={segmentFilter} onValueChange={setSegmentFilter}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Segmento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos segmentos</SelectItem>
+              {SEGMENTS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={enrichmentFilter} onValueChange={setEnrichmentFilter}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Enriquecimento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="enriched">✨ Enriquecidos</SelectItem>
+              <SelectItem value="pending">⏳ Pendentes</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Card>
@@ -96,29 +158,46 @@ export default function CustomersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Empresa</TableHead>
+                  <TableHead>UF / Cidade</TableHead>
                   <TableHead>CNPJ/CPF</TableHead>
                   <TableHead>Segmento</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Faturado</TableHead>
+                  <TableHead>IA</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-                ) : customers.length === 0 ? (
+                ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</TableCell></TableRow>
-                ) : customers.map(c => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{c.company || "—"}</TableCell>
+                ) : filtered.map(c => (
+                  <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/clientes/${c.id}`)}>
+                    <TableCell className="font-medium">
+                      {c.name}
+                      {c.company && <p className="text-xs text-muted-foreground truncate max-w-xs">{c.company}</p>}
+                    </TableCell>
+                    <TableCell className="text-sm">{[c.state, c.city].filter(Boolean).join(" / ") || "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{c.cnpj_cpf || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className="capitalize">{c.segment || "geral"}</Badge></TableCell>
-                    <TableCell>{c.phone || "—"}</TableCell>
-                    <TableCell>{c.email || "—"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-sm">{c.total_invoiced ? `R$ ${(c.total_invoiced as number).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}</TableCell>
+                    <TableCell>
+                      {c.enrichment_status === "enriched" ? (
+                        <Badge className="gap-1"><Sparkles className="h-3 w-3" /> IA</Badge>
+                      ) : c.enrichment_status === "failed" ? (
+                        <Badge variant="destructive">falhou</Badge>
+                      ) : (
+                        <Badge variant="outline">⏳</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`/clientes/${c.id}`)} title="Ver detalhe">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => enrichMut.mutate(c.id)} disabled={enrichMut.isPending} title="Enriquecer com IA">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -135,13 +214,14 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      {/* Create/Edit Dialog */}
+      <ImportXlsxWizard open={importOpen} onOpenChange={setImportOpen} existingKeys={existingKeys} />
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Nome *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div><Label>Nome *</Label><Input value={form.name || ""} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
               <div><Label>Empresa</Label><Input value={form.company || ""} onChange={e => setForm(f => ({ ...f, company: e.target.value || null }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -160,8 +240,14 @@ export default function CustomersPage() {
             <div className="grid grid-cols-3 gap-4">
               <div><Label>Cidade</Label><Input value={form.city || ""} onChange={e => setForm(f => ({ ...f, city: e.target.value || null }))} /></div>
               <div><Label>Estado</Label><Input value={form.state || ""} onChange={e => setForm(f => ({ ...f, state: e.target.value || null }))} /></div>
-              <div><Label>Endereço</Label><Input value={form.address || ""} onChange={e => setForm(f => ({ ...f, address: e.target.value || null }))} /></div>
+              <div><Label>Status</Label>
+                <Select value={form.relationship_status || "prospect"} onValueChange={v => setForm(f => ({ ...f, relationship_status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
+            <div><Label>Endereço</Label><Input value={form.address || ""} onChange={e => setForm(f => ({ ...f, address: e.target.value || null }))} /></div>
             <div><Label>Observações</Label><Textarea value={form.notes || ""} onChange={e => setForm(f => ({ ...f, notes: e.target.value || null }))} /></div>
           </div>
           <DialogFooter>
@@ -171,7 +257,6 @@ export default function CustomersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
