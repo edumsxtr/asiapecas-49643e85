@@ -1,112 +1,105 @@
 
 
-# Plano: Saúde dos Dados confiável, interativa e comercial
+# Plano: Pesquisa de Mercado IA — Zero margem de erro no link do anúncio
 
-## Diagnóstico atual (validado contra o banco real)
+## Problema confirmado
 
-| Métrica atual | Valor | Problema |
-|---|---|---|
-| Sem fabricante | 0 | ✅ Correto |
-| Sem modelo | 0 | ✅ Correto |
-| Sem categoria | 0 | ✅ Correto |
-| Descrição < 10 chars | **15** | ⚠️ Limite muito baixo — perde 802 itens problemáticos |
-| Grupos duplicados | **77** | ❌ **Falso positivo grave**: conta itens GENUINAMENTE diferentes (O-RING M8 vs O-RING M10) como duplicados, só por ter descrição idêntica |
-| Preço zerado | 0 | ✅ Correto |
-| Estoque zerado | 0 | ✅ Correto |
+Hoje a edge function `auto-market-research`:
+1. Pede à IA um `source_url` do anúncio
+2. Valida apenas se a URL **responde HTTP 200** (`checkUrl` faz HEAD)
+3. Marca como `url_verified: true` e tipo `"page"` se passou
 
-**Risco comercial**: o vendedor não pode confiar nesses números — pode tentar "consolidar" 6 O-rings que são tamanhos diferentes, ou ignorar 802 peças com descrição genérica ("TUBO", "PEDAL", "BOBINA") que vendem mal por falta de info.
+**Falha grave**: HTTP 200 só prova que a página existe — **não prova que ela contém o código `${material}` da peça pesquisada**. Resultado: clico no link e abro a homepage do distribuidor, ou um anúncio de outra peça, ou uma listagem genérica. O vendedor perde confiança.
 
-## Solução em 3 frentes
+Casos reais de falso positivo:
+- IA retorna `tracbel.com.br/produtos` (200 OK, mas é catálogo geral)
+- IA retorna `mercadolivre.com.br/MLB-12345-OUTRA-PECA` (200 OK, peça diferente)
+- IA "alucina" um slug plausível que existe mas não é o anúncio
 
-### 1. Regras de detecção mais inteligentes (RPC `get_stock_analytics`)
+## Solução: validação de conteúdo, não só de status
 
-**Duplicados — nova fórmula em 3 níveis de confiança:**
-- 🔴 **Alta confiança** (provável duplicata real): mesma descrição + mesmo `manufacturer` + mesmo `machine_model` + materiais diferentes
-- 🟡 **Média confiança**: mesma descrição normalizada (lowercase, sem espaços extras) + mesmo `manufacturer`, modelos diferentes
-- 🟢 **Baixa** (apenas variantes): descrição igual mas modelos/fabricantes diferentes — **não conta como problema**
+### 1. `checkUrl` vira `verifyUrlContainsPartNumber`
 
-Retorna apenas alta + média no contador. Estimativa: ~10-25 grupos reais (vs 77 atuais).
+Substituir a verificação atual por uma que **baixa o HTML da página** (até 200 KB) e procura o `material` literalmente — em forma exata, normalizada (sem hífen/espaço/ponto) e em meta-tags.
 
-**Descrição curta — 3 faixas:**
-- Críticas: < 10 chars (ex.: "TUBO", "20A") — bloqueiam venda online
-- Atenção: 10-19 chars sem código de norma (sem "GB/T", sem dimensão "M\d+")
-- OK: ≥ 20 chars OU contém código técnico
-
-**Novos critérios comerciais adicionados:**
-- **Preço outlier por categoria** (z-score > 3 dentro da categoria) — pode indicar erro de digitação
-- **Caracteres não-latinos** na descrição (chinês/japonês) — bloqueia portal público
-- **Descrição idêntica ao código material** (ex.: "LW188BIELA" como descrição) — info insuficiente
-- **Estoque negativo ou anômalo** (>10.000 un para peça > R$ 10k)
-- **Sem `compatible_models`** preenchido (impede recomendação cruzada no /pedidos/novo)
-
-Cada métrica retorna: `{ count, severity, sample_ids[] }` (até 50 IDs por categoria) para drill-down sem nova query.
-
-### 2. UI interativa, drill-down e ação inline (`DataHealthTab.tsx`)
-
-**Layout reescrito como dashboard comercial:**
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│  Score Global de Saúde: 87/100  🟢                       │
-│  ▰▰▰▰▰▰▰▰▱▱  15.298 SKUs · 142 com problemas (0,9%)     │
-└──────────────────────────────────────────────────────────┘
-
-┌─ Críticos (bloqueiam venda) ─┬─ Atenção ─┬─ Informativos ─┐
-│ Cards agrupados por severidade com filtros e ações        │
-└───────────────────────────────────────────────────────────┘
+```ts
+async function verifyUrlContainsPartNumber(url, material): Promise<{ ok, evidence }>
 ```
 
-- Cada card é **clicável** → abre `Sheet` lateral com:
-  - Tabela das peças afetadas (top 50, ordenável)
-  - Colunas: Material · Descrição · Fabricante · Modelo · Estoque · Valor
-  - Botões inline por linha: **Editar** (abre `PartDetailDialog` reaproveitado) · **Mesclar** (para duplicados — abre wizard de merge) · **Categorizar com IA** (chama `subcategorize-parts` para o item)
-  - Botão topo: **Exportar CSV** (reaproveita `export-csv.ts`) · **Resolver tudo com IA** (lote)
+Regras:
+- HEAD primeiro para descartar 404/timeout
+- GET com `Range: bytes=0-204800` (cap 200KB; a maioria dos anúncios cabe no `<head>` + título)
+- Decodifica HTML, remove tags via regex leve, normaliza com `normalizePartNumber()`
+- Procura `material` em 3 formas: literal, normalizada, e em `<title>`/`<meta name="description">`/`<h1>` (extraídos por regex)
+- Retorna `evidence`: trecho de até 120 chars onde o código foi encontrado (vai virar tooltip "comprovação")
+- Bloqueia URLs claramente genéricas: domínios sem path (`tracbel.com.br/`), `/produtos`, `/categorias`, `/busca`, `/search`, `/?q=` — mesmo se contiverem o código no HTML
 
-- **Filtros globais** no topo da aba: por fabricante, categoria, faixa de valor — recalcula contadores client-side a partir dos `sample_ids` + `parts`
-- **Toggle "Mostrar apenas com estoque > 0"** — foco no que importa comercialmente
-- **Toggle "Mostrar apenas valor > R$ 1.000"** — esconde ruído de baixo impacto
-- **Indicador de confiabilidade** ao lado de cada métrica: tooltip explicando a regra exata (ex.: "Conta apenas duplicados com mesmo fabricante + modelo")
+### 2. Resultado da validação determina a UI
 
-### 3. Mesclagem de duplicados real (nova feature inline)
+| Situação | `source_url_type` | `url_verified` | UI |
+|---|---|---|---|
+| Página contém o código no HTML/title | `"page"` | `true` | Badge verde "Página verificada ✓" + tooltip mostra `evidence` |
+| Página existe mas NÃO contém o código | descartada | — | Substituída por `buildSearchUrl()` ("Busca") |
+| Página 404/timeout | descartada | — | Substituída por busca |
+| URL genérica (homepage/listagem) | descartada | — | Substituída por busca |
 
-Hoje só existe a função SQL `find_duplicate_parts` — sem UI de ação.
+Resultado nunca mais leva o usuário a "Página verificada" que não é o anúncio certo.
 
-**Nova edge function `merge-duplicate-parts`:**
-- Input: `{ keep_id, merge_ids[] }`
-- Soma `stock` no `keep_id`, transfere `sale_items.part_id` para `keep_id`, deleta os duplicados
-- Auditoria: registra em `customer_imports.report` (reutiliza tabela existente como log)
+### 3. Reforço no prompt + descarte de resultados sem URL útil
 
-**UI:** dialog com radio "qual peça manter" + preview do resultado (estoque consolidado, preço médio ponderado) + confirmação dupla.
+No `systemPrompt`:
+- Exigir que `source_url` seja **a URL da página do anúncio individual** (não listagem/categoria/home). Se a IA não tem essa URL exata, **omitir o campo** — melhor sem URL do que URL errada.
+- Adicionar exemplos de URLs ACEITÁVEIS (`mercadolivre.com.br/MLB-12345-pistao-xcmg-860126593-_JM`) e RECUSÁVEIS (`tracbel.com.br/`, `mercadolivre.com.br/ofertas`).
+
+No pós-processamento da edge function:
+- Resultado com `match_confidence === "exact"` mas URL não-verificável → mantém o resultado, mas força `source_url_type = "search"` e adiciona nota: "Anúncio confirmado pela IA, link direto não disponível — use a busca para abrir".
+- Resultado SEM `matched_part_number` literal verificado **na URL nem no HTML** → descartado (`droppedMismatch++`).
+
+### 4. Re-verificação sob demanda na UI (`MarketResearchTab.tsx`)
+
+Adicionar botão **"Reverificar link"** ao lado do botão "Reportar quebrado" em cada linha:
+- Chama nova edge function `verify-market-url` (input: `{ research_id, material, url }`) que reaplica `verifyUrlContainsPartNumber`
+- Atualiza `market_research.notes` com o resultado e `source_url` (mantém ou troca por busca)
+- Toast: "Link confirma o código X" / "Link não contém o código — substituído por busca"
+
+Isso permite ao vendedor **provar na hora** que o link é confiável antes de mostrar para o cliente.
+
+### 5. Coluna nova `match_evidence` (opcional, sem migração obrigatória)
+
+Em vez de criar coluna nova, gravar a `evidence` dentro de `notes` no formato:
+```
+[verificado: "...título do anúncio com código 860126593..."]
+```
+Renderizar como tooltip do badge "Página verificada". Zero migração, retrocompatível.
+
+### 6. Cache de verificação (1 hora)
+
+Para evitar re-baixar a mesma URL em chamadas seguidas (ex.: várias peças no mesmo distribuidor), `Map<url, {ok, evidence, ts}>` em memória do worker, TTL 1h. Reduz custo e latência.
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| Migration SQL | Reescrever `get_stock_analytics()` com novas regras de `dataHealth` (3 níveis de duplicados, 3 faixas de descrição, outliers, caracteres não-latinos, sem compatible_models) + retornar `sample_ids` por métrica |
-| `src/hooks/use-stock-analytics.ts` | Atualizar TS interface `dataHealth` (estrutura `{ count, severity, samples }`) + novo helper `computeHealthScore()` |
-| `src/components/stock/DataHealthTab.tsx` | **Reescrever** — score global, cards agrupados por severidade, filtros, drill-down via `Sheet`, ações inline |
-| `src/components/stock/DataHealthDrillDown.tsx` | **Novo** — Sheet com tabela das peças afetadas + ações inline |
-| `src/components/stock/MergeDuplicatesDialog.tsx` | **Novo** — wizard de mesclagem com preview |
-| `supabase/functions/merge-duplicate-parts/index.ts` | **Novo** — consolida estoque, transfere `sale_items`, deleta duplicatas |
-| `src/components/catalog/PartDetailDialog.tsx` | Reaproveitar para edição inline (já existe) |
+| `supabase/functions/auto-market-research/index.ts` | Substituir `checkUrl` por `verifyUrlContainsPartNumber`; bloquear URLs genéricas; reforçar prompt; descartar/rebaixar resultados sem prova; gravar `evidence` em `notes` |
+| `supabase/functions/verify-market-url/index.ts` | **Novo** — reverificação on-demand de uma única URL |
+| `src/hooks/use-market-research.ts` | Novo `useVerifyMarketUrl()` mutation |
+| `src/components/catalog/MarketResearchTab.tsx` | Botão "Reverificar link" por linha; tooltip do badge mostra `evidence` extraída de `notes`; badge muda para "Verificado ✓" só quando `url_verified === true` |
 
 ## Detalhes técnicos
 
-- **Performance**: `sample_ids` são limitados a 50 por métrica → JSON cresce ~3kB. Cache 60s mantido.
-- **Confiabilidade**: cada regra documentada via tooltip + descrita no card. Tooltip aparece em hover/tap (mobile-friendly).
-- **Responsividade comercial**: layout `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`, cards com altura mínima fixa, números tabulares grandes (text-2xl), ícone de severidade colorido. Mobile (≤640px): cards empilhados, drill-down em `Sheet` full-screen.
-- **Idempotência da merge**: transação no edge function; se `sale_items` falhar, rollback completo.
-- **Segurança**: edge function valida JWT + Zod schema (`keep_id: uuid`, `merge_ids: uuid[].min(1).max(20)`).
-- **Score global**: `100 - (criticos × 0.5 + atencao × 0.2 + informativos × 0.05) / total × 100`, clamp 0-100.
-- **Acessibilidade**: cores com contraste AA, ícones acompanham texto, foco navegável via teclado.
+- **Performance**: GET parcial (200KB) com timeout 5s; verificação em paralelo (`Promise.allSettled`) já existe — mantida. Cache 1h evita reprocessar.
+- **Robustez do match no HTML**: HTML pode ter o código com entidades (`&shy;`, `&#45;`) ou dentro de JSON-LD. Estratégia: depois de strip-tags, decodificar entidades comuns + normalizar antes de comparar. Fallback procura também o `matched_part_number` retornado pela IA, não só `body.material`.
+- **URLs bloqueadas (lista)**: pathnames `/`, `/produtos`, `/categoria(s)`, `/busca`, `/search`, `/ofertas`, `/loja`, `/marca/xcmg`, `?q=`, `?search=`. Configurável no topo do arquivo.
+- **Mercado Livre**: anúncios têm padrão `/MLB-NNNNN-` ou `/p/MLB...`. Se a URL é ML mas não contém esse padrão, marca como busca.
+- **Segurança**: Zod valida input em `verify-market-url` (`research_id: uuid, url: string.url, material: string.min(1)`); JWT obrigatório.
+- **Sem regressão de UX**: usuário continua vendo resultados — só muda que "Página" agora **garante** conter o código; quando não, fica "Busca" (com aviso).
+- **Telemetria leve**: log no Edge `console.info("verify ok|reject reason ...")` para debug futuro sem expor PII.
 
 ## Resultado esperado
 
-- **Zero falsos positivos** em duplicados (de 77 ruidosos para ~10-25 reais e acionáveis)
-- Vendedor vê **Score 0-100** instantâneo da saúde + lista priorizada do que resolver
-- **1 clique** abre a lista exata de peças afetadas; **2 cliques** edita/mescla/categoriza com IA
-- Tooltips explicam **exatamente** o que cada regra mede — nada de "número mágico"
-- Filtros comerciais (estoque > 0, valor > R$ 1k) eliminam ruído e focam no que gera receita
-- Mesclagem de duplicados consolida estoque com auditoria — fim do retrabalho manual
-- Layout responsivo de mobile a desktop, pronto para uso em campo
+- **Zero falsos positivos** em "Página verificada" — clicar SEMPRE leva a anúncio que contém o código pesquisado, com evidência textual visível em tooltip.
+- Vendedor pode **reverificar manualmente** qualquer link antigo em 1 clique.
+- URLs genéricas (homepage, busca, categoria) deixam de ser apresentadas como "página direta".
+- Resultados confirmados pela IA mas sem URL precisa continuam aparecendo — apenas com link de busca, com nota explícita.
+- Cache reduz custo de verificação repetida; performance praticamente igual à atual.
 
