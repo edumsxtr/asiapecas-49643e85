@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Pencil, GitMerge, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { exportToCSV } from "@/lib/export-csv";
+import { downloadCsv, todayStamp } from "@/lib/export-csv";
 import { toast } from "sonner";
 import type { HealthSeverity } from "@/hooks/use-stock-analytics";
 
@@ -95,19 +95,17 @@ export function DataHealthDrillDown({
   };
 
   const handleExport = () => {
-    exportToCSV(
-      filtered.map((r) => ({
-        Material: r.material,
-        Descrição: r.description,
-        Fabricante: r.manufacturer ?? "",
-        Modelo: r.machine_model ?? "",
-        Categoria: r.part_category ?? "",
-        Estoque: r.stock,
-        "Preço unit (R$)": r.estimated_price,
-        "Valor total (R$)": (r.stock * r.estimated_price).toFixed(2),
-      })),
-      `saude-dados-${title.toLowerCase().replace(/\s+/g, "-")}`,
-    );
+    const slug = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+    downloadCsv(`saude-dados-${slug}-${todayStamp()}.csv`, filtered, [
+      { header: "Material", value: (r) => r.material },
+      { header: "Descrição", value: (r) => r.description },
+      { header: "Fabricante", value: (r) => r.manufacturer ?? "" },
+      { header: "Modelo", value: (r) => r.machine_model ?? "" },
+      { header: "Categoria", value: (r) => r.part_category ?? "" },
+      { header: "Estoque", value: (r) => r.stock },
+      { header: "Preço unit (R$)", value: (r) => r.estimated_price },
+      { header: "Valor total (R$)", value: (r) => (r.stock * r.estimated_price).toFixed(2) },
+    ]);
   };
 
   return (
