@@ -9,6 +9,8 @@ interface AIResultItem {
   availability?: string;
   source_url?: string;
   is_genuine?: boolean;
+  matched_part_number?: string;
+  match_confidence?: "exact" | "normalized";
   notes?: string;
 }
 
@@ -16,6 +18,7 @@ interface AIResponse {
   search_summary: string;
   results: AIResultItem[];
   dropped_parallel_count?: number;
+  dropped_mismatch_count?: number;
   error?: string;
 }
 
@@ -59,23 +62,45 @@ export function useAutoMarketResearch() {
       const summary = data?.search_summary ?? "";
       const now = new Date().toISOString();
 
+      const droppedParallel = data?.dropped_parallel_count ?? 0;
+      const droppedMismatch = data?.dropped_mismatch_count ?? 0;
+
       if (results.length === 0) {
-        const droppedAll = (data?.dropped_parallel_count ?? 0) > 0;
+        const reason: "mismatch" | "parallel" | "none" =
+          droppedMismatch > 0 && droppedParallel === 0
+            ? "mismatch"
+            : droppedParallel > 0 && droppedMismatch === 0
+              ? "parallel"
+              : droppedMismatch > 0 || droppedParallel > 0
+                ? "mismatch"
+                : "none";
+
+        const distributorLabel =
+          reason === "mismatch"
+            ? "IA — código não encontrado"
+            : reason === "parallel"
+              ? "IA — apenas paralelas"
+              : "IA — sem resultados";
+
+        const noteText =
+          summary ||
+          (reason === "mismatch"
+            ? `IA não localizou anúncios com o código exato ${input.material}`
+            : reason === "parallel"
+              ? "IA encontrou apenas peças paralelas — sem referência de original XCMG"
+              : "IA não encontrou referências confiáveis");
+
         await supabase.from("market_research").insert({
           part_id: input.partId,
-          distributor_name: droppedAll ? "IA — apenas paralelas" : "IA — sem resultados",
+          distributor_name: distributorLabel,
           price_found: 0,
           availability: "indisponível",
-          notes:
-            summary ||
-            (droppedAll
-              ? "IA encontrou apenas peças paralelas — sem referência de original XCMG"
-              : "IA não encontrou referências confiáveis"),
+          notes: noteText,
           researched_at: now,
           researched_by: "IA",
           is_genuine: null,
         });
-        return { inserted: 0, summary, droppedAll };
+        return { inserted: 0, summary, reason };
       }
 
       const rows = results
@@ -92,6 +117,8 @@ export function useAutoMarketResearch() {
           researched_at: now,
           researched_by: "IA",
           is_genuine: r.is_genuine === true,
+          matched_part_number: r.matched_part_number ?? null,
+          match_confidence: r.match_confidence ?? null,
         }));
 
       if (rows.length > 0) {
@@ -99,7 +126,7 @@ export function useAutoMarketResearch() {
         if (insErr) throw insErr;
       }
 
-      return { inserted: rows.length, summary, droppedAll: false };
+      return { inserted: rows.length, summary, reason: "ok" as const };
     },
     onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ["market-research", vars.partId] });
@@ -107,13 +134,15 @@ export function useAutoMarketResearch() {
       qc.invalidateQueries({ queryKey: ["lowest-market-price", vars.partId] });
       qc.invalidateQueries({ queryKey: ["has-market-research", vars.partId] });
       if (res.inserted === 0) {
-        if (res.droppedAll) {
+        if (res.reason === "mismatch") {
+          toast.warning(`IA não localizou anúncios com o código exato — apenas códigos diferentes/similares.`);
+        } else if (res.reason === "parallel") {
           toast.warning("IA só encontrou peças paralelas — nenhuma referência de Original XCMG.");
         } else {
           toast.warning("IA não encontrou referências confiáveis para esta peça.");
         }
       } else {
-        toast.success(`IA encontrou ${res.inserted} referência(s) de Original XCMG.`);
+        toast.success(`IA encontrou ${res.inserted} referência(s) com código exato.`);
       }
     },
     onError: (e: Error) => toast.error(e.message),

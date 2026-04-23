@@ -1,5 +1,6 @@
 // Auto Market Research — Lovable AI Gateway with Google Search
 // Focused on ORIGINAL XCMG parts. Validates URLs server-side and falls back to search URLs when needed.
+// Enforces EXACT part-number match — discards similar / related codes.
 
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
@@ -26,12 +27,18 @@ interface ResultItem {
   source_url_type?: "page" | "search";
   url_verified?: boolean;
   is_genuine?: boolean;
+  matched_part_number?: string;
+  match_confidence?: "exact" | "normalized" | "uncertain";
   notes?: string;
 }
 
-// Keywords that indicate a non-original / aftermarket / parallel part — must be discarded when genuine_only=true
 const PARALLEL_REGEX =
   /\b(paralel|similar|compat[íi]vel|alternativ|gen[ée]ric|recondicionad|remanufaturad|aftermarket|n[ãa]o\s+original)\b/i;
+
+/** Normalize part numbers for tolerant matching (lowercase, strip space/hyphen/dot/underscore). */
+function normalizePartNumber(s: string): string {
+  return (s || "").toLowerCase().replace(/[\s\-._]/g, "");
+}
 
 function isValidHttpUrl(raw: string): boolean {
   try {
@@ -74,7 +81,8 @@ async function checkUrl(url: string, timeoutMs = 4000): Promise<boolean> {
 function buildSearchUrl(distributor: string, material: string, genuineOnly: boolean): string {
   const d = distributor.toLowerCase();
   const suffix = genuineOnly ? ' "original XCMG"' : "";
-  const q = encodeURIComponent(`${material}${suffix}`);
+  // Force exact code match on search engines via quotes
+  const q = encodeURIComponent(`"${material}"${suffix}`);
   if (d.includes("mercado livre") || d.includes("mercadolivre")) {
     const term = genuineOnly ? `${material} original XCMG` : material;
     return `https://lista.mercadolivre.com.br/${encodeURIComponent(term)}`;
@@ -88,7 +96,7 @@ function buildSearchUrl(distributor: string, material: string, genuineOnly: bool
   if (d.includes("sotreq")) {
     return `https://www.google.com/search?q=site%3Asotreq.com.br+${q}`;
   }
-  return `https://www.google.com/search?q=${encodeURIComponent(`${distributor} ${material}${suffix}`)}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(`${distributor} "${material}"${suffix}`)}`;
 }
 
 Deno.serve(async (req) => {
@@ -113,28 +121,45 @@ Deno.serve(async (req) => {
     }
     const body = parsed.data;
     const genuineOnly = body.genuine_only !== false;
+    const targetNorm = normalizePartNumber(body.material);
 
     const systemPrompt = `Você é um pesquisador de preços de peças GENUÍNAS / ORIGINAIS XCMG no mercado brasileiro.
 A empresa que está pesquisando vende EXCLUSIVAMENTE peças ORIGINAIS XCMG (OEM/genuínas) — a comparação de preços precisa refletir isso.
 
-REGRAS CRÍTICAS:
+REGRA DE OURO — MATCH EXATO DO CÓDIGO DE PEÇA:
+- Você está procurando o CÓDIGO DE PEÇA EXATO: "${body.material}".
+- Aceite SOMENTE anúncios/páginas que mostrem LITERALMENTE este mesmo código (ou variação trivial: hífen, espaço, ponto, maiúscula/minúscula).
+  - Exemplo: procurando "860126593" → ACEITE "860126593", "860-126-593", "860 126 593", "860.126.593".
+  - REJEITE "860126594", "860126593-A", "860126592", "compatível com 860126593".
+- Se o anúncio NÃO mostra o código literal, DESCARTE — não invente match.
+- Para CADA resultado retorne o campo "matched_part_number" com o texto LITERAL do código encontrado no anúncio.
+- Para CADA resultado retorne "match_confidence":
+  - "exact" → o código bate caractere por caractere com "${body.material}"
+  - "normalized" → bate ignorando espaços/hífens/pontos/case
+  - "uncertain" → você acha que é o mesmo item mas NÃO viu o código literal (NUNCA use sem certeza — se for incerto, melhor não retornar)
+
+REGRAS XCMG:
 - Foque SOMENTE em peças GENUÍNAS / ORIGINAIS / OEM XCMG. ${genuineOnly ? "IGNORE COMPLETAMENTE peças paralelas, similares, compatíveis, recondicionadas, remanufaturadas, aftermarket ou de marcas alternativas." : "Inclua tanto originais quanto paralelas, mas marque cada uma corretamente em is_genuine."}
 - Distribuidores prioritários: XCMG Brasil oficial (xcmgbrasil), Tracbel (dealer XCMG), Sotreq, Solar Equipamentos, distribuidores AUTORIZADOS XCMG, e Mercado Livre APENAS quando o anúncio diz explicitamente "Original XCMG" ou "Genuína XCMG".
 - Retorne APENAS dados que você tenha alta confiança que existem. NUNCA invente preços.
-- IMPORTANTÍSSIMO sobre source_url: a URL deve ser EXATAMENTE a página visitada na busca (Google Search). Se você não tiver certeza absoluta de que a URL existe e é a página correta do produto, OMITA o campo source_url. NUNCA invente URLs. URLs inventadas serão descartadas.
-- Para cada resultado, defina is_genuine: true SOMENTE quando o anúncio/distribuidor confirma explicitamente "original XCMG", "genuína XCMG", "OEM XCMG" ou é dealer autorizado. Caso contrário, is_genuine: false.
-${genuineOnly ? '- Se você só encontrar peças paralelas/genéricas, retorne results: [] e explique em search_summary que não há referências de peças originais XCMG no mercado.' : ""}
-- Preços em REAIS (BRL). Prazo em dias úteis.
-- Máximo de 5 resultados.`;
+- IMPORTANTÍSSIMO sobre source_url: a URL deve ser EXATAMENTE a página visitada na busca. Se você não tiver certeza absoluta de que a URL existe, OMITA o campo source_url. URLs inventadas serão descartadas.
+- Para cada resultado, defina is_genuine: true SOMENTE quando o anúncio confirma explicitamente "original XCMG", "genuína XCMG", "OEM XCMG" ou é dealer autorizado. Caso contrário, is_genuine: false.
+${genuineOnly ? '- Se você só encontrar peças paralelas/genéricas ou códigos diferentes, retorne results: [] e explique em search_summary.' : ""}
+- Preços em REAIS (BRL). Prazo em dias úteis. Máximo de 5 resultados.`;
 
     const userPrompt = `Pesquise preços para esta peça ${genuineOnly ? "ORIGINAL XCMG (genuína / OEM)" : ""} no mercado brasileiro:
 
-Código: ${body.material}
+Código EXATO procurado: ${body.material}
 Descrição: ${body.description}
 ${body.manufacturer ? `Fabricante: ${body.manufacturer}` : ""}
 ${body.machine_model ? `Modelo de máquina: ${body.machine_model}` : ""}
 
-Use busca na web (Google Search) com os termos "${body.material} original XCMG", "${body.material} OEM XCMG" ou "${body.material} genuína XCMG" para encontrar SOMENTE peças originais. ${genuineOnly ? "Descarte qualquer resultado paralelo, similar, compatível, recondicionado ou aftermarket." : ""} Inclua source_url APENAS se tiver certeza absoluta da URL exata da página visitada.`;
+Use busca na web (Google Search) com o código ENTRE ASPAS para forçar correspondência exata:
+"${body.material}" original XCMG
+"${body.material}" OEM XCMG
+"${body.material}" genuína XCMG
+
+Aceite SOMENTE resultados onde o código "${body.material}" aparece LITERALMENTE no anúncio/página. ${genuineOnly ? "Descarte qualquer resultado paralelo, similar, compatível, recondicionado ou aftermarket." : ""} Para cada resultado, preencha matched_part_number com o código EXATO visto no anúncio e match_confidence ("exact" ou "normalized"). Inclua source_url APENAS se tiver certeza absoluta da URL.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -154,13 +179,13 @@ Use busca na web (Google Search) com os termos "${body.material} original XCMG",
             type: "function",
             function: {
               name: "report_market_research",
-              description: "Reporta os preços de concorrentes encontrados.",
+              description: "Reporta os preços de concorrentes encontrados, com match exato do código de peça.",
               parameters: {
                 type: "object",
                 properties: {
                   search_summary: {
                     type: "string",
-                    description: "Breve resumo da busca: o que foi pesquisado e o que foi encontrado, indicando se foram encontradas peças originais XCMG ou apenas paralelas.",
+                    description: "Breve resumo da busca: o que foi pesquisado, se foram encontradas peças originais XCMG com o código exato, ou apenas códigos diferentes / paralelas.",
                   },
                   results: {
                     type: "array",
@@ -177,11 +202,20 @@ Use busca na web (Google Search) com os termos "${body.material} original XCMG",
                         source_url: { type: "string" },
                         is_genuine: {
                           type: "boolean",
-                          description: "true SOMENTE quando o anúncio/distribuidor confirma explicitamente que é peça ORIGINAL XCMG (genuína / OEM). false em qualquer outro caso.",
+                          description: "true SOMENTE quando o anúncio confirma explicitamente que é peça ORIGINAL XCMG (genuína / OEM).",
+                        },
+                        matched_part_number: {
+                          type: "string",
+                          description: "O código de peça EXATO conforme aparece literalmente no anúncio/página visitada.",
+                        },
+                        match_confidence: {
+                          type: "string",
+                          enum: ["exact", "normalized", "uncertain"],
+                          description: "exact = bate caractere por caractere; normalized = bate ignorando espaços/hífens/case; uncertain = não viu o código literal (será descartado).",
                         },
                         notes: { type: "string" },
                       },
-                      required: ["distributor_name", "price_brl", "is_genuine"],
+                      required: ["distributor_name", "price_brl", "is_genuine", "matched_part_number", "match_confidence"],
                       additionalProperties: false,
                     },
                   },
@@ -233,27 +267,54 @@ Use busca na web (Google Search) com os termos "${body.material} original XCMG",
       parsedAI = { search_summary: "Falha ao interpretar resposta da IA.", results: [] };
     }
 
-    // Server-side filter: drop parallel/aftermarket entries when genuine_only is on
+    // 1) Drop parallel/aftermarket entries when genuine_only is on
     const rawResults = parsedAI.results || [];
-    const droppedParallel: string[] = [];
-    const filteredResults = rawResults.filter((r) => {
+    let droppedParallel = 0;
+    const afterParallel = rawResults.filter((r) => {
       const haystack = `${r.distributor_name || ""} ${r.notes || ""}`;
       const looksParallel = PARALLEL_REGEX.test(haystack);
       if (genuineOnly && (looksParallel || r.is_genuine === false)) {
-        droppedParallel.push(r.distributor_name);
+        droppedParallel++;
         return false;
       }
       return true;
     });
 
+    // 2) Server-side EXACT part-number validation
+    let droppedMismatch = 0;
+    const afterMatch = afterParallel
+      .map((r) => {
+        const matched = (r.matched_part_number || "").trim();
+        if (!matched || r.match_confidence === "uncertain") {
+          droppedMismatch++;
+          return null;
+        }
+        const matchedNorm = normalizePartNumber(matched);
+        if (matched === body.material) {
+          return { ...r, match_confidence: "exact" as const };
+        }
+        if (matchedNorm === targetNorm) {
+          return { ...r, match_confidence: "normalized" as const };
+        }
+        droppedMismatch++;
+        return null;
+      })
+      .filter((x): x is ResultItem => !!x);
+
     let summary = parsedAI.search_summary;
-    if (genuineOnly && filteredResults.length === 0 && rawResults.length > 0) {
-      summary = `IA encontrou apenas peças paralelas/genéricas — sem referência confiável de original XCMG. ${summary || ""}`.trim();
+    if (afterMatch.length === 0 && rawResults.length > 0) {
+      if (droppedMismatch > 0 && droppedParallel === 0) {
+        summary = `IA não localizou anúncios com o código exato "${body.material}" — apenas códigos diferentes ou similares. ${summary || ""}`.trim();
+      } else if (droppedParallel > 0 && droppedMismatch === 0) {
+        summary = `IA encontrou apenas peças paralelas/genéricas — sem referência confiável de original XCMG. ${summary || ""}`.trim();
+      } else {
+        summary = `IA não encontrou referências válidas (códigos diferentes ou paralelas descartadas). ${summary || ""}`.trim();
+      }
     }
 
-    // Validate URLs in parallel and fall back to search URLs when invalid
+    // 3) Validate URLs in parallel and fall back to search URLs when invalid
     const validations = await Promise.allSettled(
-      filteredResults.map(async (r) => {
+      afterMatch.map(async (r) => {
         const candidate = r.source_url?.trim();
         let finalUrl: string | undefined;
         let urlType: "page" | "search" = "search";
@@ -292,7 +353,8 @@ Use busca na web (Google Search) com os termos "${body.material} original XCMG",
       JSON.stringify({
         search_summary: summary,
         results: enriched,
-        dropped_parallel_count: droppedParallel.length,
+        dropped_parallel_count: droppedParallel,
+        dropped_mismatch_count: droppedMismatch,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
