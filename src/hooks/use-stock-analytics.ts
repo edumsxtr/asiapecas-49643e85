@@ -1,6 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type HealthSeverity = "critical" | "warning" | "info";
+
+export interface HealthMetric {
+  count: number;
+  severity: HealthSeverity;
+  sample_ids: string[];
+}
+
+export interface DataHealth {
+  totalSkus: number;
+  noManufacturer: HealthMetric;
+  noModel: HealthMetric;
+  noCategory: HealthMetric;
+  shortDescriptionCritical: HealthMetric;
+  shortDescriptionWarn: HealthMetric;
+  duplicateGroupsHigh: HealthMetric;
+  duplicateGroupsMed: HealthMetric;
+  priceOutliers: HealthMetric;
+  nonLatinDescription: HealthMetric;
+  descriptionEqualsMaterial: HealthMetric;
+  noCompatibleModels: HealthMetric;
+  zeroPrice: HealthMetric;
+  zeroStock: HealthMetric;
+}
+
 export interface StockAnalytics {
   generatedAt: string;
   kpis: {
@@ -64,15 +89,7 @@ export interface StockAnalytics {
     estimated_price: number;
     sold_12m: number;
   }>;
-  dataHealth: {
-    noManufacturer: number;
-    noModel: number;
-    noCategory: number;
-    shortDescription: number;
-    duplicateGroups: number;
-    zeroPrice: number;
-    zeroStock: number;
-  };
+  dataHealth: DataHealth;
 }
 
 export function useStockAnalytics() {
@@ -106,4 +123,34 @@ export function categoryVerdict(score: number): { label: string; tone: "good" | 
   if (score >= 70) return { label: "Vale a pena", tone: "good", emoji: "🟢" };
   if (score >= 40) return { label: "Otimizar", tone: "warn", emoji: "🟡" };
   return { label: "Liquidar", tone: "bad", emoji: "🔴" };
+}
+
+/** Score global de saúde 0-100, ponderando severidades. */
+export function computeGlobalHealthScore(h: DataHealth): number {
+  if (!h || !h.totalSkus) return 100;
+  const metrics: HealthMetric[] = [
+    h.noManufacturer, h.noModel, h.noCategory,
+    h.shortDescriptionCritical, h.shortDescriptionWarn,
+    h.duplicateGroupsHigh, h.duplicateGroupsMed,
+    h.priceOutliers, h.nonLatinDescription,
+    h.descriptionEqualsMaterial, h.noCompatibleModels,
+    h.zeroPrice, h.zeroStock,
+  ];
+  const weights = { critical: 0.5, warning: 0.2, info: 0.05 } as const;
+  const weighted = metrics.reduce((acc, m) => acc + (m?.count ?? 0) * weights[m?.severity ?? "info"], 0);
+  const score = 100 - (weighted / h.totalSkus) * 100;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+export function totalProblemSkus(h: DataHealth): number {
+  if (!h) return 0;
+  const ids = new Set<string>();
+  [
+    h.noManufacturer, h.noModel, h.noCategory,
+    h.shortDescriptionCritical, h.shortDescriptionWarn,
+    h.duplicateGroupsHigh, h.duplicateGroupsMed,
+    h.priceOutliers, h.nonLatinDescription,
+    h.descriptionEqualsMaterial, h.zeroPrice,
+  ].forEach((m) => m?.sample_ids?.forEach((id) => ids.add(id)));
+  return ids.size;
 }
