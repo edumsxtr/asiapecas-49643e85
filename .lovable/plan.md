@@ -1,62 +1,74 @@
 
 
-# Plano: Reforçar pesquisa de mercado para peças ORIGINAIS XCMG
+# Plano: Garantir match exato do código da peça (mesmo item, não similar)
 
-## Contexto
+## Problema
 
-Hoje a pesquisa de mercado por IA busca preços de forma genérica em distribuidores brasileiros. O foco precisa ser ajustado: estamos vendendo **peças originais XCMG** e a comparação de mercado deve refletir isso — não adianta comparar com peças paralelas/genéricas baratas, distorce o preço.
+Hoje a IA pode retornar preços de peças "parecidas" ou de famílias próximas, mesmo sendo Original XCMG. Precisamos garantir que o resultado seja **exatamente o mesmo código de material** (part number) que estamos pesquisando — não um item similar, não um substituto, não uma versão diferente.
 
 ## O que será ajustado
 
-### 1. Edge function `auto-market-research` — prompt focado em ORIGINAL XCMG
+### 1. Edge function `auto-market-research` — match exato obrigatório
 
-- **Reescrever o system prompt** deixando explícito:
-  - Foco em peças **GENUÍNAS / ORIGINAIS XCMG** (não paralelas, não recondicionadas, não genéricas)
-  - Distribuidores prioritários: **XCMG Brasil oficial, Tracbel (dealer XCMG), Sotreq, Solar Equipamentos, distribuidores autorizados XCMG, Mercado Livre apenas anúncios marcados como "Original XCMG"**
-  - Ignorar resultados de peças paralelas, "similar", "compatível", "recondicionada" — se só houver paralelas, retornar `results: []` e explicar no `search_summary`
-  - Adicionar campo `is_genuine: boolean` em cada resultado para sinalizar quando a IA tem confiança que é original
-- **Reforçar a query de busca**: incluir termos `"original XCMG"`, `"genuína"`, `"OEM"` na consulta enviada ao Google Search
-- **Validação extra**: se `distributor_name` contém palavras-chave de paralelo (paralela, similar, compatível, alternativa, genérico), descartar o resultado server-side
+- **Prompt reforçado**:
+  - "Você está procurando o **código de peça EXATO**: `{material}`. Não aceite códigos parecidos, nem famílias relacionadas, nem versões alternativas."
+  - "Se o anúncio/site não mostrar literalmente o código `{material}` (ou variação trivial como hífen/espaço), DESCARTE."
+  - Exemplo no prompt: "Procurando `860126593`? Aceite `860126593`, `860-126-593`, `860 126 593`. NÃO aceite `860126594` nem `860126593-A`."
+- **Novo campo por resultado**: `matched_part_number: string` — o código exato encontrado no anúncio (texto literal)
+- **Novo campo**: `match_confidence: "exact" | "normalized" | "uncertain"`
+  - `exact`: código bate caractere por caractere
+  - `normalized`: bate ignorando espaços/hífens/case
+  - `uncertain`: IA acha que é o mesmo mas não viu o código literal → **descartar server-side**
 
-### 2. UI — sinalização visual de "Original"
+### 2. Validação server-side de match
 
-- **`MarketResearchTab`**: badge verde **"Original XCMG"** ao lado do distribuidor quando `is_genuine = true`; badge cinza **"Não confirmado"** quando dúvida
-- **`MarketResearchPage`**: nova coluna **"Tipo"** (Original / Não confirmado) + filtro "Apenas originais"
-- **CSV export**: incluir coluna `Tipo` (Original/Não confirmado)
+- Função `normalizePartNumber(s)`: lowercase, remove espaços/hífens/pontos
+- Para cada resultado, comparar `normalize(matched_part_number)` com `normalize(material)`:
+  - Igual → aceita, marca `match_confidence` final
+  - Diferente ou ausente → descarta (logado em `dropped_mismatch_count`)
+- Reforça a query Google Search incluindo o código entre aspas: `"860126593" original XCMG`
 
-### 3. Configuração persistida
+### 3. Schema — novos campos
 
-- Pequeno ajuste no `auto-market-research`: aceitar parâmetro opcional `genuine_only: boolean` (default `true`) — permite no futuro o usuário relaxar o filtro pela UI se quiser ver paralelas também
-- Toggle **"Incluir paralelas na busca"** (off por padrão) na aba `MarketResearchTab` ao lado do botão "Pesquisar com IA"
+- Migração aditiva em `market_research`:
+  - `matched_part_number text` (nullable)
+  - `match_confidence text` (nullable, valores: `exact`/`normalized`)
 
-### 4. Schema — campo opcional `is_genuine`
+### 4. UI — sinalização de match
 
-- Adicionar coluna `is_genuine boolean` em `market_research` (nullable, default `null` para preservar registros antigos)
-- Hook `useAutoMarketResearch` passa a salvar esse campo
-- Hook `useMarketResearchOverview` passa a expor o campo
+- **`MarketResearchTab`**: ao lado do distribuidor, badge extra:
+  - 🟢 "Código exato" (`exact`)
+  - 🟡 "Código equivalente" (`normalized`) com tooltip explicando (ex: hífens removidos)
+- **`MarketResearchPage`**: nova coluna **"Match"** com mesmo badge + filtro "Apenas código exato"
+- **CSV export**: nova coluna `Match` (Exato / Equivalente)
+
+### 5. Mensagens ao usuário
+
+- Quando todos os resultados forem descartados por mismatch: salvar 1 linha com `notes = "IA não localizou anúncios com o código exato {material}"` e toast amigável
+- Diferenciar no toast: paralelas vs código diferente vs sem nenhum resultado
 
 ## Arquivos afetados
 
 | Arquivo | Ação |
 |---|---|
-| `supabase/functions/auto-market-research/index.ts` | Prompt focado em XCMG original, query reforçada com "original XCMG/OEM", filtro server-side de paralelas, novo campo `is_genuine`, parâmetro `genuine_only` |
-| Migração SQL | Adicionar coluna `is_genuine boolean` em `market_research` |
-| `src/hooks/use-auto-market-research.ts` | Aceitar/passar `genuineOnly`, salvar `is_genuine` nos inserts |
-| `src/hooks/use-market-research.ts` | Expor `is_genuine` no overview |
-| `src/components/catalog/MarketResearchTab.tsx` | Badge "Original XCMG", toggle "Incluir paralelas" |
-| `src/pages/MarketResearchPage.tsx` | Coluna Tipo + filtro "Apenas originais" + coluna Tipo no CSV |
-| `src/lib/export-csv.ts` | Sem mudanças (já genérico) |
+| `supabase/functions/auto-market-research/index.ts` | Prompt com match exato, query com aspas, validação server-side de `matched_part_number`, novos campos no JSON, contagem `dropped_mismatch_count` |
+| Migração SQL | Adicionar `matched_part_number text` e `match_confidence text` em `market_research` |
+| `src/hooks/use-auto-market-research.ts` | Salvar novos campos, toast diferenciado por motivo de descarte |
+| `src/hooks/use-market-research.ts` | Expor `matched_part_number` e `match_confidence` no overview |
+| `src/components/catalog/MarketResearchTab.tsx` | Badges "Código exato"/"Equivalente" + tooltip |
+| `src/pages/MarketResearchPage.tsx` | Coluna Match + filtro "Apenas código exato" + coluna Match no CSV |
 
 ## Detalhes técnicos
 
-- **Lista de palavras-chave de paralelo** (regex case-insensitive): `paralela|similar|compatível|alternativa|genérico|recondicionad|remanufaturad|aftermarket`
-- Quando todos os resultados forem descartados como paralelos, salvar 1 linha com `notes = "IA encontrou apenas peças paralelas — sem referência de original"` para o usuário entender o vazio
-- Migração é aditiva (coluna nullable) — não quebra registros antigos nem leitura existente
-- Filtro UI "Apenas originais" filtra `is_genuine = true` client-side a partir do overview já carregado
+- **Normalização**: `s.toLowerCase().replace(/[\s\-\._]/g, "")`
+- Migração 100% aditiva (campos nullable) — registros antigos seguem funcionando
+- Filtro UI "Apenas código exato" é client-side a partir do overview já carregado
+- Combina com filtros existentes (Original XCMG, Categoria, Fonte) sem conflito
+- Edge function retorna no payload: `{ results, dropped_parallel_count, dropped_mismatch_count, search_summary }` para o hook escolher a mensagem certa
 
 ## Resultado esperado
 
-- Pesquisa de mercado comparando **maçã com maçã**: peça original XCMG vs peça original XCMG no mercado
-- Gestor enxerga claramente quando o preço de referência é confiável (Original) ou não (Não confirmado)
-- Possibilidade futura de incluir paralelas pontualmente sem perder o foco padrão
+- Pesquisa de mercado retorna **somente o mesmo código de peça** que estamos vendendo
+- Gestor vê com clareza se o preço de referência é do **item idêntico** (verde) ou de uma variação equivalente (amarelo)
+- Comparação 100% confiável: peça original XCMG **e** mesmo part number
 
