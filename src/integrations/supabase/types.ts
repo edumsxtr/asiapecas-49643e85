@@ -142,6 +142,139 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_equipment: {
+        Row: {
+          created_at: string
+          customer_id: string
+          delivery_location: string | null
+          id: string
+          model: string | null
+          notes: string | null
+          order_form: string | null
+          purchase_year: number | null
+          sale_value: number | null
+          serial_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          delivery_location?: string | null
+          id?: string
+          model?: string | null
+          notes?: string | null
+          order_form?: string | null
+          purchase_year?: number | null
+          sale_value?: number | null
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          delivery_location?: string | null
+          id?: string
+          model?: string | null
+          notes?: string | null
+          order_form?: string | null
+          purchase_year?: number | null
+          sale_value?: number | null
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_equipment_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_imports: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          imported_at: string
+          inserted: number
+          report: Json | null
+          skipped: number
+          status: string
+          total_rows: number
+          updated: number
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          imported_at?: string
+          inserted?: number
+          report?: Json | null
+          skipped?: number
+          status?: string
+          total_rows?: number
+          updated?: number
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          imported_at?: string
+          inserted?: number
+          report?: Json | null
+          skipped?: number
+          status?: string
+          total_rows?: number
+          updated?: number
+        }
+        Relationships: []
+      }
+      customer_invoices: {
+        Row: {
+          created_at: string
+          customer_id: string
+          document_number: string | null
+          id: string
+          invoice_date: string | null
+          payer_name: string | null
+          payment_terms: string | null
+          source: string | null
+          total_value: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          document_number?: string | null
+          id?: string
+          invoice_date?: string | null
+          payer_name?: string | null
+          payment_terms?: string | null
+          source?: string | null
+          total_value?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          document_number?: string | null
+          id?: string
+          invoice_date?: string | null
+          payer_name?: string | null
+          payment_terms?: string | null
+          source?: string | null
+          total_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -151,13 +284,21 @@ export type Database = {
           country: string | null
           created_at: string
           email: string | null
+          enriched_at: string | null
+          enrichment_data: Json | null
+          enrichment_status: string
           id: string
+          interest_models: string[] | null
+          last_proposal_at: string | null
+          last_visit_at: string | null
           name: string
           notes: string | null
           phone: string | null
+          relationship_status: string | null
           segment: string | null
           source: string | null
           state: string | null
+          total_invoiced: number
           updated_at: string
         }
         Insert: {
@@ -168,13 +309,21 @@ export type Database = {
           country?: string | null
           created_at?: string
           email?: string | null
+          enriched_at?: string | null
+          enrichment_data?: Json | null
+          enrichment_status?: string
           id?: string
+          interest_models?: string[] | null
+          last_proposal_at?: string | null
+          last_visit_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          relationship_status?: string | null
           segment?: string | null
           source?: string | null
           state?: string | null
+          total_invoiced?: number
           updated_at?: string
         }
         Update: {
@@ -185,13 +334,21 @@ export type Database = {
           country?: string | null
           created_at?: string
           email?: string | null
+          enriched_at?: string | null
+          enrichment_data?: Json | null
+          enrichment_status?: string
           id?: string
+          interest_models?: string[] | null
+          last_proposal_at?: string | null
+          last_visit_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          relationship_status?: string | null
           segment?: string | null
           source?: string | null
           state?: string | null
+          total_invoiced?: number
           updated_at?: string
         }
         Relationships: []
