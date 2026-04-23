@@ -413,6 +413,15 @@ export default function MarketResearchPage() {
                 <SelectItem value="unknown">Não confirmado</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterMatch} onValueChange={setFilterMatch}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Match do código" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os matches</SelectItem>
+                <SelectItem value="exact">Apenas código exato</SelectItem>
+                <SelectItem value="normalized">Apenas equivalente</SelectItem>
+                <SelectItem value="any_match">Exato + equivalente</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="flex items-center gap-2 px-3 rounded-md border border-border">
               <Switch id="group-cat" checked={groupByCategory} onCheckedChange={setGroupByCategory} />
               <Label htmlFor="group-cat" className="text-xs cursor-pointer">Agrupar por categoria</Label>
