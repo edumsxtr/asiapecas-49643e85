@@ -204,6 +204,7 @@ export default function MarketResearchPage() {
           <TableHead>Disp.</TableHead>
           <TableHead>Fonte</TableHead>
           <TableHead>Tipo</TableHead>
+          <TableHead>Match</TableHead>
           <TableHead>Data</TableHead>
           <TableHead className="w-[80px]">Ações</TableHead>
         </TableRow>
@@ -278,6 +279,29 @@ export default function MarketResearchPage() {
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-[10px]">Não confirmado</Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {(r as any).match_confidence === "exact" ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> Exato
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{(r as any).matched_part_number || "Código bate caractere por caractere"}</TooltipContent>
+                  </Tooltip>
+                ) : (r as any).match_confidence === "normalized" ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-[10px] gap-0.5 border-warning text-warning">
+                        <Equal className="h-2.5 w-2.5" /> Equivalente
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{(r as any).matched_part_number || "Mesmo código ignorando hífens/espaços"}</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">—</span>
                 )}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">{new Date(r.researched_at).toLocaleDateString("pt-BR")}</TableCell>
