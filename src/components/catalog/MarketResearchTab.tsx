@@ -179,7 +179,20 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
       {showForm ? (
         <ResearchForm form={form} setForm={setForm} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); resetForm(); }} isPending={addMutation.isPending} label="Salvar" />
       ) : (
-        <Button size="sm" variant="outline" onClick={() => setShowForm(true)} className="w-full"><Plus className="h-3 w-3 mr-1" /> Adicionar Pesquisa</Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            onClick={handleAIResearch}
+            disabled={aiResearch.isPending || !part}
+            className="gap-1"
+          >
+            {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
+            {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+            <Plus className="h-3 w-3 mr-1" /> Manual
+          </Button>
+        </div>
       )}
 
       {/* Edit Dialog */}
