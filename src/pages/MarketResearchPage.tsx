@@ -183,6 +183,7 @@ export default function MarketResearchPage() {
           <TableHead>Prazo</TableHead>
           <TableHead>Disp.</TableHead>
           <TableHead>Fonte</TableHead>
+          <TableHead>Tipo</TableHead>
           <TableHead>Data</TableHead>
           <TableHead className="w-[80px]">Ações</TableHead>
         </TableRow>
@@ -245,6 +246,19 @@ export default function MarketResearchPage() {
               </TableCell>
               <TableCell>
                 <Badge variant={isAI ? "default" : "outline"} className="text-[10px]">{isAI ? "IA" : "Manual"}</Badge>
+              </TableCell>
+              <TableCell>
+                {(r as any).is_genuine === true ? (
+                  <Badge className="text-[10px] gap-0.5 bg-success hover:bg-success text-success-foreground">
+                    <ShieldCheck className="h-2.5 w-2.5" /> Original
+                  </Badge>
+                ) : (r as any).is_genuine === false ? (
+                  <Badge variant="secondary" className="text-[10px] gap-0.5">
+                    <ShieldQuestion className="h-2.5 w-2.5" /> Paralela
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px]">Não confirmado</Badge>
+                )}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">{new Date(r.researched_at).toLocaleDateString("pt-BR")}</TableCell>
               <TableCell>
