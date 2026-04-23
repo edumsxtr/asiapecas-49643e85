@@ -223,7 +223,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                         ) : e.match_confidence === "normalized" ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Badge variant="secondary" className="text-[10px] gap-0.5 bg-yellow-500/15 text-yellow-700 hover:bg-yellow-500/20">
+                              <Badge variant="outline" className="text-[10px] gap-0.5 border-warning text-warning">
                                 <Equal className="h-2.5 w-2.5" /> Código equivalente
                               </Badge>
                             </TooltipTrigger>

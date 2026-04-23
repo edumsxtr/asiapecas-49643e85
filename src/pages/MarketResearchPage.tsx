@@ -169,6 +169,19 @@ export default function MarketResearchPage() {
           return "Não confirmado";
         },
       },
+      {
+        header: "Match",
+        value: r => {
+          const mc = (r as any).match_confidence;
+          if (mc === "exact") return "Exato";
+          if (mc === "normalized") return "Equivalente";
+          return "—";
+        },
+      },
+      {
+        header: "Código encontrado",
+        value: r => (r as any).matched_part_number || "",
+      },
       { header: "Tipo de URL", value: r => detectUrlType(r.source_url) === "page" ? "Página" : "Busca" },
       { header: "URL", value: r => r.source_url || "" },
       { header: "Data", value: r => new Date(r.researched_at).toLocaleDateString("pt-BR") },
