@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, TrendingDown, TrendingUp, Minus, Plus, Pencil, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { Search, TrendingDown, TrendingUp, Minus, Plus, Pencil, Trash2, Loader2, AlertTriangle, Brain } from "lucide-react";
 import { toast } from "sonner";
+import { useAutoMarketResearch } from "@/hooks/use-auto-market-research";
 
 type ResearchEntry = NonNullable<ReturnType<typeof useMarketResearchOverview>["data"]>[number];
 
