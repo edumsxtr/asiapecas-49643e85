@@ -74,12 +74,13 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   });
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [search, category, partCategory, subcategory, manufacturer, model, availability, sort]);
+  useEffect(() => { setPage(0); }, [search, category, partCategory, subcategory, manufacturer, model, availability, sort, attrFilter]);
 
-  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory, !!subcategory].filter(Boolean).length;
+  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory, !!subcategory, !!attrFilter].filter(Boolean).length;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["quote-parts", search, category, partCategory, subcategory, page, manufacturer, model, availability, sort],
+    queryKey: ["quote-parts", search, category, partCategory, subcategory, page, manufacturer, model, availability, sort, attrFilter],
+    enabled: !isUnfilteredDefault,
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
@@ -98,6 +99,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
       if (availability === "low") query = query.lte("stock", 10);
       if (partCategory) query = query.eq("part_category", partCategory);
       if (subcategory) query = query.eq("subcategory", subcategory);
+      if (attrFilter) query = query.eq(`attributes->>${attrFilter.key}`, attrFilter.value);
 
       // Sort
       switch (sort) {
