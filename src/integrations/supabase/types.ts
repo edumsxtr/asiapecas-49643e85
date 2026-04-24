@@ -1462,6 +1462,8 @@ export type Database = {
         Args: { _only_missing?: boolean }
         Returns: number
       }
+      classify_parts_v4: { Args: { _only_missing?: boolean }; Returns: Json }
+      cleanup_bad_attributes: { Args: never; Returns: number }
       find_duplicate_parts: {
         Args: never
         Returns: {
@@ -1481,6 +1483,11 @@ export type Database = {
         Args: { col_name: string; stock_min?: number }
         Returns: string[]
       }
+      get_drilldown: {
+        Args: { _limit?: number; filters?: Json }
+        Returns: Json
+      }
+      get_intelligence_view: { Args: { filters?: Json }; Returns: Json }
       get_stock_analytics: { Args: never; Returns: Json }
       has_role: {
         Args: {
@@ -1490,6 +1497,25 @@ export type Database = {
         Returns: boolean
       }
       immutable_unaccent: { Args: { "": string }; Returns: string }
+      search_parts: {
+        Args: { _limit?: number; _offset?: number; filters?: Json; q?: string }
+        Returns: {
+          attributes: Json
+          description: string
+          estimated_price: number
+          id: string
+          image_url: string
+          last_entry_time: string
+          machine_model: string
+          manufacturer: string
+          material: string
+          part_category: string
+          score: number
+          stock: number
+          subcategory: string
+          total_count: number
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
