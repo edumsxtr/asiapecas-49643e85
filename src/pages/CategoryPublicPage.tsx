@@ -25,7 +25,7 @@ export default function CategoryPublicPage() {
   const categoryName = cat?.key || null;
   const { data: parts = [], isLoading } = useCategoryParts(categoryName);
   const { data: relatedModels = [] } = useCategoryRelatedModels(categoryName);
-  const { items, addToCart, updateQuantity, removeFromCart, clearCart } = useCartSession();
+  const { items, addToCart, updateQty, removeItem, clearCart } = useCartSession();
   const [b2bKey, setB2bKey] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
@@ -238,8 +238,8 @@ export default function CategoryPublicPage() {
 
       <QuoteCart
         items={cartItemsForCart}
-        onUpdateQty={updateQuantity}
-        onRemove={removeFromCart}
+        onUpdateQty={updateQty}
+        onRemove={removeItem}
         onClear={clearCart}
         lang="pt"
       />

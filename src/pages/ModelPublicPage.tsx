@@ -24,7 +24,7 @@ export default function ModelPublicPage() {
   const { data: parts = [], isLoading } = useModelParts(slug || null);
   const { data: modelName = slug?.toUpperCase() || "" } = useModelDisplayName(slug || null);
   const { data: relatedCats = [] } = useModelRelatedCategories(slug || null);
-  const { items, addToCart, updateQuantity, removeFromCart, clearCart } = useCartSession();
+  const { items, addToCart, updateQty, removeItem, clearCart } = useCartSession();
   const [b2bKey, setB2bKey] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
@@ -190,8 +190,8 @@ export default function ModelPublicPage() {
 
       <QuoteCart
         items={cartItemsForCart}
-        onUpdateQty={updateQuantity}
-        onRemove={removeFromCart}
+        onUpdateQty={updateQty}
+        onRemove={removeItem}
         onClear={clearCart}
         lang="pt"
       />
