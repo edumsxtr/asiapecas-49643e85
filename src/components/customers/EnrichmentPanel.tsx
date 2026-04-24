@@ -103,10 +103,15 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
           <div>
             <p className="font-semibold">Nenhuma informação carregada ainda</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Buscamos páginas públicas reais para extrair dados verificados sobre {customer.company || customer.name}.
+              Buscamos páginas públicas reais para extrair dados verificados sobre {rawName}.
             </p>
+            {nameLooksRisky && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Vamos buscar como <strong className="text-foreground">{cleanedPreview}</strong>.
+              </p>
+            )}
           </div>
-          <Button onClick={() => enrich.mutate(customer.id)} disabled={enrich.isPending}>
+          <Button onClick={() => runEnrich()} disabled={enrich.isPending}>
             <RefreshCw className={`h-4 w-4 mr-2 ${enrich.isPending ? "animate-spin" : ""}`} />
             {enrich.isPending ? "Pesquisando…" : "Carregar informações"}
           </Button>
