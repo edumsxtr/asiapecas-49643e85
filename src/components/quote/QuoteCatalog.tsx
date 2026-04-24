@@ -74,7 +74,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
-        .select("id, material, description, machine_model, stock, manufacturer, estimated_price", { count: "exact" })
+        .select("id, material, description, machine_model, stock, manufacturer, estimated_price, image_url", { count: "exact" })
         .gt("stock", 0);
 
       if (search.length >= 2) {
@@ -360,46 +360,75 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
               ))}
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-hidden bg-card">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[120px]">{lang === "pt" ? "Código" : lang === "en" ? "Code" : "Código"}</TableHead>
-                    <TableHead>{lang === "pt" ? "Descrição" : lang === "en" ? "Description" : "Descripción"}</TableHead>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="w-[80px]"></TableHead>
+                    <TableHead>{lang === "pt" ? "Produto" : lang === "en" ? "Product" : "Producto"}</TableHead>
                     <TableHead className="hidden md:table-cell">{lang === "pt" ? "Modelo" : lang === "en" ? "Model" : "Modelo"}</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">{lang === "pt" ? "Preço" : lang === "en" ? "Price" : "Precio"}</TableHead>
                     <TableHead className="text-right">{lang === "pt" ? "Estoque" : lang === "en" ? "Stock" : "Stock"}</TableHead>
-                    <TableHead className="text-right w-[140px]">{lang === "pt" ? "Ações" : lang === "en" ? "Actions" : "Acciones"}</TableHead>
+                    <TableHead className="text-right w-[160px]">{lang === "pt" ? "Ações" : lang === "en" ? "Actions" : "Acciones"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.parts.map((part: any) => {
                     const desc = getDescription(part);
                     const isInCart = inCartMaterials.has(part.material);
+                    const price = Number(part.estimated_price || 0);
+                    const fmtPrice = (v: number) => {
+                      const locale = lang === "en" ? "en-US" : lang === "es" ? "es-AR" : "pt-BR";
+                      const currency = lang === "en" ? "USD" : "BRL";
+                      try { return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(v); }
+                      catch { return `R$ ${v.toFixed(2)}`; }
+                    };
+                    const goToDetail = () => window.location.assign(`/cotacao/p/${encodeURIComponent(part.material)}`);
                     return (
-                      <TableRow key={part.id} className="hover:bg-muted/50">
-                        <TableCell className="font-mono text-xs font-semibold text-primary">{part.material}</TableCell>
-                        <TableCell className="text-sm max-w-[300px] truncate">
-                          {desc}
+                      <TableRow key={part.id} className="hover:bg-muted/40 cursor-pointer" onClick={goToDetail}>
+                        <TableCell className="p-2">
+                          <div className="h-14 w-14 rounded-md bg-muted/40 overflow-hidden flex items-center justify-center">
+                            {part.image_url ? (
+                              <img src={part.image_url} alt={desc} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            ) : (
+                              <span className="text-[10px] font-bold text-primary/40 font-['Space_Grotesk']">XCMG</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium text-foreground line-clamp-1">{desc}</p>
+                            <p className="font-mono text-[10px] text-muted-foreground">#{part.material}</p>
+                          </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{part.machine_model || "—"}</TableCell>
-                        <TableCell className="text-right">
-                          {part.stock > 10 ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">{part.stock} {tr("part.units", lang)}</Badge>
-                          ) : part.stock > 0 ? (
-                            <Badge variant="destructive" className="text-xs">{part.stock} {tr("part.units", lang)}</Badge>
+                        <TableCell className="text-right hidden sm:table-cell">
+                          {price > 0 ? (
+                            <span className="text-sm font-semibold text-foreground">{fmtPrice(price)}</span>
                           ) : (
-                            <Badge variant="secondary">{tr("part.unavailable", lang)}</Badge>
+                            <span className="text-xs text-muted-foreground italic">
+                              {lang === "en" ? "On request" : lang === "es" ? "Bajo consulta" : "Sob consulta"}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setDetailPart({ ...part, description: desc })}>
+                          {part.stock > 10 ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">{part.stock}</Badge>
+                          ) : part.stock > 0 ? (
+                            <Badge variant="outline" className="border-amber-500/40 text-amber-600">{part.stock}</Badge>
+                          ) : (
+                            <Badge variant="secondary">0</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setDetailPart({ ...part, description: desc })}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant={isInCart ? "secondary" : "default"}
                               size="sm"
-                              className="h-7 text-xs gap-1"
+                              className="h-8 text-xs gap-1"
                               disabled={isInCart}
                               onClick={() => onAddToCart({ ...part, description: desc })}
                             >
