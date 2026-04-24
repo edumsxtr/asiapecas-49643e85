@@ -176,7 +176,30 @@ Deno.serve(async (req) => {
     const args = toolCall ? JSON.parse(toolCall.function.arguments) : { results: [] };
 
     const partMap = new Map(parts.map((p) => [p.id, p]));
-    const suggestions = (args.results || []).map((r: any) => {
+    const results = (args.results || []) as Array<{ id: string; subcategory: string; confidence: number; reasoning?: string }>;
+
+    // auto mode: aplica direto no banco (confiança >= 0.5)
+    let updated = 0;
+    if (mode === "auto") {
+      for (const r of results) {
+        if (!r.subcategory || (r.confidence ?? 0) < 0.5) continue;
+        const { error: upErr } = await supabase
+          .from("parts")
+          .update({
+            subcategory: r.subcategory,
+            subcategory_source: "ai",
+            subcategory_confidence: r.confidence,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq("id", r.id);
+        if (!upErr) updated++;
+      }
+      return new Response(JSON.stringify({ updated, total: results.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const suggestions = results.map((r) => {
       const p = partMap.get(r.id);
       return {
         id: r.id,
