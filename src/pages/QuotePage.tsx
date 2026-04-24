@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import QuoteHero from "@/components/quote/QuoteHero";
+import HeroCarousel from "@/components/quote/HeroCarousel";
+import FeaturedStrip from "@/components/quote/FeaturedStrip";
+import B2BLeadDialog from "@/components/quote/B2BLeadDialog";
+import ConsentBanner from "@/components/quote/ConsentBanner";
 import QuoteCatalog from "@/components/quote/QuoteCatalog";
 import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
@@ -8,6 +12,7 @@ import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
 import { Search, ClipboardList, Send, MessageCircle, Menu } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
+import { SEO, organizationLd } from "@/lib/seo";
 import asiaLogo from "@/assets/asia-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCartSession } from "@/hooks/use-cart-session";
@@ -100,7 +105,22 @@ export default function QuotePage() {
         </div>
       </header>
 
-      <QuoteHero search={search} onSearchChange={setSearch} onCategoryClick={handleCategoryClick} activeCategory={category} onPartCategoryClick={(key) => setPartCategory(prev => prev === key ? null : key)} activePartCategory={partCategory} lang={lang} />
+      <SEO
+        title="Peças XCMG originais e compatíveis | Ásia Peças & Máquinas"
+        description="Catálogo completo de peças XCMG para mineração, linha amarela, perfuratrizes, guindastes e caminhões. Cotação rápida em até 24h. Estoque real."
+        canonical="/cotacao"
+        lang={lang}
+        jsonLd={organizationLd()}
+      />
+
+      <HeroCarousel
+        lang={lang}
+        fallback={
+          <QuoteHero search={search} onSearchChange={setSearch} onCategoryClick={handleCategoryClick} activeCategory={category} onPartCategoryClick={(key) => setPartCategory(prev => prev === key ? null : key)} activePartCategory={partCategory} lang={lang} />
+        }
+      />
+
+      <FeaturedStrip lang={lang} onAddToCart={addToCart} />
 
       <section id="como-funciona" className="py-12 bg-card border-b">
         <div className="max-w-4xl mx-auto px-6">
@@ -131,6 +151,9 @@ export default function QuotePage() {
       <QuoteFooter lang={lang} />
       <QuoteCart items={cartItems} onUpdateQty={updateQty} onRemove={removeItem} onClear={clearCart} lang={lang} />
       <QuoteChat lang={lang} />
+
+      <B2BLeadDialog lang={lang} />
+      <ConsentBanner lang={lang} />
 
       <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
         <MessageCircle className="h-6 w-6" />

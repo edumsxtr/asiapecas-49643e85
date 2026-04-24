@@ -15,6 +15,7 @@ import {
   LogOut,
   GraduationCap,
   Tags,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import asiaLogo from "@/assets/asia-logo.png";
@@ -54,6 +55,7 @@ const toolItems = [
   { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
   { title: "Relatório Executivo", url: "/relatorio", icon: FileBarChart },
   { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
+  { title: "Vitrine (Admin)", url: "/admin/vitrine", icon: Sparkles },
   { title: "Treinamento", url: "/treinamento", icon: GraduationCap },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
