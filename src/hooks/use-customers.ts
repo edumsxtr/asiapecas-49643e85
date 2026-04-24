@@ -406,15 +406,41 @@ export function useEnrichCustomer() {
   return useMutation({
     mutationFn: async (customer_id: string) => {
       const { data, error } = await supabase.functions.invoke("enrich-customer", { body: { customer_id } });
-      if (error) throw error;
+      if (error) {
+        // Surface 412 (Firecrawl missing) with friendlier message
+        const msg = (data as { error?: string } | null)?.error || error.message || "Erro ao buscar informações";
+        throw new Error(msg);
+      }
       return data;
     },
-    onSuccess: (_d, id) => {
+    onSuccess: (data, id) => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       qc.invalidateQueries({ queryKey: ["customer", id] });
-      toast.success("Informações atualizadas");
+      const note = (data as { note?: string } | null)?.note;
+      if (note === "no_public_results" || note === "no_verified_sources") {
+        toast.warning("Sem fontes públicas verificáveis para este cliente.");
+      } else {
+        toast.success("Informações atualizadas com fontes verificadas");
+      }
     },
-    onError: (e: Error) => toast.error("Erro no enriquecimento: " + e.message),
+    onError: (e: Error) => {
+      if (e.message?.includes("Firecrawl")) {
+        toast.error("Conecte o Firecrawl em Connectors para habilitar a pesquisa verificada.");
+      } else {
+        toast.error("Erro: " + e.message);
+      }
+    },
+  });
+}
+
+export function useVerifyCustomerSource() {
+  return useMutation({
+    mutationFn: async ({ url, customer_name }: { url: string; customer_name: string }) => {
+      const { data, error } = await supabase.functions.invoke("verify-customer-source", { body: { url, customer_name } });
+      if (error) throw error;
+      return data as { ok: boolean; evidence?: string; reason?: string; url: string };
+    },
+    onError: (e: Error) => toast.error("Erro ao verificar: " + e.message),
   });
 }
 
