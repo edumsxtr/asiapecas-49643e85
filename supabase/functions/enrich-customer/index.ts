@@ -327,6 +327,9 @@ Deno.serve(async (req) => {
       .slice(0, 6);
 
     if (candidates.length === 0) {
+      const note = telemetry.searched_queries > 0
+        ? "Firecrawl não retornou resultados — verifique conexão/créditos do Firecrawl em Connectors, ou adicione uma URL manual (site/LinkedIn)."
+        : "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).";
       await supabase.from("customers").update({
         enrichment_status: "enriched",
         enriched_at: new Date().toISOString(),
@@ -336,7 +339,7 @@ Deno.serve(async (req) => {
           weak_sources: [],
           evidence: {},
           telemetry,
-          _note: "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).",
+          _note: note,
         },
       }).eq("id", customer_id);
       return new Response(JSON.stringify({ success: true, enrichment: { confidence: "low", sources: [], telemetry }, note: "no_public_results" }), {
@@ -475,13 +478,19 @@ ${sourcesBlock}`;
     });
   } catch (err) {
     console.error("enrich-customer error", err);
-    const msg = err instanceof Error ? err.message : "unknown";
+    const isNoCredits = err instanceof FirecrawlNoCreditsError;
+    const msg = isNoCredits
+      ? "Créditos do Firecrawl esgotados. Recarregue em Connectors → Firecrawl para voltar a enriquecer clientes."
+      : err instanceof Error ? err.message : "unknown";
     try {
       if (customer_id) {
         const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         await supabase.from("customers").update({ enrichment_status: "failed" }).eq("id", customer_id);
       }
     } catch (_) { /* ignore */ }
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: isNoCredits ? 402 : 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
