@@ -1,95 +1,133 @@
 
 
-# Plano: esconder preços do catálogo público + reforçar banners/promoções
+# Plano: corrigir a busca de IA dos clientes que volta vazia
 
-Cliente final só vê **estoque, ficha técnica e CTA "Solicitar cotação"**. Preço (e desconto em %) só aparece para usuário autenticado interno. Banners e promoções ganham um fluxo de criação mais visível e um aviso quando estão ativos.
+## Diagnóstico real (do banco de dados, não chute)
 
-## 1. Remover preço do catálogo público (visitantes não autenticados)
+Olhei os 14 últimos enriquecimentos. O padrão é nítido:
 
-Hoje 4 lugares mostram `estimated_price` direto para o público:
+| Cliente | URLs retornadas | Resultado |
+|---|---:|---|
+| AMARILLO GOLD | 25 | ✅ 3 fontes verificadas |
+| ANGLO AMERICAN MINERIO DE FERRO BRASIL S/A. | **0** | ❌ vazio |
+| ANDRADE GUTIERREZ CONSTRUCOES E SERVICOS S.A | **0** | ❌ vazio |
+| ALYA CONSTRUTORA S/A | **0** | ❌ vazio |
+| ÀGILIS MINERAÇÃO BRIT. E RECICLAGEM (BRITEC) | **0** | ❌ vazio |
+| ADS ASSESSORIA E MANUTENCAO | **0** | ❌ vazio |
 
-| Arquivo | O que sai | O que entra |
-|---|---|---|
-| `QuotePartCard.tsx` | bloco "A partir de R$ X" + valor riscado promo | "Cotação sob consulta" + selo "Em promoção" (sem valor) quando há promo ativa |
-| `QuoteCatalog.tsx` (modo Lista) | coluna "Preço" | coluna "Disponibilidade" (Pronta entrega / Últimas N / Sob consulta). Remover opções de ordenação `priceAsc`/`priceDesc` para o público |
-| `QuoteCatalog.tsx` (Select de ordenação) | itens "Preço ↑/↓" | escondidos para visitantes |
-| `QuotePartDetail.tsx` (dialog) | já não mostra preço — manter |
-| `PartDetailPublicPage.tsx` | já não mostra preço — manter como está |
-| `FeaturedStrip.tsx` | hoje carrega `estimated_price` no select mas não renderiza. Tirar do select. |
+Quando o nome **funciona em busca manual no Google** mas o Firecrawl volta zero, a causa é o jeito que o nome está sendo enviado para o Firecrawl, não o Firecrawl em si.
 
-**Quem decide**: usar `useAuth()`. Se `user` está logado E é interno (qualquer authenticated), exibe preço normalmente (útil para vendedor demonstrando o catálogo). Se não logado → preço escondido + texto "Cotação sob consulta" + botão "Solicitar cotação".
+### As três causas reais
 
-Selo de promoção continua aparecendo (`-X% OFERTA` vira apenas **"EM PROMOÇÃO"** sem percentual para o público, com percentual quando logado). O preço promocional só renderiza para logados.
+1. **Aspas no nome inteiro com pontuação suja**. Hoje a função monta queries assim:
+   ```
+   "ANGLO AMERICAN MINERIO DE FERRO BRASIL S/A." Conceição do Mato Dentro MG
+   "ANDRADE GUTIERREZ CONSTRUCOES E SERVICOS S.A" telefone endereço
+   "ÀGILIS MINERAÇÃO BRIT. E RECICLAGEM (BRITEC)" CNPJ
+   ```
+   O `S/A.`, `S.A`, parênteses, abreviações `BRIT.` e o `À` com crase forçam o Google/Bing a procurar pela string literal exata, que **nunca aparece nesse formato** em sites públicos. Aí volta zero. Tirando as aspas, a Anglo American é o terceiro maior site de mineração do Brasil — claro que tem milhares de páginas.
 
-Texto multi-idioma novo em `translations.ts`:
-- pt: "Cotação sob consulta" / "Em promoção"
-- en: "Price on request" / "On promotion"
-- es: "Precio bajo consulta" / "En promoción"
+2. **Nome legal vs nome comercial**. "ANDRADE GUTIERREZ CONSTRUCOES E SERVICOS S.A" → o site real usa "Andrade Gutierrez Engenharia". "ALYA CONSTRUTORA S/A" → aparece como "Alya Construtora". Buscar a razão social inteira entre aspas afasta o resultado em vez de aproximar.
 
-## 2. Banners — fluxo mais explícito + aviso visível
+3. **CNPJ vazio nas queries**. Para clientes sem CNPJ cadastrado, perdemos a query mais forte (a única que tem 100% de match único). E não há fallback que use só o nome curto + cidade sem aspas.
 
-Tudo já existe em `vitrine_banners` + `AdminVitrinePage` aba "Banners", mas ninguém percebe. Mudanças:
+Ou seja: **a função está pedindo coisas que o motor de busca não consegue achar literalmente, então ela recebe zero, então a IA recebe nada para ler, então o cliente vê "nenhum resultado encontrado"**. O Firecrawl está vivo (AMARILLO GOLD provou) e os créditos estão OK.
 
-### a) No admin (`AdminVitrinePage` → `BannersPanel`)
+## O que vou mudar
 
-- Cabeçalho da aba com **passo a passo curto** ("1. Suba imagem 1920×600 · 2. Defina título e CTA · 3. Ative · 4. Aparece no topo de `/cotacao`").
-- Cada `BannerCard` mostra **preview real** no tamanho do hero + selo "ATIVO" / "INATIVO" / "AGENDADO" (calculado de `starts_at`/`ends_at`).
-- Botão **"Ver no site"** (abre `/cotacao` em nova aba) ao lado do "Salvar".
-- Validação: bloqueia salvar se `image_url` vazio.
+### 1. Reescrever a montagem de queries (`enrich-customer/index.ts`)
 
-### b) No catálogo público
+Criar função `buildSmartQueries(companyName, cnpj, city, state)` que produz três tipos de query, na ordem:
 
-- `HeroCarousel` (já existe) renderiza no topo. Adicionar **dot navigation** quando há mais de 1 banner e **fallback gracioso** para o `QuoteHero` padrão quando não há banner ativo (já é o comportamento, só confirmar no código).
-- Quando `vitrine_settings.hero_mode = 'banner'` força carrossel; quando `'hero'` força hero estático. Hoje só temos `'carousel'`. Adicionar opção no admin.
+**a. Queries fortes (uma só) — só quando existe CNPJ**
+```
+"<cnpj formatado>"
+```
 
-## 3. Promoções — criar do zero no admin + aviso ativo
+**b. Queries médias — nome curto sem pontuação, sem aspas no nome inteiro**
+A partir de "ANGLO AMERICAN MINERIO DE FERRO BRASIL S/A." gerar:
+- `core` = "ANGLO AMERICAN MINERIO DE FERRO BRASIL" (sem `S/A.`, `LTDA`, `EIRELI`, `EPP`, `ME`, `CIA`, `S.A`, `S/A`, parênteses e o que estiver dentro deles, abreviações como `BRIT.` viram `BRIT`).
+- `short` = primeiras 3 palavras do core: "ANGLO AMERICAN MINERIO".
+- Queries:
+  ```
+  Anglo American Minerio Conceicao do Mato Dentro
+  Anglo American Minerio site oficial
+  Anglo American Minerio linkedin
+  Anglo American Minerio cnpj
+  ```
+  Tudo **sem aspas** (deixa o motor fazer matching aproximado). Acentos removidos para tolerar variação ortográfica.
 
-Tabela `part_promotions` já existe e é lida em `QuotePartCard`, mas **não há UI para criar**. Hoje só dá pra inserir via SQL. Resolver:
+**c. Queries de longo alcance — só nome curto + país**
+```
+Anglo American mineração Brasil
+```
 
-### a) Nova aba **"Promoções"** em `AdminVitrinePage`
+**d. Tentativa direta no LinkedIn como query simples**
+```
+site:linkedin.com/company Anglo American Minerio
+```
 
-`PromotionsPanel`:
-- Busca peça por código/descrição (igual ao `FeaturedPanel`).
-- Form rápido: preço promocional, data início, data fim, ativo (switch).
-- Lista de promoções ativas com: peça, preço original (interno), promo, % desconto, período, ações (pausar/excluir).
-- Aviso visual quando promoção expirou (badge "Expirada").
+Se o nome curto tem ≤2 tokens muito comuns ("4B Mining", "Mw Projetos"), a busca acrescenta **`empresa` ou `mineração` ou `construção`** como pista de domínio (puxando do `customer.segment` quando houver).
 
-### b) Aviso "Campanha ativa" no site público
+### 2. Adicionar um segundo round automático quando o primeiro vier zero
 
-- Quando existe **qualquer** `part_promotions.active = true` dentro do período → faixa amarela acima do hero: **"⚡ Promoções ativas — fale com nosso time para condições especiais"** com botão WhatsApp.
-- Hook `useHasActivePromotions()` (TanStack Query, staleTime 5min, count head) consultado uma vez por sessão.
-- Cards com promoção ativa ganham badge "EM PROMOÇÃO" (vermelho) — sem mostrar valor para o público.
+Hoje, se `urls_returned = 0`, a função desiste e grava "nenhum resultado". Mudar para:
 
-### c) Preview do preço promocional
+- Se primeiro round (queries com aspas e nome longo) retornou zero → roda automaticamente o segundo round (nome curto, sem aspas, com cidade).
+- Só desiste depois do segundo round.
 
-Para usuário **autenticado** (vendedor olhando o site), promo continua exibindo preço riscado + novo (comportamento atual). Para visitante, só o selo.
+Telemetria nova: `rounds_executed: 1|2`, `final_round_yielded: N`.
 
-## 4. Pequenos polimentos
+### 3. Sanitização visível na UI quando houver acentos/caracteres atípicos
 
-- `QuoteCatalog.tsx`: ao remover ordenação por preço para público, default vira "Mais estoque" (já é).
-- `PartDetailPublicPage`: adicionar selo "EM PROMOÇÃO" se a peça tem promo ativa (consulta `part_promotions`).
-- `QuotePartCard` botão principal vira **"Solicitar cotação"** (já é `tr("part.quote", lang)` — confirmar string em PT está como "Solicitar cotação", se estiver "Adicionar à cotação" trocar).
+No `EnrichmentPanel.tsx`, quando o cliente tem `À`, `Ç` no início, `(...)`, ou pontuação no meio, mostrar abaixo do botão "Reverificar":
+> "Buscando como **Anglo American Minerio** + cidade. [✏️ Buscar com outro nome]"
 
-## 5. Arquivos afetados
+Botão "Buscar com outro nome" abre input rápido onde o usuário digita o termo de busca que ele sabe que funciona ("Anglo American", "Andrade Gutierrez"). Esse termo é usado como `companyName` só para essa requisição.
 
-**Editados**
-- `src/components/quote/QuotePartCard.tsx` — preço gateado por auth, badge promo sem valor para público
-- `src/components/quote/QuoteCatalog.tsx` — coluna Preço só para autenticados, ordenação preço escondida
-- `src/components/quote/translations.ts` — novas strings PT/EN/ES
-- `src/components/quote/FeaturedStrip.tsx` — remover `estimated_price` do select
-- `src/pages/PartDetailPublicPage.tsx` — selo de promoção
-- `src/pages/AdminVitrinePage.tsx` — passos no header, preview real, selo status, validação, nova aba Promoções
-- `src/components/quote/QuoteHero.tsx` ou `QuotePage.tsx` — faixa "Campanha ativa" condicional
+### 4. Backend aceita override de termo
 
-**Novos**
-- `src/components/quote/PromoBanner.tsx` — faixa de aviso de campanha ativa
-- `src/hooks/use-active-promotions.ts` — count head de promoções ativas
+A função `enrich-customer` passa a aceitar `body.search_override?: string`. Se vier, **substitui** o nome cadastrado para a montagem de queries (mas o matching do conteúdo continua usando o nome real do cliente, então a verificação de fonte segue rigorosa). Isso resolve casos como "ALYA CONSTRUTORA S/A" → usuário força "Alya Construtora".
 
-**Sem mudança de schema** — `part_promotions`, `vitrine_banners` e `vitrine_settings` já cobrem tudo. RLS público de `part_promotions` (SELECT) já permite a leitura.
+### 5. Mensagem de erro no painel passa a ser acionável
 
-## Resultado
+Hoje vira "Nenhum resultado público encontrado" (ou seja: a culpa é do mundo). Trocar por:
+> "Nossa busca por **`<query usada>`** não retornou resultados no Firecrawl. Tente: 1) usar o botão **Buscar com outro nome** acima; 2) colar uma URL conhecida abaixo."
 
-- Visitante anônimo nunca vê preço — vê estoque, ficha, "Solicitar cotação" e selo de promoção (sem valor). Vendedor logado continua vendo tudo.
-- Banner editável em 4 cliques no admin, com preview e status visível, apareceu/não apareceu fica óbvio.
-- Promoção criável no admin pela primeira vez, com faixa de aviso no site público quando há campanha ativa.
+Mostra a query exata que falhou — diretoria entende imediatamente.
+
+### 6. Diagnóstico estendido
+
+Telemetria já existe; adicionar no painel diagnóstico (Collapsible "Diagnóstico da pesquisa"):
+- "Queries enviadas:" com a lista das 4-7 strings que foram para o Firecrawl
+- "Round 1 → 0 / Round 2 → 12" 
+
+Assim qualquer falha futura é debugável sem precisar ler logs do servidor.
+
+## Arquivos editados
+
+- `supabase/functions/enrich-customer/index.ts`
+  - Nova `buildSmartQueries()` (sanitização + nome curto + sem aspas no nome longo)
+  - Aceita `search_override` no body
+  - Loop com 2 rounds antes de desistir
+  - Telemetria registra as queries que rodaram e em qual round vieram resultados
+- `src/components/customers/EnrichmentPanel.tsx`
+  - Aviso "Buscando como X" quando o nome tem caracteres de risco
+  - Botão + input "Buscar com outro nome"
+  - Lista de queries no diagnóstico
+  - Mensagem de erro mostra a query que falhou
+- `src/hooks/use-customers.ts`
+  - `useEnrichCustomer` aceita `{ id, search_override? }` em vez de só `id`
+
+Sem mudança de schema, sem chave nova.
+
+## Validação após o fix
+
+Reenrico Anglo American, Andrade Gutierrez e Alya — esperado:
+- Round 1 com nome longo: 0
+- Round 2 com nome curto: ≥10 URLs
+- Pelo menos 2 fontes verificadas (sites oficiais + LinkedIn)
+- Painel mostra os dados extraídos com badges de evidência
+
+Se ainda voltar zero em algum, a tela mostra exatamente qual string foi tentada — o usuário consegue digitar o nome certo e reverificar em 1 clique.
 
