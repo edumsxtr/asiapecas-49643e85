@@ -38,10 +38,10 @@ export function PartAIResearch({ material }: Props) {
       <div className="flex flex-col items-center py-6 gap-3">
         <Brain className="h-10 w-10 text-muted-foreground/40" />
         <p className="text-sm text-muted-foreground text-center">
-          Use IA para obter informações técnicas, compatibilidade e sugestões de peças relacionadas.
+          Carregue informações técnicas, compatibilidade e sugestões de peças relacionadas.
         </p>
         <Button onClick={research} size="sm">
-          <Brain className="h-4 w-4 mr-1" /> Pesquisar com IA
+          <Brain className="h-4 w-4 mr-1" /> Carregar informações
         </Button>
       </div>
     );
@@ -51,7 +51,7 @@ export function PartAIResearch({ material }: Props) {
     return (
       <div className="flex flex-col items-center py-8 gap-2">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Analisando peça com IA...</p>
+        <p className="text-sm text-muted-foreground">Analisando peça…</p>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export function PartAIResearch({ material }: Props) {
       {displayData.compatible_machines?.length > 0 && (
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
-            Máquinas Compatíveis (IA)
+            Máquinas Compatíveis
           </p>
           <div className="flex flex-wrap gap-1.5">
             {displayData.compatible_machines.map((m) => (

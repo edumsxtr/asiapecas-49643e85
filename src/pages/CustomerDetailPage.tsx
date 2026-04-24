@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 // Sheet primitives are used inside Customer360Section
 import {
-  ArrowLeft, Mail, Phone, MapPin, Building2, Sparkles, Plus, Target, ShoppingCart,
+  ArrowLeft, Mail, Phone, MapPin, Building2, Info as InfoIcon, Plus, Target, ShoppingCart,
   Wrench, Receipt, LifeBuoy, FileText, BadgeCheck,
 } from "lucide-react";
 import {
@@ -25,7 +25,7 @@ import { WhatsAppButton } from "@/components/customers/WhatsAppButton";
 
 const SECTIONS = [
   { id: "contato", label: "Contato", icon: Phone },
-  { id: "ia", label: "Inteligência IA", icon: Sparkles },
+  { id: "ia", label: "Informações", icon: InfoIcon },
   { id: "equipamentos", label: "Equipamentos", icon: Wrench },
   { id: "faturamento", label: "Faturamento", icon: Receipt },
   { id: "pedidos", label: "Pedidos", icon: ShoppingCart },
@@ -139,7 +139,7 @@ export default function CustomerDetailPage() {
                 <Badge variant="outline" className="capitalize">{customer.segment || "geral"}</Badge>
                 {customer.relationship_status && <Badge variant="secondary" className="capitalize">{customer.relationship_status}</Badge>}
                 {customer.enrichment_status === "enriched" && (
-                  <Badge className="gap-1"><Sparkles className="h-3 w-3" /> Enriquecido</Badge>
+                  <Badge className="gap-1">✓ Carregado</Badge>
                 )}
                 {isEmpty && <Badge variant="destructive">📭 Cadastro vazio</Badge>}
               </div>
@@ -158,7 +158,7 @@ export default function CustomerDetailPage() {
               )}
               {isEmpty && (
                 <Button variant="outline" onClick={() => prospectMut.mutate([customer.id])} disabled={prospectMut.isPending} className="gap-2">
-                  <Target className="h-4 w-4" /> {prospectMut.isPending ? "Pesquisando…" : "Prospectar IA"}
+                  <Target className="h-4 w-4" /> {prospectMut.isPending ? "Pesquisando…" : "Buscar prospects"}
                 </Button>
               )}
               <Button onClick={() => navigate(`/pedidos/novo?customer_id=${customer.id}`)} className="gap-2">
@@ -221,7 +221,7 @@ export default function CustomerDetailPage() {
               </div>
             </Customer360Section>
 
-            <Customer360Section id="ia" title="Inteligência IA" icon={<Sparkles className="h-5 w-5 text-primary" />}>
+            <Customer360Section id="ia" title="Informações complementares" icon={<InfoIcon className="h-5 w-5 text-primary" />}>
               <EnrichmentPanel customer={customer} />
             </Customer360Section>
 
@@ -323,13 +323,13 @@ export default function CustomerDetailPage() {
 
             <Customer360Section
               id="prospeccao"
-              title="Prospecção IA"
+              title="Prospecção"
               icon={<Target className="h-5 w-5 text-primary" />}
               fullView={<CustomerProspectionTab customerId={customer.id} />}
               fullViewTitle="Toda a prospecção"
             >
               {!prospectsSummary || prospectsSummary.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma prospecção IA gerada.</p>
+                <p className="text-sm text-muted-foreground">Nenhuma informação de prospecção carregada.</p>
               ) : (
                 <ul className="space-y-3">
                   {prospectsSummary.map((p) => (

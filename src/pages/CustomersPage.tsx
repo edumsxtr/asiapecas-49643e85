@@ -169,12 +169,12 @@ export default function CustomersPage() {
 
   const handleBulkEnrich = async () => {
     const ids = Array.from(selectedIds).slice(0, 25);
-    toast.info(`Enriquecendo ${ids.length} cliente(s) com IA…`);
+    toast.info(`Carregando informações de ${ids.length} cliente(s)…`);
     let ok = 0, fail = 0;
     for (const id of ids) {
       try { await enrichMut.mutateAsync(id); ok++; } catch { fail++; }
     }
-    toast.success(`IA: ${ok} concluído(s), ${fail} falha(s)`);
+    toast.success(`${ok} concluído(s), ${fail} falha(s)`);
   };
 
   const handleBulkProspect = () => {
@@ -216,7 +216,7 @@ export default function CustomersPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Clientes</CardTitle></CardHeader>
             <CardContent><p className="text-2xl font-bold">{stats.data?.total.toLocaleString("pt-BR") ?? "—"}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Enriquecidos por IA</CardTitle></CardHeader>
+          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Com informações carregadas</CardTitle></CardHeader>
             <CardContent><p className="text-2xl font-bold text-primary">{stats.data?.enriched.toLocaleString("pt-BR") ?? "—"}</p></CardContent></Card>
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Faturado total</CardTitle></CardHeader>
             <CardContent><p className="text-xl font-bold">R$ {(stats.data?.totalInvoiced ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p></CardContent></Card>
@@ -244,10 +244,10 @@ export default function CustomersPage() {
             </SelectContent>
           </Select>
           <Select value={enrichmentFilter} onValueChange={(v) => updateParams({ ia: v, page: 1 })}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Enriquecimento" /></SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Informações" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="enriched">✨ Enriquecidos</SelectItem>
+              <SelectItem value="enriched">✓ Com informações</SelectItem>
               <SelectItem value="pending">⏳ Pendentes</SelectItem>
               <SelectItem value="empty">📭 Vazios</SelectItem>
             </SelectContent>
@@ -283,7 +283,7 @@ export default function CustomersPage() {
                   <TableHead>CNPJ/CPF</TableHead>
                   <TableHead>Segmento</TableHead>
                   <TableHead>Faturado</TableHead>
-                  <TableHead>IA</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -316,7 +316,7 @@ export default function CustomersPage() {
                       <TableCell className="text-sm">{c.total_invoiced ? `R$ ${(c.total_invoiced as number).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}` : "—"}</TableCell>
                       <TableCell>
                         {c.enrichment_status === "enriched" ? (
-                          <Badge className="gap-1"><Sparkles className="h-3 w-3" /> IA</Badge>
+                          <Badge className="gap-1">✓ Carregado</Badge>
                         ) : c.enrichment_status === "failed" ? (
                           <Badge variant="destructive">falhou</Badge>
                         ) : (
@@ -329,7 +329,7 @@ export default function CustomersPage() {
                           <Button variant="ghost" size="icon" onClick={() => navigate(`/clientes/${c.id}`)} title="Ver detalhe">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => enrichMut.mutate(c.id)} disabled={enrichMut.isPending} title="Enriquecer com IA">
+                          <Button variant="ghost" size="icon" onClick={() => enrichMut.mutate(c.id)} disabled={enrichMut.isPending} title="Carregar informações">
                             <Sparkles className="h-4 w-4 text-primary" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>

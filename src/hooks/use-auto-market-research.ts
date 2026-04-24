@@ -135,14 +135,14 @@ export function useAutoMarketResearch() {
       qc.invalidateQueries({ queryKey: ["has-market-research", vars.partId] });
       if (res.inserted === 0) {
         if (res.reason === "mismatch") {
-          toast.warning(`IA não localizou anúncios com o código exato — apenas códigos diferentes/similares.`);
+          toast.warning(`Não foi possível localizar anúncios com o código exato — apenas códigos diferentes/similares.`);
         } else if (res.reason === "parallel") {
-          toast.warning("IA só encontrou peças paralelas — nenhuma referência de Original XCMG.");
+          toast.warning("Apenas peças paralelas encontradas — nenhuma referência de Original XCMG.");
         } else {
-          toast.warning("IA não encontrou referências confiáveis para esta peça.");
+          toast.warning("Nenhuma referência confiável encontrada para esta peça.");
         }
       } else {
-        toast.success(`IA encontrou ${res.inserted} referência(s) com código exato.`);
+        toast.success(`${res.inserted} referência(s) encontrada(s) com código exato.`);
       }
     },
     onError: (e: Error) => toast.error(e.message),

@@ -83,7 +83,7 @@ export function ExecutiveOverview({ data, onCategoryClick }: Props) {
             <p>
               ⚠️ <strong>{fmtBRL(kpis.accessoriesValue)}</strong> ({((kpis.accessoriesValue / kpis.totalValue) * 100).toFixed(0)}%) está em
               <em> Acessórios e Outros</em> ({fmtNum(kpis.accessoriesSkus)} SKUs) — recomendado{" "}
-              <strong>reclassificar com IA</strong> (aba "Subcategorizar IA") para análise útil.
+              <strong>reclassificar</strong> (aba "Subcategorizar") para análise útil.
             </p>
           )}
           <p>

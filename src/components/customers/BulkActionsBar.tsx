@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Sparkles, Target, Download, MessageCircle, X } from "lucide-react";
+import { Pencil, Trash2, RefreshCw, Target, Download, MessageCircle, X } from "lucide-react";
 
 type Props = {
   count: number;
@@ -26,10 +26,10 @@ export function BulkActionsBar({ count, onClear, onEdit, onDelete, onEnrich, onP
           <Pencil className="h-4 w-4 mr-1" /> Editar em lote
         </Button>
         <Button size="sm" variant="outline" onClick={onEnrich} disabled={busy}>
-          <Sparkles className="h-4 w-4 mr-1" /> Enriquecer IA
+          <RefreshCw className="h-4 w-4 mr-1" /> Carregar informações
         </Button>
         <Button size="sm" variant="outline" onClick={onProspect} disabled={busy}>
-          <Target className="h-4 w-4 mr-1" /> Prospectar IA
+          <Target className="h-4 w-4 mr-1" /> Buscar prospects
         </Button>
         <Button size="sm" variant="outline" onClick={onWhatsApp} disabled={busy}>
           <MessageCircle className="h-4 w-4 mr-1 text-emerald-600" /> WhatsApp

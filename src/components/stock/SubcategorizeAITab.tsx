@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Tags, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,9 +37,9 @@ export function SubcategorizeAITab() {
       setSuggestions(sug);
       // pré-seleciona alta confiança
       setSelected(new Set(sug.filter((s) => s.confidence >= 0.7).map((s) => s.id)));
-      toast.success(`${sug.length} sugestões geradas pela IA`);
+      toast.success(`${sug.length} sugestões geradas`);
     } catch (e: any) {
-      toast.error(e.message ?? "Erro na IA");
+      toast.error(e.message ?? "Erro ao gerar sugestões");
     } finally {
       setLoading(false);
     }
@@ -88,12 +88,12 @@ export function SubcategorizeAITab() {
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2 text-base">
           <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Reclassificação IA dos Acessórios
+            <Tags className="h-4 w-4 text-primary" />
+            Reclassificação de Acessórios
           </span>
           <div className="flex gap-2">
             <Button onClick={fetchSuggestions} disabled={loading} size="sm">
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
               Gerar sugestões (50)
             </Button>
             {suggestions.length > 0 && (
@@ -108,7 +108,7 @@ export function SubcategorizeAITab() {
       <CardContent>
         {suggestions.length === 0 && !loading && (
           <p className="text-sm text-muted-foreground">
-            Clique em "Gerar sugestões" para a IA propor subcategorias para 50 peças genéricas.
+            Clique em "Gerar sugestões" para receber subcategorias propostas para 50 peças genéricas.
           </p>
         )}
         {suggestions.length > 0 && (

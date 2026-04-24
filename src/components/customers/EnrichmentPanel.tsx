@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, RefreshCw, Info } from "lucide-react";
 import type { Customer } from "@/hooks/use-customers";
 import { useEnrichCustomer } from "@/hooks/use-customers";
 
@@ -31,16 +31,16 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
     return (
       <Card>
         <CardContent className="p-8 text-center space-y-4">
-          <Sparkles className="h-10 w-10 mx-auto text-primary" />
+          <Info className="h-10 w-10 mx-auto text-primary" />
           <div>
-            <p className="font-semibold">Nenhum enriquecimento por IA ainda</p>
+            <p className="font-semibold">Nenhuma informação carregada ainda</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Use IA para buscar CNPJ, CNAE, porte, redes sociais e mais sobre {customer.name}
+              Buscar CNPJ, CNAE, porte, redes sociais e mais sobre {customer.name}
             </p>
           </div>
           <Button onClick={() => enrich.mutate(customer.id)} disabled={enrich.isPending}>
-            <Sparkles className="h-4 w-4 mr-2" />
-            {enrich.isPending ? "Pesquisando…" : "Enriquecer com IA"}
+            <RefreshCw className={`h-4 w-4 mr-2 ${enrich.isPending ? "animate-spin" : ""}`} />
+            {enrich.isPending ? "Carregando…" : "Carregar informações"}
           </Button>
         </CardContent>
       </Card>
@@ -53,8 +53,7 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="font-semibold">Inteligência IA</span>
+          <span className="font-semibold">Informações complementares</span>
           <Badge variant={confColor as never}>Confiança: {data.confidence || "—"}</Badge>
           {customer.enriched_at && (
             <span className="text-xs text-muted-foreground">
@@ -64,7 +63,7 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
         </div>
         <Button variant="outline" size="sm" onClick={() => enrich.mutate(customer.id)} disabled={enrich.isPending}>
           <RefreshCw className={`h-4 w-4 mr-2 ${enrich.isPending ? "animate-spin" : ""}`} />
-          Re-enriquecer
+          Atualizar informações
         </Button>
       </div>
 
