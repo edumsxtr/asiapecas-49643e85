@@ -42,8 +42,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
     const body = await req.json().catch(() => ({}));
-    const mode: "preview" | "apply" = body.mode === "apply" ? "apply" : "preview";
-    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 100);
+    const mode: "preview" | "apply" | "auto" = body.mode === "apply" ? "apply" : body.mode === "auto" ? "auto" : "preview";
+    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
 
     if (mode === "apply") {
       const updates: Array<{ id: string; subcategory: string }> = body.updates || [];
