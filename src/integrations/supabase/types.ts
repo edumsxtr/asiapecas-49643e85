@@ -619,6 +619,7 @@ export type Database = {
           needs_review: boolean
           part_category: string | null
           reviewed_at: string | null
+          search_vector: unknown
           stock: number
           subcategory: string | null
           subcategory_confidence: number | null
@@ -647,6 +648,7 @@ export type Database = {
           needs_review?: boolean
           part_category?: string | null
           reviewed_at?: string | null
+          search_vector?: unknown
           stock?: number
           subcategory?: string | null
           subcategory_confidence?: number | null
@@ -675,6 +677,7 @@ export type Database = {
           needs_review?: boolean
           part_category?: string | null
           reviewed_at?: string | null
+          search_vector?: unknown
           stock?: number
           subcategory?: string | null
           subcategory_confidence?: number | null
@@ -1486,6 +1489,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      immutable_unaccent: { Args: { "": string }; Returns: string }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "manager" | "user"
