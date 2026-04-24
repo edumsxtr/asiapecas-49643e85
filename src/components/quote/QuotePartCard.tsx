@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, Info, Sparkles, Loader2, type LucideIcon } from "lucide-react";
+import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, Info, Sparkles, Loader2, ExternalLink, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { type Lang, tr } from "./translations";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMemo, useState } from "react";
@@ -183,6 +184,11 @@ export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAd
             <ShoppingCart className="h-3.5 w-3.5" />
             {inCart ? tr("part.added", lang) : tr("part.quote", lang)}
           </Button>
+        </div>
+        <div className="px-4 pb-3">
+          <Link to={`/cotacao/p/${encodeURIComponent(part.material)}`} className="text-[10px] text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+            <ExternalLink className="h-2.5 w-2.5" /> Página da peça
+          </Link>
         </div>
       </CardContent>
     </Card>
