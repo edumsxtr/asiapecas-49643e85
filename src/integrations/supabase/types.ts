@@ -118,6 +118,51 @@ export type Database = {
           },
         ]
       }
+      b2b_leads: {
+        Row: {
+          cnpj: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          estimated_volume: string | null
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          segment: string | null
+          status: string
+          utm: Json | null
+        }
+        Insert: {
+          cnpj?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_volume?: string | null
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          segment?: string | null
+          status?: string
+          utm?: Json | null
+        }
+        Update: {
+          cnpj?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_volume?: string | null
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          segment?: string | null
+          status?: string
+          utm?: Json | null
+        }
+        Relationships: []
+      }
       cart_sessions: {
         Row: {
           created_at: string
@@ -415,6 +460,44 @@ export type Database = {
           },
         ]
       }
+      part_promotions: {
+        Row: {
+          active: boolean
+          created_at: string
+          ends_at: string | null
+          id: string
+          part_id: string
+          promo_price: number
+          starts_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          part_id: string
+          promo_price: number
+          starts_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          part_id?: string
+          promo_price?: number
+          starts_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_promotions_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parts: {
         Row: {
           compatible_models: string[] | null
@@ -422,6 +505,7 @@ export type Database = {
           description: string
           estimated_price: number
           id: string
+          image_url: string | null
           is_caminhao_eletrico: boolean
           is_guindaste: boolean
           is_linha_amarela: boolean
@@ -443,6 +527,7 @@ export type Database = {
           description: string
           estimated_price?: number
           id?: string
+          image_url?: string | null
           is_caminhao_eletrico?: boolean
           is_guindaste?: boolean
           is_linha_amarela?: boolean
@@ -464,6 +549,7 @@ export type Database = {
           description?: string
           estimated_price?: number
           id?: string
+          image_url?: string | null
           is_caminhao_eletrico?: boolean
           is_guindaste?: boolean
           is_linha_amarela?: boolean
@@ -665,6 +751,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           status: string
+          utm: Json | null
         }
         Insert: {
           cnpj_cpf?: string | null
@@ -678,6 +765,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           status?: string
+          utm?: Json | null
         }
         Update: {
           cnpj_cpf?: string | null
@@ -691,6 +779,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           status?: string
+          utm?: Json | null
         }
         Relationships: [
           {
@@ -898,6 +987,221 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vitrine_banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          cta_label: string | null
+          cta_link: string | null
+          ends_at: string | null
+          id: string
+          image_url: string
+          lang: string
+          sort_order: number
+          starts_at: string | null
+          subtitle: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          cta_label?: string | null
+          cta_link?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url: string
+          lang?: string
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          cta_label?: string | null
+          cta_link?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string
+          lang?: string
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vitrine_collection_parts: {
+        Row: {
+          collection_id: string
+          part_id: string
+          sort_order: number
+        }
+        Insert: {
+          collection_id: string
+          part_id: string
+          sort_order?: number
+        }
+        Update: {
+          collection_id?: string
+          part_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vitrine_collection_parts_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "vitrine_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vitrine_collection_parts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vitrine_collections: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vitrine_featured_parts: {
+        Row: {
+          active: boolean
+          badge_color: string | null
+          badge_label: string | null
+          created_at: string
+          id: string
+          part_id: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          badge_color?: string | null
+          badge_label?: string | null
+          created_at?: string
+          id?: string
+          part_id: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          badge_color?: string | null
+          badge_label?: string | null
+          created_at?: string
+          id?: string
+          part_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vitrine_featured_parts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vitrine_settings: {
+        Row: {
+          ads_conversion_id: string | null
+          ads_conversion_label: string | null
+          b2b_whatsapp: string | null
+          ga4_id: string | null
+          gtm_id: string | null
+          hero_mode: string | null
+          id: string
+          meta_pixel_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ads_conversion_id?: string | null
+          ads_conversion_label?: string | null
+          b2b_whatsapp?: string | null
+          ga4_id?: string | null
+          gtm_id?: string | null
+          hero_mode?: string | null
+          id?: string
+          meta_pixel_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ads_conversion_id?: string | null
+          ads_conversion_label?: string | null
+          b2b_whatsapp?: string | null
+          ga4_id?: string | null
+          gtm_id?: string | null
+          hero_mode?: string | null
+          id?: string
+          meta_pixel_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -922,9 +1226,16 @@ export type Database = {
         Returns: string[]
       }
       get_stock_analytics: { Args: never; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1051,6 +1362,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "user"],
+    },
   },
 } as const

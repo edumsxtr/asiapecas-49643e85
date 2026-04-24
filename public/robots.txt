@@ -1,14 +1,25 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Public storefront and parts open to crawlers
 User-agent: *
 Allow: /
+Allow: /cotacao
+Allow: /cotacao/p/
+Allow: /cotacao/c/
+
+# Internal tools — never index
+Disallow: /clientes
+Disallow: /vendas
+Disallow: /pedidos
+Disallow: /prospeccao
+Disallow: /pesquisa-mercado
+Disallow: /pos-venda
+Disallow: /relatorio
+Disallow: /assistente
+Disallow: /treinamento
+Disallow: /catalogo
+Disallow: /estoque
+Disallow: /admin/
+Disallow: /login
+Disallow: /reset-password
+
+Sitemap: https://asiapecas.lovable.app/sitemap.xml
+Sitemap: https://ustzlgdhzgkhvyunvxyw.supabase.co/functions/v1/generate-sitemap
