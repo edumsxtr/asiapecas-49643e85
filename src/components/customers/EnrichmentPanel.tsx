@@ -142,11 +142,49 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
               </span>
             )}
           </div>
-          <Button variant="outline" size="sm" onClick={() => enrich.mutate(customer.id)} disabled={enrich.isPending}>
+          <Button variant="outline" size="sm" onClick={() => runEnrich()} disabled={enrich.isPending}>
             <RefreshCw className={`h-4 w-4 mr-2 ${enrich.isPending ? "animate-spin" : ""}`} />
             {enrich.isPending ? "Pesquisando…" : "Reverificar"}
           </Button>
         </div>
+
+        {/* Search override */}
+        {(nameLooksRisky || hasNoVerifiedSources) && (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <FileSearch className="h-3.5 w-3.5 text-primary" />
+                  {nameLooksRisky
+                    ? <>Buscamos como <strong>{cleanedPreview}</strong>. Não bateu? </>
+                    : <>A busca não encontrou nada. </>}
+                  Tente outro nome:
+                </p>
+                {!overrideOpen && (
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setOverrideOpen(true); setOverrideName(cleanedPreview); }}>
+                    Buscar com outro nome
+                  </Button>
+                )}
+              </div>
+              {overrideOpen && (
+                <div className="flex gap-2">
+                  <Input
+                    value={overrideName}
+                    onChange={(e) => setOverrideName(e.target.value)}
+                    placeholder="Ex.: Anglo American, Andrade Gutierrez Engenharia"
+                    className="h-9 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") submitOverride(); }}
+                  />
+                  <Button size="sm" onClick={submitOverride} disabled={enrich.isPending || !overrideName.trim()}>
+                    {enrich.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Buscar"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setOverrideOpen(false)}>Cancelar</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {hasNoVerifiedSources && (
           <Card className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/10">
