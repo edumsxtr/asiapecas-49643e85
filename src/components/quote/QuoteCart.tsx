@@ -8,6 +8,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type Lang, tr } from "./translations";
+import { getUtm } from "@/lib/utm";
+import { track, trackServerConversion } from "@/lib/analytics";
 
 type CartItem = { material: string; description: string; quantity: number };
 
@@ -31,6 +33,8 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang 
       return;
     }
     setSubmitting(true);
+    const utm = getUtm();
+    track.beginCheckout(items as any);
     const { error } = await supabase.from("quote_requests").insert({
       customer_name: form.name,
       company: form.company || null,
@@ -39,9 +43,12 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang 
       phone: form.phone || null,
       items: items.map(({ material, quantity }) => ({ material, quantity })),
       notes: form.notes || null,
+      utm,
     });
     setSubmitting(false);
     if (error) { toast.error(tr("cart.errorSend", lang)); return; }
+    track.generateLead("quote", { items: items.length });
+    trackServerConversion({ event: "quote_lead", email: form.email, phone: form.phone, utm } as any);
     setSubmitted(true);
   };
 

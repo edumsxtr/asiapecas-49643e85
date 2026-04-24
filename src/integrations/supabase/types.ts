@@ -187,6 +187,39 @@ export type Database = {
         }
         Relationships: []
       }
+      conversion_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event: string
+          id: string
+          payload: Json
+          sent_at: string | null
+          sent_to_ads: boolean
+          utm: Json | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event: string
+          id?: string
+          payload?: Json
+          sent_at?: string | null
+          sent_to_ads?: boolean
+          utm?: Json | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event?: string
+          id?: string
+          payload?: Json
+          sent_at?: string | null
+          sent_to_ads?: boolean
+          utm?: Json | null
+        }
+        Relationships: []
+      }
       customer_equipment: {
         Row: {
           created_at: string
@@ -1163,10 +1196,46 @@ export type Database = {
           },
         ]
       }
+      vitrine_seo_overrides: {
+        Row: {
+          description: string | null
+          kind: string
+          noindex: boolean
+          og_image: string | null
+          slug: string
+          title: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          kind: string
+          noindex?: boolean
+          og_image?: string | null
+          slug: string
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          kind?: string
+          noindex?: boolean
+          og_image?: string | null
+          slug?: string
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       vitrine_settings: {
         Row: {
           ads_conversion_id: string | null
           ads_conversion_label: string | null
+          ads_label_b2b: string | null
+          ads_label_quote: string | null
+          ads_label_whatsapp: string | null
           b2b_whatsapp: string | null
           ga4_id: string | null
           gtm_id: string | null
@@ -1179,6 +1248,9 @@ export type Database = {
         Insert: {
           ads_conversion_id?: string | null
           ads_conversion_label?: string | null
+          ads_label_b2b?: string | null
+          ads_label_quote?: string | null
+          ads_label_whatsapp?: string | null
           b2b_whatsapp?: string | null
           ga4_id?: string | null
           gtm_id?: string | null
@@ -1191,6 +1263,9 @@ export type Database = {
         Update: {
           ads_conversion_id?: string | null
           ads_conversion_label?: string | null
+          ads_label_b2b?: string | null
+          ads_label_quote?: string | null
+          ads_label_whatsapp?: string | null
           b2b_whatsapp?: string | null
           ga4_id?: string | null
           gtm_id?: string | null

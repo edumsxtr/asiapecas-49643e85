@@ -4,6 +4,9 @@ Allow: /
 Allow: /cotacao
 Allow: /cotacao/p/
 Allow: /cotacao/c/
+Allow: /cotacao/m/
+Allow: /cotacao/categorias
+Allow: /cotacao/modelos
 
 # Internal tools — never index
 Disallow: /clientes
