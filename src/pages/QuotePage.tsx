@@ -6,6 +6,7 @@ import FeaturedStrip from "@/components/quote/FeaturedStrip";
 import B2BLeadDialog from "@/components/quote/B2BLeadDialog";
 import ConsentBanner from "@/components/quote/ConsentBanner";
 import QuoteCatalog from "@/components/quote/QuoteCatalog";
+import CategoryShowcase from "@/components/quote/CategoryShowcase";
 import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
@@ -27,6 +28,7 @@ export default function QuotePage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [partCategory, setPartCategory] = useState<string | null>(null);
+  const [subcategory, setSubcategory] = useState<string | null>(null);
   const [lang, setLang] = useState<Lang>("pt");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [b2bOpen, setB2bOpen] = useState(false);
@@ -125,6 +127,14 @@ export default function QuotePage() {
         }
       />
 
+      <CategoryShowcase
+        lang={lang}
+        onSubcategoryClick={(sub) => {
+          setSubcategory(sub);
+          setTimeout(() => document.getElementById("pecas")?.scrollIntoView({ behavior: "smooth" }), 50);
+        }}
+      />
+
       <FeaturedStrip lang={lang} onAddToCart={addToCart} />
 
       {/* B2B inline strip */}
@@ -171,7 +181,7 @@ export default function QuotePage() {
       </section>
 
       <div id="pecas">
-        <QuoteCatalog search={search} category={category} partCategory={partCategory} onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)} cartItems={cartItems} onAddToCart={addToCart} lang={lang} />
+        <QuoteCatalog search={search} category={category} partCategory={partCategory} subcategory={subcategory} onSubcategoryChange={setSubcategory} onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)} cartItems={cartItems} onAddToCart={addToCart} lang={lang} />
       </div>
 
       <div id="faq"><QuoteFAQ lang={lang} /></div>

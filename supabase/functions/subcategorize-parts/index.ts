@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const mode: "preview" | "apply" | "auto" = body.mode === "apply" ? "apply" : body.mode === "auto" ? "auto" : "preview";
-    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
+    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 500);
 
     if (mode === "apply") {
       const updates: Array<{ id: string; subcategory: string }> = body.updates || [];
