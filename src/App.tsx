@@ -22,6 +22,10 @@ import ProspectionPage from "./pages/ProspectionPage";
 import ReportPage from "./pages/ReportPage";
 import QuotePage from "./pages/QuotePage";
 import PartDetailPublicPage from "./pages/PartDetailPublicPage";
+import CategoryPublicPage from "./pages/CategoryPublicPage";
+import ModelPublicPage from "./pages/ModelPublicPage";
+import CategoriesIndexPage from "./pages/CategoriesIndexPage";
+import ModelsIndexPage from "./pages/ModelsIndexPage";
 import AdminVitrinePage from "./pages/AdminVitrinePage";
 import TrainingPage from "./pages/TrainingPage";
 import LoginPage from "./pages/LoginPage";
@@ -46,6 +50,10 @@ const App = () => {
             <Routes>
               {/* Public routes */}
               <Route path="/cotacao" element={<QuotePage />} />
+              <Route path="/cotacao/categorias" element={<CategoriesIndexPage />} />
+              <Route path="/cotacao/modelos" element={<ModelsIndexPage />} />
+              <Route path="/cotacao/c/:slug" element={<CategoryPublicPage />} />
+              <Route path="/cotacao/m/:slug" element={<ModelPublicPage />} />
               <Route path="/cotacao/p/:material" element={<PartDetailPublicPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
