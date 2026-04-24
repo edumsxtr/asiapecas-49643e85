@@ -68,7 +68,7 @@ export function useBatchAIResearch() {
         }
       }
 
-      toast.success(`Pesquisa IA concluída! ${totalProcessed} processadas, ${totalSkipped} já existiam.`);
+      toast.success(`Pesquisa concluída! ${totalProcessed} processadas, ${totalSkipped} já existiam.`);
     } catch (e: any) {
       toast.error(e.message || "Erro na pesquisa em massa");
     } finally {

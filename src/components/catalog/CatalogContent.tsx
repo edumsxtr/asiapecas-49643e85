@@ -93,7 +93,7 @@ export function CatalogContent() {
             className="gap-1"
           >
             {progress.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-            {progress.running ? "Parar IA" : "Pesquisar com IA"}
+            {progress.running ? "Parar pesquisa" : "Carregar informações"}
           </Button>
           <ExportCatalogButton />
           <Button variant="outline" onClick={() => setShowImport(true)}>
@@ -107,7 +107,7 @@ export function CatalogContent() {
         <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-foreground font-medium">
-              Pesquisa IA em andamento — Lote {progress.currentBatch}/{progress.totalBatches}
+              Carregando informações — Lote {progress.currentBatch}/{progress.totalBatches}
             </span>
             <span className="text-muted-foreground">
               {progress.processed} processadas · {progress.skipped} existentes · {progress.errors} erros

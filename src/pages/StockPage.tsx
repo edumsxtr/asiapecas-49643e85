@@ -43,7 +43,7 @@ const StockPage = () => {
               <TabsTrigger value="overview">Visão Executiva</TabsTrigger>
               <TabsTrigger value="categories">Categorias</TabsTrigger>
               <TabsTrigger value="bcg">Matriz BCG</TabsTrigger>
-              <TabsTrigger value="ai">Subcategorizar IA</TabsTrigger>
+              <TabsTrigger value="ai">Subcategorizar</TabsTrigger>
               <TabsTrigger value="risk">Tempo & Risco</TabsTrigger>
               <TabsTrigger value="health">Saúde dos Dados</TabsTrigger>
             </TabsList>

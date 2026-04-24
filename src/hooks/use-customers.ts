@@ -412,7 +412,7 @@ export function useEnrichCustomer() {
     onSuccess: (_d, id) => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       qc.invalidateQueries({ queryKey: ["customer", id] });
-      toast.success("Cliente enriquecido com IA");
+      toast.success("Informações atualizadas");
     },
     onError: (e: Error) => toast.error("Erro no enriquecimento: " + e.message),
   });

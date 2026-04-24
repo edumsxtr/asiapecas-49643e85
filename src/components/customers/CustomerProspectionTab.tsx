@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Target, Trophy } from "lucide-react";
+import { RefreshCw, Target, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 type ProspectRow = { id: string; score: number; status: string; ai_summary: string | null; matched_parts: string[] | null; segment: string | null; created_at: string; notes: string | null };
@@ -52,7 +52,7 @@ export function CustomerProspectionTab({ customerId }: { customerId: string }) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => reEnrich.mutate()} disabled={reEnrich.isPending} className="gap-2">
-          <Sparkles className="h-4 w-4" /> {reEnrich.isPending ? "Pesquisando…" : "Pesquisar com IA"}
+          <RefreshCw className={`h-4 w-4 ${reEnrich.isPending ? "animate-spin" : ""}`} /> {reEnrich.isPending ? "Pesquisando…" : "Pesquisar"}
         </Button>
       </div>
 
@@ -61,8 +61,8 @@ export function CustomerProspectionTab({ customerId }: { customerId: string }) {
       ) : prospects.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-muted-foreground">
           <Target className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p>Nenhuma prospecção IA gerada ainda.</p>
-          <p className="text-xs mt-1">Clique em "Pesquisar com IA" para enriquecer este cliente vazio.</p>
+          <p>Nenhuma informação de prospecção carregada ainda.</p>
+          <p className="text-xs mt-1">Clique em "Pesquisar" para buscar oportunidades para este cliente.</p>
         </CardContent></Card>
       ) : (
         prospects.map((p) => (

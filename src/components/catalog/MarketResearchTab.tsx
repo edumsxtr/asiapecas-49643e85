@@ -273,7 +273,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                             <TooltipContent className="max-w-xs">
                               {isVerifiedPage ? (
                                 <div className="space-y-1">
-                                  <p className="font-semibold">Página verificada — código encontrado no anúncio</p>
+                                  <p className="font-semibold">Link confirmado — código encontrado na página</p>
                                   {evidence && <p className="text-xs italic opacity-90">"{evidence}"</p>}
                                 </div>
                               ) : (
@@ -349,7 +349,7 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Por padrão, a IA busca SOMENTE peças originais XCMG. Ative para também ver paralelas.
+                  Por padrão, a busca retorna SOMENTE peças originais XCMG. Ative para também ver paralelas.
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -360,8 +360,8 @@ export function MarketResearchTab({ partId, ourPrice }: Props) {
                 disabled={aiResearch.isPending || !part}
                 className="gap-1"
               >
-                {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
-                {aiResearch.isPending ? "Pesquisando..." : "Pesquisar com IA"}
+                {aiResearch.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <SearchIcon className="h-3 w-3" />}
+                {aiResearch.isPending ? "Pesquisando..." : "Pesquisar"}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
                 <Plus className="h-3 w-3 mr-1" /> Manual

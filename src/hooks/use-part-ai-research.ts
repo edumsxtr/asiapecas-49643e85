@@ -60,7 +60,7 @@ export function usePartAIResearch(material: string) {
       // Invalidate saved result query to pick up the newly saved data
       queryClient.invalidateQueries({ queryKey: ["ai-compatibility", material] });
     } catch (e: any) {
-      toast.error(e.message || "Erro na pesquisa com IA");
+      toast.error(e.message || "Erro ao carregar informações");
     } finally {
       setLoading(false);
     }
