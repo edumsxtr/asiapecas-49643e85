@@ -204,7 +204,7 @@ function ProspectCard({
               <div className="rounded-lg bg-primary/5 border border-primary/10 p-3">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-xs font-semibold text-primary">Análise IA</span>
+                  <span className="text-xs font-semibold text-primary">Análise</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">{prospect.ai_summary}</p>
               </div>
@@ -378,7 +378,7 @@ export default function ProspectionPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Prospecção Inteligente</h1>
-          <p className="text-sm text-muted-foreground">Encontre clientes potenciais com IA — contatos reais, peças sugeridas e ações rápidas</p>
+          <p className="text-sm text-muted-foreground">Encontre clientes potenciais — contatos reais, peças sugeridas e ações rápidas</p>
         </div>
 
         {/* Pipeline Visual */}
@@ -430,9 +430,9 @@ export default function ProspectionPage() {
         <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Buscar Prospects com IA
+              <Search className="h-4 w-4 text-primary" /> Buscar Prospects
             </CardTitle>
-            <p className="text-xs text-muted-foreground">A IA encontra empresas reais com telefone, email e peças recomendadas do seu estoque</p>
+            <p className="text-xs text-muted-foreground">Encontre empresas reais com telefone, email e peças recomendadas do seu estoque</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -470,8 +470,8 @@ export default function ProspectionPage() {
                 disabled={searchAI.isPending}
                 className="font-semibold"
               >
-                {searchAI.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
-                Buscar com IA
+                {searchAI.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+                Buscar
               </Button>
             </div>
           </CardContent>
@@ -507,7 +507,7 @@ export default function ProspectionPage() {
             <Card><CardContent className="py-12 text-center">
               <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Nenhum prospect encontrado.</p>
-              <p className="text-xs text-muted-foreground mt-1">Use a busca com IA acima para gerar prospects com contatos reais.</p>
+              <p className="text-xs text-muted-foreground mt-1">Use a busca acima para gerar prospects com contatos reais.</p>
             </CardContent></Card>
           ) : prospects.map(p => (
             <ProspectCard
