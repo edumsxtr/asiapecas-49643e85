@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye, Zap, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Eye, Zap, AlertTriangle, Tag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { type Lang, tr } from "./translations";
 
 interface QuotePartCardProps {
@@ -41,6 +42,8 @@ function fmtPrice(value: number, lang: Lang): string {
 
 export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang }: QuotePartCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const showPrice = !!user;
   const isReadyToShip = part.stock > 10;
   const isLastUnits = part.stock >= 1 && part.stock <= 5;
   const price = Number(part.estimated_price || 0);
@@ -108,11 +111,14 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
             </div>
           )}
 
-          {/* Promo badge */}
-          {discountPct && discountPct > 0 && (
+          {/* Promo badge — show % only to authenticated internal users */}
+          {promoPrice && (
             <div className="absolute top-2 left-2">
-              <Badge className="bg-red-500 text-white border-0 font-bold text-[11px] px-2 shadow">
-                -{discountPct}% OFERTA
+              <Badge className="bg-red-500 text-white border-0 font-bold text-[11px] px-2 shadow inline-flex items-center gap-1">
+                <Tag className="h-3 w-3" />
+                {showPrice && discountPct && discountPct > 0
+                  ? `-${discountPct}% OFERTA`
+                  : tr("part.onPromotion", lang).toUpperCase()}
               </Badge>
             </div>
           )}
@@ -160,9 +166,9 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
           {/* Code */}
           <p className="font-mono text-[10px] text-muted-foreground/80">#{part.material}</p>
 
-          {/* Price */}
+          {/* Price (authenticated internal users only) — public sees "Price on request" */}
           <div className="mt-1">
-            {price > 0 ? (
+            {showPrice && price > 0 ? (
               <>
                 {promoPrice ? (
                   <div className="flex items-baseline gap-2 flex-wrap">
@@ -178,7 +184,7 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
               </>
             ) : (
               <span className="text-xs text-muted-foreground italic">
-                {lang === "en" ? "Price on request" : lang === "es" ? "Precio bajo consulta" : "Preço sob consulta"}
+                {tr("part.priceOnRequest", lang)}
               </span>
             )}
           </div>
