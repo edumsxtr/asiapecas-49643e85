@@ -1,112 +1,131 @@
 
 
-# Plano: Catálogo interativo + SEO/Ads ready (B2B & B2C)
+# Plano: Páginas indexáveis de Categoria e Modelo + ativação de conversões
 
-Transformar `/cotacao` em uma loja de fato pronta para receber tráfego pago e orgânico, com áreas administráveis (banners, destaques, ofertas), SEO técnico avançado e tracking pronto para Google Ads.
+Criar páginas SEO-otimizadas por categoria de peça e por modelo de máquina, com JSON-LD, breadcrumbs e CTAs alinhados ao objetivo comercial (gerar cotação B2B/B2C de itens em estoque).
 
-## 1. Áreas administráveis no portal (sem editar código)
+## 1. Novas rotas públicas
 
-Nova tela interna **`/admin/vitrine`** (protegida) onde o gestor controla o que aparece no `/cotacao`:
+| Rota | Conteúdo | Exemplo |
+|---|---|---|
+| `/cotacao/c/:slug` | Todas as peças da categoria com `stock > 0`, ordenadas por valor de estoque | `/cotacao/c/filtros` |
+| `/cotacao/m/:slug` | Todas as peças compatíveis com o modelo (busca em `machine_model` + `compatible_models`) | `/cotacao/m/xe215` |
+| `/cotacao/categorias` | Hub listando todas as categorias com contagem de peças em estoque | índice indexável |
+| `/cotacao/modelos` | Hub listando modelos XCMG mais relevantes com contagem de peças | índice indexável |
 
-- **Banners do hero** (carrossel): imagem, título, subtítulo, CTA, link (categoria/peça/URL externa), prioridade, datas de início/fim, idioma
-- **Peças em destaque** (até 12, ordenáveis): seleciona itens do catálogo com badge customizável ("Promoção", "Novo", "Pronta entrega")
-- **Coleções/seções temáticas** (ex.: "Kit revisão XCMG XE215", "Filtros mais vendidos"): nome, descrição, lista de peças, ícone, ordem
-- **Ofertas/preço promocional** opcional por peça (preço de origem + preço promocional + validade) — exibido com tag "OFERTA"
-- **Mensagens-âncora B2B** ativáveis: "Compra para frota?", "Solicitar tabela", "Atendimento corporativo" → abre formulário ou WhatsApp dedicado
+Slugs derivados de `PART_CATEGORIES` (já em `src/components/quote/part-categories.ts`) e dos modelos distintos presentes em `parts.machine_model`/`compatible_models`.
 
-Ferramentas: tabela com drag-and-drop para reordenar, upload direto de imagem (Storage), preview ao vivo do hero, toggle "publicar/despublicar".
+## 2. Estrutura de cada página
 
-## 2. Catálogo `/cotacao` mais interativo
+```text
+[Breadcrumb visual] Início > Cotação > Categoria > Filtros
+[H1] Filtros para máquinas XCMG | Ásia Peças
+[Subcopy comercial] 120 itens em estoque · Pronta entrega · Atendimento BR/EN/ES
+[Selos confiança] Estoque real · Garantia 3 meses · WhatsApp direto
+[CTA primário]   "Solicitar cotação da categoria" → abre carrinho com filtro pré-aplicado
+[CTA secundário B2B] "Sou empresa / quero tabela" → B2BLeadDialog
+[Grid de peças] reutiliza QuotePartCard (stock, preço, badge promo, link p/ /cotacao/p/:material)
+[Bloco "Modelos compatíveis"] (em página de categoria) chips clicáveis → /cotacao/m/:slug
+[Bloco "Categorias relacionadas"] (em página de modelo) chips → /cotacao/c/:slug
+[FAQ curto] 3 perguntas geradas por categoria/modelo (texto crawlable)
+[Rodapé padrão QuoteFooter]
+```
 
-- **Hero com carrossel de banners** dinâmicos (substitui o hero estático). Mantém busca + categorias.
-- **Seção "Destaques"** logo abaixo do hero, scroll horizontal com as peças destacadas
-- **Seções temáticas** (coleções) em blocos visuais distintos antes do catálogo principal
-- **Preço visível** quando disponível, com tag de promoção e desconto %
-- **URL compartilhável** para cada peça (`/cotacao/p/:material`) com Open Graph dinâmico → permite anunciar peças específicas no Google Ads
-- **URLs amigáveis para categorias** (`/cotacao/c/filtros`, `/cotacao/m/xe215`) para SEO e remarketing por interesse
-- **CTA secundário B2B**: botão fixo "Sou empresa / quero tabela" → formulário curto (CNPJ, segmento, volume estimado)
-- **Selo de confiança** (estoque real, anos no mercado, atendimento brasileiro/inglês/espanhol)
+## 3. SEO técnico por página
 
-## 3. SEO técnico avançado
+- **Helmet via `src/lib/seo.tsx`** já existente:
+  - `title`: "Filtros XCMG · Pronta entrega · Ásia Peças & Máquinas" (≤60 chars)
+  - `description`: "120 filtros originais e equivalentes para escavadeiras, pás carregadeiras e guindastes XCMG. Estoque real em Macapá-AP. Cotação rápida via WhatsApp." (≤160)
+  - `canonical`: `/cotacao/c/filtros`
+  - `hreflang` pt/en/es já gerado pelo helper
+  - `og:image`: imagem da primeira peça em destaque OU banner padrão
+- **JSON-LD compostos**:
+  - `BreadcrumbList` (Início → Cotação → Categoria → slug)
+  - `ItemList` com até 30 produtos da página (cada item com `@type: Product`, `sku`, `offers.availability`, `price` quando houver) — usa `productLd` já existente
+  - `Organization` herdada do root
+- **`noindex` automático** quando a categoria/modelo tem **0 itens em estoque** (evita criar páginas vazias indexáveis)
+- Conteúdo textual (H1, subcopy, FAQ, contagem) renderizado server-friendly para crawlers via Helmet + DOM estático no primeiro paint.
 
-- **Renderização SEO-friendly via Vite SSG** para `/cotacao`, páginas de peça e categoria — gera HTML estático no build com meta tags, JSON-LD e conteúdo crawlable. (Alternativa leve: pré-render somente as rotas públicas listadas via `vite-plugin-prerender` ou `vite-ssg`. Sem impacto nas rotas internas autenticadas.)
-- **Meta tags dinâmicas** por rota (title, description, canonical, hreflang pt/en/es) via `react-helmet-async`
-- **JSON-LD `Product`** por peça (nome, código, marca, disponibilidade, preço, breadcrumb) + `BreadcrumbList` + `Organization` + `LocalBusiness` no root
-- **`sitemap.xml` dinâmico** (edge function `generate-sitemap`) listando todas as peças com estoque + categorias + páginas estáticas, com `<lastmod>` real. Atualizado sob demanda + cron diário.
-- **`robots.txt`** atualizado: liberar tudo público, bloquear `/clientes`, `/vendas`, `/admin/*`, `/login`, apontar sitemap
-- **Open Graph dinâmico**: imagem da peça (ou banner padrão), título e descrição reais
-- **Performance Core Web Vitals**: lazy-load imagens (`loading="lazy"`, `decoding="async"`), `preconnect` ao Supabase, fontes com `font-display: swap`, code-splitting já existe via React Router
-- **i18n SEO**: rotas com sufixo `?lang=en` indexáveis via `<link rel="alternate" hreflang="...">`
-- **Breadcrumbs visuais** (Início > Categoria > Peça)
+## 4. Atualizações no `sitemap.xml`
 
-## 4. Tracking & Google Ads ready
+Estender `supabase/functions/generate-sitemap/index.ts`:
+- Adicionar entradas para cada `/cotacao/c/:slug` e `/cotacao/m/:slug` que tenha pelo menos 1 peça em estoque
+- `<lastmod>` = `max(parts.updated_at)` do conjunto
+- `<priority>` 0.8 para categorias, 0.7 para modelos, 0.9 para `/cotacao`, 1.0 para home
+- Incluir hubs `/cotacao/categorias` e `/cotacao/modelos`
 
-- **Google Tag Manager** (GTM) injetado no `index.html` com ID configurável via `vitrine_settings.gtm_id` (tabela admin)
-- **Eventos GA4 padronizados** (Enhanced Ecommerce):
-  - `view_item_list` (catálogo), `view_item` (detalhe), `select_item`, `add_to_cart`, `begin_checkout` (envio de cotação), `generate_lead` (form B2B)
-- **Conversão Google Ads** disparada no envio de cotação e no formulário B2B (server-side via edge function `track-conversion` com Conversion API para precisão pós-iOS)
-- **Pixel Meta** opcional (mesmo schema)
-- **UTM persistence**: captura `utm_*` no primeiro acesso, anexa em todo lead/cotação salvo (coluna `utm` jsonb em `quote_requests`) — atribuição confiável
-- **`consent banner` LGPD** simples (necessário para Ads/Analytics na UE/BR), com toggle para analytics
+## 5. Ativação de conversões (Google Ads + GA4)
 
-## 5. Banco e edge functions
+Reaproveita `src/lib/analytics.ts` e `track-conversion` já existentes. Adições:
 
-| Tabela / Função | O quê |
+| Ponto da jornada | Evento GA4 | Conversão Ads | Onde |
+|---|---|---|---|
+| Abrir página de categoria/modelo | `view_item_list` (`item_list_id` = slug) | — | nova página, no mount |
+| Clicar em peça | `select_item` | — | card |
+| Adicionar ao carrinho | `add_to_cart` | — | já existente |
+| Enviar cotação | `begin_checkout` + `purchase` (sem valor monetário) | **Conversão "Lead — Cotação"** | `QuoteCart` ao salvar `quote_requests` |
+| Enviar form B2B | `generate_lead` | **Conversão "Lead B2B"** (peso maior) | `B2BLeadDialog` |
+| Click "WhatsApp" / "Solicitar tabela" | `contact` | **Conversão "Contato WhatsApp"** | botão CTA |
+| Scroll 75% da página de categoria | `scroll_75_category` | — | listener |
+
+- Nova ação em `track-conversion`: aceitar `event` ∈ `{ quote_lead, b2b_lead, whatsapp_click }` e mapear para `ads_conversion_label` distinto por evento (3 colunas extras em `vitrine_settings`: `ads_label_quote`, `ads_label_b2b`, `ads_label_whatsapp`).
+- Hash SHA-256 server-side de email/telefone (Enhanced Conversions) antes de enviar ao Google Ads.
+- UTM persistido (já existe `src/lib/utm.ts`) é anexado a `quote_requests.utm` e `b2b_leads.utm` — base de atribuição.
+
+## 6. Alinhamento com objetivos da empresa + estoque
+
+- Páginas só listam peças com `stock > 0` (foco em conversão imediata).
+- Ordenação padrão: `(stock_value desc, stock desc)` — empurra primeiro itens caros e parados (ajuda a girar estoque).
+- Bloco "Mais procurados em estoque" no topo (top 4 por valor) — destaque visual.
+- Categoria com >50% das peças em promoção ativa ganha selo "Campanha ativa" no H1.
+- Hub `/cotacao/categorias` ordena categorias por **valor total em estoque** (gestor vê o que precisa girar; cliente vê o que tem mais opções).
+- CTA B2B sempre visível em página de modelo (frota = ticket alto, foco comercial).
+
+## 7. UI admin (extensão leve em `/admin/vitrine`)
+
+Nova aba **"SEO de categorias/modelos"**:
+- Editar override de `title`/`description`/`og_image` por slug (tabela `vitrine_seo_overrides`)
+- Visualizar contagem de peças em estoque por categoria/modelo
+- Botão "Regerar sitemap" (chama `generate-sitemap` on-demand)
+- Aba "Conversões": editar `ads_label_quote`, `ads_label_b2b`, `ads_label_whatsapp` e ver últimos eventos disparados (log simples em `conversion_events`)
+
+## 8. Banco
+
+| Tabela / Mudança | O quê |
 |---|---|
-| `vitrine_banners` | id, image_url, title, subtitle, cta_label, cta_link, lang, sort_order, active, starts_at, ends_at |
-| `vitrine_featured_parts` | id, part_id, badge_label, badge_color, sort_order, active |
-| `vitrine_collections` | id, name, slug, description, icon, sort_order, active |
-| `vitrine_collection_parts` | collection_id, part_id, sort_order |
-| `part_promotions` | part_id, promo_price, starts_at, ends_at |
-| `vitrine_settings` | gtm_id, ga4_id, ads_conversion_id, meta_pixel_id, b2b_whatsapp, hero_mode |
-| `b2b_leads` | nome, empresa, cnpj, segmento, volume, telefone, email, utm jsonb, created_at |
-| `quote_requests` | + coluna `utm jsonb` |
-| Edge `generate-sitemap` | gera XML dinâmico (público) |
-| Edge `track-conversion` | recebe evento, chama Google Ads API server-side com hashing de email/telefone |
-| Bucket Storage `vitrine` | imagens de banner (público read) |
+| `vitrine_seo_overrides` (nova) | `slug text PK`, `kind text` (`category`\|`model`), `title`, `description`, `og_image`, `noindex bool`, `updated_at` |
+| `vitrine_settings` | + colunas `ads_label_quote`, `ads_label_b2b`, `ads_label_whatsapp` |
+| `conversion_events` (nova) | `id`, `event`, `payload jsonb`, `utm jsonb`, `sent_to_ads bool`, `created_at` — log auditável |
 
-RLS:
-- `vitrine_*` e `part_promotions`: SELECT público; INSERT/UPDATE/DELETE só `authenticated` com role admin (usar tabela `user_roles` existente)
-- `b2b_leads`: INSERT público anônimo; SELECT só admin
+RLS: SELECT público para overrides; INSERT/UPDATE/DELETE só admin. `conversion_events` INSERT via edge function (service role); SELECT só admin.
 
-## 6. Storage de imagens de peça (oportunidade rápida)
-
-Catálogo hoje sem foto = baixa conversão. Adicionar:
-- Coluna `parts.image_url` (já pode existir? checar migrações), upload via tela admin
-- Placeholder consistente com identidade Ásia quando ausente
-- Imagens otimizadas automaticamente (Storage transform)
-
-## 7. Arquivos afetados (resumo)
+## 9. Arquivos afetados
 
 **Novos**
-- `src/pages/AdminVitrinePage.tsx` + componentes `vitrine/*` (banners, destaques, coleções, ofertas, settings)
-- `src/pages/PartDetailPublicPage.tsx` (rota `/cotacao/p/:material`)
 - `src/pages/CategoryPublicPage.tsx` (`/cotacao/c/:slug`)
-- `src/components/quote/HeroCarousel.tsx`, `FeaturedStrip.tsx`, `CollectionBlock.tsx`, `B2BLeadDialog.tsx`, `ConsentBanner.tsx`
-- `src/lib/seo.tsx` (helper Helmet + JSON-LD), `src/lib/analytics.ts` (eventos GA4/Ads), `src/lib/utm.ts`
-- `supabase/functions/generate-sitemap/index.ts`, `supabase/functions/track-conversion/index.ts`
-- `vite.config.ts` ajustado para pré-render rotas públicas
+- `src/pages/ModelPublicPage.tsx` (`/cotacao/m/:slug`)
+- `src/pages/CategoriesIndexPage.tsx` (`/cotacao/categorias`)
+- `src/pages/ModelsIndexPage.tsx` (`/cotacao/modelos`)
+- `src/components/quote/CategoryHero.tsx`, `ModelHero.tsx`, `RelatedChips.tsx`, `CategoryFAQ.tsx`
+- `src/lib/slugs.ts` (slugify + map categoria/modelo ↔ slug)
+- `src/hooks/use-category-parts.ts`, `use-model-parts.ts`
+- Migração: `vitrine_seo_overrides`, `conversion_events`, novas colunas em `vitrine_settings`
 
 **Editados**
-- `src/App.tsx`: novas rotas públicas + `/admin/vitrine`
-- `src/pages/QuotePage.tsx`: usa novos componentes (carrossel, destaques, coleções)
-- `src/components/quote/QuoteCatalog.tsx`: integra promoções + URLs amigáveis
-- `src/components/quote/QuotePartCard.tsx`: badge promo, link para detalhe público
-- `index.html`: GTM, hreflang base, fontes preconnect, meta refinadas
-- `public/robots.txt`: bloqueia rotas internas, aponta sitemap
-- `src/components/AppSidebar.tsx`: link "Vitrine" para admin
+- `src/App.tsx`: 4 novas rotas públicas
+- `src/lib/seo.tsx`: helper `itemListLd(parts)` para o JSON-LD da listagem
+- `src/lib/analytics.ts`: novos eventos `view_item_list`, `contact`, `scroll_75_category`
+- `supabase/functions/generate-sitemap/index.ts`: incluir categorias e modelos
+- `supabase/functions/track-conversion/index.ts`: 3 labels, hash SHA-256, log em `conversion_events`
+- `src/pages/AdminVitrinePage.tsx`: abas "SEO" e "Conversões"
+- `src/components/quote/B2BLeadDialog.tsx` e `QuoteCart`: chamar `track-conversion` com evento correto
+- `public/robots.txt`: garantir liberação de `/cotacao/c/*`, `/cotacao/m/*`, `/cotacao/categorias`, `/cotacao/modelos`
 
-## 8. Entregáveis em 3 fases (sugestão)
+## Resultado
 
-1. **Fase 1 (essencial para Ads)**: rotas amigáveis, meta dinâmica, JSON-LD, sitemap, robots, GTM + GA4 + conversão Ads, UTM persistence, consent banner
-2. **Fase 2 (vitrine editável)**: banco vitrine + tela admin + carrossel/destaques/coleções no portal
-3. **Fase 3 (B2B + imagens)**: formulário B2B com tracking, ofertas/preços promo, upload de imagens de peça, pré-render SSG
-
-## Resultado esperado
-
-- Gestor controla banners, destaques e ofertas sem pedir mudanças no código
-- Cada peça tem URL própria, indexável, compartilhável e anunciável no Google Ads
-- Google Ads recebe conversões reais (cotação enviada + lead B2B), com atribuição via UTM
-- SEO técnico no padrão de e-commerce (sitemap, JSON-LD Product, breadcrumbs, hreflang, Core Web Vitals)
-- Portal pronto para tráfego B2C (busca/peça avulsa) **e** B2B (formulário corporativo + WhatsApp dedicado), com conformidade LGPD básica
+- ~30+ páginas novas indexáveis (uma por categoria + uma por modelo XCMG ativo) — multiplicador direto de tráfego orgânico de cauda longa ("filtro xe215", "rolamento xcmg", "peças escavadeira xcmg").
+- Cada página é otimizada para **converter visita em cotação** (foco em estoque real, CTA dual B2B/B2C, JSON-LD Product para rich snippets).
+- Google Ads passa a receber **3 conversões distintas** com pesos diferentes (cotação, lead B2B, WhatsApp) — permite otimizar campanhas por valor real.
+- Gestor controla SEO por categoria sem código e audita conversões disparadas.
+- Sitemap reflete estoque real — sem páginas vazias indexadas.
 
