@@ -600,6 +600,7 @@ export type Database = {
       parts: {
         Row: {
           attributes: Json | null
+          classification_method: string | null
           compatible_models: string[] | null
           created_at: string
           description: string
@@ -615,8 +616,10 @@ export type Database = {
           machine_model: string | null
           manufacturer: string | null
           material: string
+          needs_review: boolean
           part_category: string | null
           reviewed_at: string | null
+          search_vector: unknown
           stock: number
           subcategory: string | null
           subcategory_confidence: number | null
@@ -626,6 +629,7 @@ export type Database = {
         }
         Insert: {
           attributes?: Json | null
+          classification_method?: string | null
           compatible_models?: string[] | null
           created_at?: string
           description: string
@@ -641,8 +645,10 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material: string
+          needs_review?: boolean
           part_category?: string | null
           reviewed_at?: string | null
+          search_vector?: unknown
           stock?: number
           subcategory?: string | null
           subcategory_confidence?: number | null
@@ -652,6 +658,7 @@ export type Database = {
         }
         Update: {
           attributes?: Json | null
+          classification_method?: string | null
           compatible_models?: string[] | null
           created_at?: string
           description?: string
@@ -667,8 +674,10 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material?: string
+          needs_review?: boolean
           part_category?: string | null
           reviewed_at?: string | null
+          search_vector?: unknown
           stock?: number
           subcategory?: string | null
           subcategory_confidence?: number | null
@@ -1098,6 +1107,95 @@ export type Database = {
         }
         Relationships: []
       }
+      subcategory_taxonomy: {
+        Row: {
+          active: boolean
+          attribute_extractors: Json
+          category_group: string
+          created_at: string
+          id: string
+          min_score: number
+          negative_terms: string[]
+          priority: number
+          subcategory: string
+          synonyms_en: string[]
+          synonyms_es: string[]
+          synonyms_pt: string[]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          attribute_extractors?: Json
+          category_group: string
+          created_at?: string
+          id?: string
+          min_score?: number
+          negative_terms?: string[]
+          priority?: number
+          subcategory: string
+          synonyms_en?: string[]
+          synonyms_es?: string[]
+          synonyms_pt?: string[]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          attribute_extractors?: Json
+          category_group?: string
+          created_at?: string
+          id?: string
+          min_score?: number
+          negative_terms?: string[]
+          priority?: number
+          subcategory?: string
+          synonyms_en?: string[]
+          synonyms_es?: string[]
+          synonyms_pt?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      taxonomy_feedback: {
+        Row: {
+          applied: boolean
+          corrected_subcategory: string
+          created_at: string
+          description_snapshot: string | null
+          id: string
+          original_subcategory: string | null
+          part_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          applied?: boolean
+          corrected_subcategory: string
+          created_at?: string
+          description_snapshot?: string | null
+          id?: string
+          original_subcategory?: string | null
+          part_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          applied?: boolean
+          corrected_subcategory?: string
+          created_at?: string
+          description_snapshot?: string | null
+          id?: string
+          original_subcategory?: string | null
+          part_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomy_feedback_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1364,6 +1462,8 @@ export type Database = {
         Args: { _only_missing?: boolean }
         Returns: number
       }
+      classify_parts_v4: { Args: { _only_missing?: boolean }; Returns: Json }
+      cleanup_bad_attributes: { Args: never; Returns: number }
       find_duplicate_parts: {
         Args: never
         Returns: {
@@ -1383,6 +1483,11 @@ export type Database = {
         Args: { col_name: string; stock_min?: number }
         Returns: string[]
       }
+      get_drilldown: {
+        Args: { _limit?: number; filters?: Json }
+        Returns: Json
+      }
+      get_intelligence_view: { Args: { filters?: Json }; Returns: Json }
       get_stock_analytics: { Args: never; Returns: Json }
       has_role: {
         Args: {
@@ -1391,6 +1496,29 @@ export type Database = {
         }
         Returns: boolean
       }
+      immutable_unaccent: { Args: { "": string }; Returns: string }
+      search_parts: {
+        Args: { _limit?: number; _offset?: number; filters?: Json; q?: string }
+        Returns: {
+          attributes: Json
+          description: string
+          estimated_price: number
+          id: string
+          image_url: string
+          last_entry_time: string
+          machine_model: string
+          manufacturer: string
+          material: string
+          part_category: string
+          score: number
+          stock: number
+          subcategory: string
+          total_count: number
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "manager" | "user"
