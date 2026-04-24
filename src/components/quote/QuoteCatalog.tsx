@@ -280,6 +280,21 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
+          {isUnfilteredDefault ? (
+            <CategoryGroupedView
+              lang={lang}
+              cartMaterials={inCartMaterials}
+              onAddToCart={(p) => onAddToCart({ ...p, description: getDescription(p) })}
+              onViewDetail={(p) => setDetailPart({ ...p, description: getDescription(p) })}
+              onSelectSubcategory={(sub) => onSubcategoryChange?.(sub)}
+              onSelectAttribute={(sub, k, v) => {
+                onSubcategoryChange?.(sub);
+                setAttrFilter({ key: k, value: v });
+              }}
+            />
+          ) : (
+          <>
+
           {/* Top bar: results count + sort + mobile filter */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
