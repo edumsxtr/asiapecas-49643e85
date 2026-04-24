@@ -21,6 +21,13 @@ type Telemetry = {
   urls_matched_medium?: number;
   urls_matched_weak?: number;
   country?: string;
+  rounds_executed?: number;
+  round1_yielded?: number;
+  round2_yielded?: number;
+  queries_round1?: string[];
+  queries_round2?: string[];
+  search_override?: string | null;
+  core_name_used?: string;
 };
 
 type Enrichment = {
@@ -49,6 +56,8 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
   const verify = useVerifyCustomerSource();
   const enrichUrl = useEnrichFromUrl();
   const [manualUrl, setManualUrl] = useState("");
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideName, setOverrideName] = useState("");
   const data = (customer.enrichment_data || {}) as Enrichment;
   const isEnriched = customer.enrichment_status === "enriched";
   const sources = data.sources || [];
@@ -56,12 +65,34 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
   const telemetry = data.telemetry || {};
   const hasNoVerifiedSources = isEnriched && sources.length === 0;
 
+  const rawName = customer.company || customer.name || "";
+  // Detect "risky" names: legal suffixes, parens, accents in odd places, lots of punctuation
+  const nameLooksRisky = /\(|\)|S\/?A|S\.A|LTDA|EIRELI|EPP|\bME\b|\bCIA\b|\.[A-Z]/i.test(rawName) || /[À-Ÿ]/.test(rawName.slice(0, 1));
+  const cleanedPreview = rawName
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(s\/?a|s\.?a\.?|ltda|eireli|epp|me|cia|companhia)\b\.?/gi, " ")
+    .replace(/[.,;:/\\"'`]/g, " ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ").trim();
+
   const submitManualUrl = async () => {
     const url = manualUrl.trim();
     if (!url) return;
     try { new URL(url); } catch { toast.error("URL inválida"); return; }
     await enrichUrl.mutateAsync({ customer_id: customer.id, url });
     setManualUrl("");
+  };
+
+  const runEnrich = (override?: string) => {
+    enrich.mutate(override ? { customer_id: customer.id, search_override: override } : customer.id);
+  };
+
+  const submitOverride = () => {
+    const v = overrideName.trim();
+    if (!v) return;
+    runEnrich(v);
+    setOverrideOpen(false);
+    setOverrideName("");
   };
 
   if (!isEnriched) {
@@ -72,10 +103,15 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
           <div>
             <p className="font-semibold">Nenhuma informação carregada ainda</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Buscamos páginas públicas reais para extrair dados verificados sobre {customer.company || customer.name}.
+              Buscamos páginas públicas reais para extrair dados verificados sobre {rawName}.
             </p>
+            {nameLooksRisky && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Vamos buscar como <strong className="text-foreground">{cleanedPreview}</strong>.
+              </p>
+            )}
           </div>
-          <Button onClick={() => enrich.mutate(customer.id)} disabled={enrich.isPending}>
+          <Button onClick={() => runEnrich()} disabled={enrich.isPending}>
             <RefreshCw className={`h-4 w-4 mr-2 ${enrich.isPending ? "animate-spin" : ""}`} />
             {enrich.isPending ? "Pesquisando…" : "Carregar informações"}
           </Button>
@@ -106,11 +142,49 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
               </span>
             )}
           </div>
-          <Button variant="outline" size="sm" onClick={() => enrich.mutate(customer.id)} disabled={enrich.isPending}>
+          <Button variant="outline" size="sm" onClick={() => runEnrich()} disabled={enrich.isPending}>
             <RefreshCw className={`h-4 w-4 mr-2 ${enrich.isPending ? "animate-spin" : ""}`} />
             {enrich.isPending ? "Pesquisando…" : "Reverificar"}
           </Button>
         </div>
+
+        {/* Search override */}
+        {(nameLooksRisky || hasNoVerifiedSources) && (
+          <Card className="border-primary/20">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <FileSearch className="h-3.5 w-3.5 text-primary" />
+                  {nameLooksRisky
+                    ? <>Buscamos como <strong>{cleanedPreview}</strong>. Não bateu? </>
+                    : <>A busca não encontrou nada. </>}
+                  Tente outro nome:
+                </p>
+                {!overrideOpen && (
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setOverrideOpen(true); setOverrideName(cleanedPreview); }}>
+                    Buscar com outro nome
+                  </Button>
+                )}
+              </div>
+              {overrideOpen && (
+                <div className="flex gap-2">
+                  <Input
+                    value={overrideName}
+                    onChange={(e) => setOverrideName(e.target.value)}
+                    placeholder="Ex.: Anglo American, Andrade Gutierrez Engenharia"
+                    className="h-9 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") submitOverride(); }}
+                  />
+                  <Button size="sm" onClick={submitOverride} disabled={enrich.isPending || !overrideName.trim()}>
+                    {enrich.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Buscar"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setOverrideOpen(false)}>Cancelar</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {hasNoVerifiedSources && (
           <Card className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/10">
@@ -245,14 +319,38 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
             <CollapsibleContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-[11px]">
                 <DiagItem label="Consultas executadas" value={telemetry.searched_queries} />
+                <DiagItem label="Rounds executados" value={telemetry.rounds_executed} />
                 <DiagItem label="URLs encontradas" value={telemetry.urls_returned} />
                 <DiagItem label="URLs únicas" value={telemetry.urls_unique} />
-                <DiagItem label="Páginas lidas com sucesso" value={telemetry.urls_scraped_ok} />
+                <DiagItem label="Páginas lidas" value={telemetry.urls_scraped_ok} />
                 <DiagItem label="Match forte" value={telemetry.urls_matched_strong} />
                 <DiagItem label="Match médio" value={telemetry.urls_matched_medium} />
                 <DiagItem label="Match fraco" value={telemetry.urls_matched_weak} />
+                <DiagItem label="Round 1 → URLs" value={telemetry.round1_yielded} />
+                <DiagItem label="Round 2 → URLs" value={telemetry.round2_yielded} />
                 <DiagItem label="País" value={telemetry.country?.toUpperCase()} />
+                <DiagItem label="Termo override" value={telemetry.search_override || "—"} />
               </div>
+              {telemetry.core_name_used && (
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Nome usado para busca: <strong className="text-foreground">{telemetry.core_name_used}</strong>
+                </p>
+              )}
+              {(telemetry.queries_round1?.length || telemetry.queries_round2?.length) ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Queries enviadas</p>
+                  {telemetry.queries_round1?.map((q, i) => (
+                    <div key={`r1-${i}`} className="text-[11px] font-mono bg-muted/30 rounded px-2 py-1">
+                      <span className="text-muted-foreground mr-1">R1:</span>{q}
+                    </div>
+                  ))}
+                  {telemetry.queries_round2?.map((q, i) => (
+                    <div key={`r2-${i}`} className="text-[11px] font-mono bg-muted/30 rounded px-2 py-1">
+                      <span className="text-muted-foreground mr-1">R2:</span>{q}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </CollapsibleContent>
           </Collapsible>
         )}

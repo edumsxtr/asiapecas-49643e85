@@ -404,21 +404,24 @@ export function useImportCustomers() {
 export function useEnrichCustomer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (customer_id: string) => {
-      const { data, error } = await supabase.functions.invoke("enrich-customer", { body: { customer_id } });
+    mutationFn: async (input: string | { customer_id: string; search_override?: string }) => {
+      const body = typeof input === "string"
+        ? { customer_id: input }
+        : { customer_id: input.customer_id, search_override: input.search_override };
+      const { data, error } = await supabase.functions.invoke("enrich-customer", { body });
       if (error) {
-        // Surface 412 (Firecrawl missing) with friendlier message
         const msg = (data as { error?: string } | null)?.error || error.message || "Erro ao buscar informações";
         throw new Error(msg);
       }
       return data;
     },
-    onSuccess: (data, id) => {
+    onSuccess: (data, input) => {
+      const id = typeof input === "string" ? input : input.customer_id;
       qc.invalidateQueries({ queryKey: ["customers"] });
       qc.invalidateQueries({ queryKey: ["customer", id] });
       const note = (data as { note?: string } | null)?.note;
       if (note === "no_public_results" || note === "no_verified_sources") {
-        toast.warning("Sem fontes públicas verificáveis para este cliente.");
+        toast.warning("Sem fontes públicas verificáveis. Veja o diagnóstico para tentar outro termo de busca.");
       } else {
         toast.success("Informações atualizadas com fontes verificadas");
       }

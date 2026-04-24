@@ -269,29 +269,114 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Customer not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const companyName = (customer.company || customer.name).trim();
+    const realCompanyName = (customer.company || customer.name).trim();
+    const searchOverride = typeof body.search_override === "string" ? body.search_override.trim() : "";
+    const queryNameSource = searchOverride || realCompanyName;
     const cityState = [customer.city, customer.state].filter(Boolean).join(" ");
     const customerCountry = (customer.country || "BR").toLowerCase();
-    // Map country code to Firecrawl country/lang
     const countryCode = customerCountry === "br" ? "br" : customerCountry === "ve" ? "ve" : customerCountry === "gy" ? "gy" : "br";
     const langCode = countryCode === "ve" ? "es" : countryCode === "gy" ? "en" : "pt";
 
-    // 1. SEARCH — multiple targeted queries (CNPJ-aware + city + LinkedIn + gov)
-    const queries: string[] = [];
-    if (customer.cnpj_cpf && customer.cnpj_cpf.replace(/\D/g, "").length >= 11) {
-      queries.push(`"${customer.cnpj_cpf}"`);
-      queries.push(`"${customer.cnpj_cpf}" cnpj`);
+    // ----- Smart query builder -----
+    function stripAccents(s: string) {
+      return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
-    queries.push(`"${companyName}" ${cityState}`.trim());
-    if (customer.city) queries.push(`"${companyName}" "${customer.city}"`);
-    queries.push(`"${companyName}" telefone endereço`);
-    queries.push(`"${companyName}" site:linkedin.com/company`);
-    if (countryCode === "br") queries.push(`"${companyName}" site:gov.br`);
-    queries.push(`"${companyName}" CNPJ`);
-    queries.push(`"${companyName}" site oficial contato`);
+    function buildCoreName(name: string): string {
+      let n = name;
+      n = n.replace(/\([^)]*\)/g, " ");                                // remove parentheticals
+      n = n.replace(/\b(s\/?a|s\.?a\.?|ltda|eireli|epp|me|cia|companhia)\b\.?/gi, " ");
+      n = n.replace(/[.,;:/\\"'`]/g, " ");                              // remove punctuation
+      n = stripAccents(n);
+      n = n.replace(/\s+/g, " ").trim();
+      return n;
+    }
+    function buildSmartQueries(opts: {
+      name: string;
+      cnpj?: string | null;
+      city?: string | null;
+      state?: string | null;
+      segmentHint?: string | null;
+      country: string;
+    }): { round1: string[]; round2: string[] } {
+      const core = buildCoreName(opts.name);
+      const tokens = core.split(" ").filter(Boolean);
+      const short = tokens.slice(0, 3).join(" ") || core;
+      const segHint = opts.segmentHint && opts.segmentHint !== "geral" ? opts.segmentHint : "";
+      const cityClean = opts.city ? stripAccents(opts.city) : "";
+      const countryName = opts.country === "br" ? "Brasil" : opts.country === "ve" ? "Venezuela" : opts.country === "gy" ? "Guyana" : "";
 
-    const searchBatches = await Promise.all(queries.map((q) => firecrawlSearch(FIRECRAWL_API_KEY, q, countryCode, langCode, 4)));
-    const searchResults = searchBatches.flat();
+      // Round 1 — strict / literal (CNPJ + full quoted)
+      const round1: string[] = [];
+      if (opts.cnpj && opts.cnpj.replace(/\D/g, "").length >= 11) {
+        round1.push(`"${opts.cnpj}"`);
+        round1.push(`"${opts.cnpj}" cnpj`);
+      }
+      round1.push(`"${opts.name}" ${[opts.city, opts.state].filter(Boolean).join(" ")}`.trim());
+      round1.push(`"${opts.name}" site:linkedin.com/company`);
+      if (opts.country === "br") round1.push(`"${opts.name}" site:gov.br`);
+
+      // Round 2 — fuzzy (no quotes, sanitized short name)
+      const round2: string[] = [];
+      if (cityClean) round2.push(`${short} ${cityClean}`);
+      round2.push(`${short} site oficial`);
+      round2.push(`${short} linkedin`);
+      round2.push(`${short} cnpj`);
+      if (tokens.length <= 2 && segHint) round2.push(`${short} ${segHint} ${countryName}`.trim());
+      else if (countryName) round2.push(`${core} ${countryName}`);
+      round2.push(`site:linkedin.com/company ${short}`);
+
+      // dedupe within rounds
+      const dedupe = (arr: string[]) => Array.from(new Set(arr.map((q) => q.trim()).filter(Boolean)));
+      return { round1: dedupe(round1), round2: dedupe(round2) };
+    }
+
+    const { round1, round2 } = buildSmartQueries({
+      name: queryNameSource,
+      cnpj: customer.cnpj_cpf,
+      city: customer.city,
+      state: customer.state,
+      segmentHint: customer.segment,
+      country: countryCode,
+    });
+
+    const telemetry: Record<string, unknown> = {
+      searched_queries: 0,
+      urls_returned: 0,
+      urls_unique: 0,
+      urls_scraped_ok: 0,
+      urls_matched_strong: 0,
+      urls_matched_medium: 0,
+      urls_matched_weak: 0,
+      country: countryCode,
+      rounds_executed: 0,
+      round1_yielded: 0,
+      round2_yielded: 0,
+      queries_round1: round1,
+      queries_round2: [] as string[],
+      search_override: searchOverride || null,
+      core_name_used: buildCoreName(queryNameSource),
+    };
+
+    async function runRound(qs: string[]): Promise<Array<{ url: string; title?: string; description?: string }>> {
+      const batches = await Promise.all(qs.map((q) => firecrawlSearch(FIRECRAWL_API_KEY!, q, countryCode, langCode, 4)));
+      return batches.flat();
+    }
+
+    // Round 1
+    let searchResults = await runRound(round1);
+    telemetry.searched_queries = round1.length;
+    telemetry.rounds_executed = 1;
+    telemetry.round1_yielded = searchResults.length;
+
+    // Round 2 — automatic fallback when round 1 returns nothing
+    if (searchResults.length === 0 && round2.length > 0) {
+      const r2 = await runRound(round2);
+      telemetry.queries_round2 = round2;
+      telemetry.searched_queries = (telemetry.searched_queries as number) + round2.length;
+      telemetry.rounds_executed = 2;
+      telemetry.round2_yielded = r2.length;
+      searchResults = r2;
+    }
 
     // dedupe by URL, then sort by priority host
     const seen = new Set<string>();
@@ -303,16 +388,11 @@ Deno.serve(async (req) => {
     candidates.sort((a, b) => priorityScore(b.url) - priorityScore(a.url));
     candidates = candidates.slice(0, 12);
 
-    const telemetry = {
-      searched_queries: queries.length,
-      urls_returned: searchResults.length,
-      urls_unique: candidates.length,
-      urls_scraped_ok: 0,
-      urls_matched_strong: 0,
-      urls_matched_medium: 0,
-      urls_matched_weak: 0,
-      country: countryCode,
-    };
+    telemetry.urls_returned = searchResults.length;
+    telemetry.urls_unique = candidates.length;
+
+    // Keep `companyName` as the REAL name for content matching (so verification stays strict)
+    const companyName = realCompanyName;
 
     console.info("enrich-customer firecrawl_hits=", candidates.length, "for", companyName, "country=", countryCode);
 
@@ -327,9 +407,9 @@ Deno.serve(async (req) => {
       .slice(0, 6);
 
     if (candidates.length === 0) {
-      const note = telemetry.searched_queries > 0
-        ? "Firecrawl não retornou resultados — verifique conexão/créditos do Firecrawl em Connectors, ou adicione uma URL manual (site/LinkedIn)."
-        : "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).";
+      const allQueries = [...round1, ...round2];
+      const sample = allQueries.slice(0, 3).map((q) => `"${q}"`).join(", ");
+      const note = `Nenhum resultado público para ${sample}${allQueries.length > 3 ? ` (+${allQueries.length - 3} variações)` : ""}. Tente o botão "Buscar com outro nome" acima ou cole uma URL conhecida (site/LinkedIn) abaixo.`;
       await supabase.from("customers").update({
         enrichment_status: "enriched",
         enriched_at: new Date().toISOString(),
