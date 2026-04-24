@@ -76,7 +76,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
-        .select("id, material, description, machine_model, stock, manufacturer, estimated_price, image_url", { count: "exact" })
+        .select("id, material, description, machine_model, stock, manufacturer, estimated_price, image_url, subcategory, attributes", { count: "exact" })
         .gt("stock", 0);
 
       if (search.length >= 2) {
