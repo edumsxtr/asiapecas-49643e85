@@ -83,6 +83,9 @@ const t = {
   "part.readyToShip": { pt: "Pronta Entrega", en: "Ready to Ship", es: "Entrega Inmediata" },
   "part.lastUnits": { pt: "Últimas unidades!", en: "Last units!", es: "¡Últimas unidades!" },
   "part.aiVerified": { pt: "Verificado por IA", en: "AI Verified", es: "Verificado por IA" },
+  "part.priceOnRequest": { pt: "Cotação sob consulta", en: "Price on request", es: "Precio bajo consulta" },
+  "part.onPromotion": { pt: "Em promoção", en: "On promotion", es: "En promoción" },
+  "part.availability": { pt: "Disponibilidade", en: "Availability", es: "Disponibilidad" },
 
   // Part detail
   "detail.techDesc": { pt: "Descrição Técnica", en: "Technical Description", es: "Descripción Técnica" },
