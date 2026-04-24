@@ -1,41 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye, Package, Zap, AlertTriangle, ShieldCheck, Cog, Filter, Disc, Wrench, Fuel, Cable, CircuitBoard, Fan, Gauge, Hammer, Info, Sparkles, Loader2, ExternalLink, type LucideIcon } from "lucide-react";
-import { Link } from "react-router-dom";
-import { type Lang, tr } from "./translations";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useMemo, useState } from "react";
+import { ShoppingCart, Eye, Zap, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-const ICON_KEYWORDS: [string[], LucideIcon, string][] = [
-  [["filtro", "filter"], Filter, "text-blue-500"],
-  [["engrenagem", "gear", "eixo", "rolamento", "bearing"], Cog, "text-zinc-500"],
-  [["disco", "brake", "freio", "disk"], Disc, "text-orange-500"],
-  [["parafuso", "bolt", "porca", "nut", "arruela", "washer"], Wrench, "text-slate-500"],
-  [["combustivel", "fuel", "tanque", "tank", "bomba", "pump"], Fuel, "text-amber-600"],
-  [["cabo", "cable", "fio", "wire", "chicote", "harness"], Cable, "text-purple-500"],
-  [["sensor", "modulo", "module", "eletron", "electr", "ecu", "placa"], CircuitBoard, "text-emerald-500"],
-  [["ventilador", "fan", "radiador", "radiator", "cooler"], Fan, "text-cyan-500"],
-  [["manometro", "gauge", "pressao", "pressure", "valvula", "valve"], Gauge, "text-red-500"],
-  [["martelo", "hammer", "pino", "pin", "bucha", "bushing"], Hammer, "text-stone-500"],
-];
-
-function getPartIcon(description: string): [LucideIcon, string] {
-  const lower = description.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  for (const [keywords, icon, color] of ICON_KEYWORDS) {
-    if (keywords.some(k => lower.includes(k))) return [icon, color];
-  }
-  return [Package, "text-muted-foreground/30"];
-}
-
-const AI_LABELS: Record<string, Record<string, string>> = {
-  researchAi: { pt: "Pesquisar com IA", en: "Research with AI", es: "Investigar con IA" },
-  researching: { pt: "Pesquisando...", en: "Researching...", es: "Investigando..." },
-  moreInfo: { pt: "Ver informações técnicas da IA", en: "View AI technical info", es: "Ver info técnica de IA" },
-  researchTip: { pt: "Clique para obter descrição técnica, compatibilidade e peças relacionadas via IA", en: "Click to get technical description, compatibility and related parts via AI", es: "Haga clic para obtener descripción técnica, compatibilidad y repuestos relacionados vía IA" },
-};
+import { type Lang, tr } from "./translations";
 
 interface QuotePartCardProps {
   part: {
@@ -45,150 +15,191 @@ interface QuotePartCardProps {
     machine_model: string | null;
     stock: number;
     manufacturer: string | null;
+    estimated_price?: number | null;
+    image_url?: string | null;
   };
   inCart: boolean;
-  hasAiData: boolean;
+  /** Kept for API compat with existing callers. No longer rendered. */
+  hasAiData?: boolean;
   aiPreview?: string | null;
   onAdd: () => void;
   onViewDetail: () => void;
   lang: Lang;
 }
 
-export default function QuotePartCard({ part, inCart, hasAiData, aiPreview, onAdd, onViewDetail, lang }: QuotePartCardProps) {
+function fmtPrice(value: number, lang: Lang): string {
+  const locale = lang === "en" ? "en-US" : lang === "es" ? "es-AR" : "pt-BR";
+  const currency = lang === "en" ? "USD" : "BRL";
+  try {
+    return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
+  } catch {
+    return `R$ ${value.toFixed(2)}`;
+  }
+}
+
+export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang }: QuotePartCardProps) {
+  const navigate = useNavigate();
   const isReadyToShip = part.stock > 10;
   const isLastUnits = part.stock >= 1 && part.stock <= 5;
-  const [PartIcon, iconColor] = useMemo(() => getPartIcon(part.description), [part.description]);
-  const [researching, setResearching] = useState(false);
-  const [justResearched, setJustResearched] = useState(false);
+  const price = Number(part.estimated_price || 0);
 
-  const handleResearch = async (e: React.MouseEvent) => {
+  // Active promo (per-part)
+  const { data: promo } = useQuery({
+    queryKey: ["promo", part.id],
+    queryFn: async () => {
+      const nowIso = new Date().toISOString();
+      const { data } = await supabase
+        .from("part_promotions")
+        .select("promo_price, starts_at, ends_at")
+        .eq("part_id", part.id)
+        .eq("active", true)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const p = data?.[0];
+      if (!p) return null;
+      if (p.starts_at && p.starts_at > nowIso) return null;
+      if (p.ends_at && p.ends_at < nowIso) return null;
+      return p;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const promoPrice = promo?.promo_price ? Number(promo.promo_price) : null;
+  const finalPrice = promoPrice ?? price;
+  const discountPct = promoPrice && price > 0 ? Math.round((1 - promoPrice / price) * 100) : null;
+
+  const goToDetail = () => navigate(`/cotacao/p/${encodeURIComponent(part.material)}`);
+
+  const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (researching) return;
-    setResearching(true);
-    try {
-      const { error } = await supabase.functions.invoke("part-research", {
-        body: { material: part.material },
-      });
-      if (error) throw error;
-      setJustResearched(true);
-      toast.success(lang === "en" ? "AI research complete!" : lang === "es" ? "¡Investigación IA completa!" : "Pesquisa IA concluída!");
-    } catch {
-      toast.error(lang === "en" ? "Research failed. Try again." : lang === "es" ? "Error en investigación." : "Erro na pesquisa. Tente novamente.");
-    } finally {
-      setResearching(false);
-    }
+    onAdd();
+  };
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onViewDetail();
   };
 
-  const showAi = hasAiData || justResearched;
+  const priceLabel = lang === "en" ? "From" : lang === "es" ? "Desde" : "A partir de";
 
   return (
-    <Card className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border ${inCart ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/40"}`}>
-      <CardContent className="p-0">
-        {/* Top badges row */}
-        <div className="flex items-center justify-between px-4 pt-4">
-          <Badge className="bg-primary text-primary-foreground font-mono text-xs">{part.material}</Badge>
-          <div className="flex items-center gap-1">
-            {showAi ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button onClick={onViewDetail} className="cursor-pointer">
-                      <Badge variant="outline" className="text-xs gap-1 border-green-500/40 text-green-600 bg-green-50 animate-pulse">
-                        <ShieldCheck className="h-3 w-3" /> {tr("part.aiVerified", lang)}
-                      </Badge>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs font-medium mb-1">{AI_LABELS.moreInfo[lang]}</p>
-                    {aiPreview && <p className="text-xs text-muted-foreground line-clamp-3">{aiPreview}</p>}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleResearch}
-                      disabled={researching}
-                      className="cursor-pointer"
-                    >
-                      <Badge variant="outline" className="text-xs gap-1 border-amber-400/60 text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors">
-                        {researching ? (
-                          <><Loader2 className="h-3 w-3 animate-spin" /> {AI_LABELS.researching[lang]}</>
-                        ) : (
-                          <><Sparkles className="h-3 w-3" /> {AI_LABELS.researchAi[lang]}</>
-                        )}
-                      </Badge>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs">{AI_LABELS.researchTip[lang]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+    <Card
+      onClick={goToDetail}
+      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border overflow-hidden flex flex-col ${
+        inCart ? "border-primary ring-1 ring-primary/30" : "hover:border-primary/40"
+      }`}
+    >
+      <CardContent className="p-0 flex flex-col h-full">
+        {/* Image */}
+        <div className="relative aspect-square bg-muted/40 overflow-hidden">
+          {part.image_url ? (
+            <img
+              src={part.image_url}
+              alt={part.description}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-secondary/5 to-primary/5">
+              <span className="text-5xl font-bold font-['Space_Grotesk'] text-primary/30 select-none">XCMG</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground/50 mt-1">peça original</span>
+            </div>
+          )}
+
+          {/* Promo badge */}
+          {discountPct && discountPct > 0 && (
+            <div className="absolute top-2 left-2">
+              <Badge className="bg-red-500 text-white border-0 font-bold text-[11px] px-2 shadow">
+                -{discountPct}% OFERTA
+              </Badge>
+            </div>
+          )}
+
+          {/* Quick view button on hover */}
+          <button
+            onClick={handleQuickView}
+            className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/90 text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow flex items-center justify-center hover:bg-background"
+            aria-label={tr("part.details", lang)}
+            title={tr("part.details", lang)}
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 flex flex-col gap-2 flex-1">
+          {/* Brand · model chip */}
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="font-semibold text-secondary-foreground/80">{part.manufacturer || "XCMG"}</span>
+            {part.machine_model && (
+              <>
+                <span>·</span>
+                <span className="truncate">{part.machine_model}</span>
+              </>
             )}
           </div>
-        </div>
 
-        {/* Scarcity / availability badges */}
-        <div className="px-4 pt-2 flex gap-1.5">
-          {isReadyToShip && (
-            <Badge className="text-[10px] gap-1 bg-green-500 text-white border-0 animate-pulse">
-              <Zap className="h-2.5 w-2.5" /> {tr("part.readyToShip", lang)}
-            </Badge>
-          )}
-          {isLastUnits && (
-            <Badge className="text-[10px] gap-1 bg-red-500 text-white border-0">
-              <AlertTriangle className="h-2.5 w-2.5" /> {tr("part.lastUnits", lang)}
-            </Badge>
-          )}
-          {!isReadyToShip && !isLastUnits && part.stock > 0 && (
-            <Badge variant="secondary" className="text-[10px]">
-              {part.stock} {tr("part.units", lang)}
-            </Badge>
-          )}
-          {part.stock <= 0 && (
-            <Badge variant="destructive" className="text-[10px]">
-              {tr("part.unavailable", lang)}
-            </Badge>
-          )}
-        </div>
+          {/* Description */}
+          <p className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
+            {part.description}
+          </p>
 
-        {/* Icon area */}
-        <div className="flex items-center justify-center py-5 bg-muted/30 mx-4 rounded-lg group-hover:bg-primary/5 transition-colors">
-          <PartIcon className={`h-12 w-12 ${iconColor} opacity-60 group-hover:opacity-100 transition-opacity`} />
-        </div>
+          {/* Code */}
+          <p className="font-mono text-[10px] text-muted-foreground/80">#{part.material}</p>
 
-        {/* Description */}
-        <div className="px-4 pb-2 space-y-1">
-          <p className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem]">{part.description}</p>
-          <p className="text-xs text-muted-foreground">{part.machine_model || tr("part.noModel", lang)}</p>
-          {part.manufacturer && <p className="text-xs text-muted-foreground">{tr("detail.manufacturer", lang)}: {part.manufacturer}</p>}
-          {isReadyToShip && <p className="text-[10px] text-green-600 font-medium">{part.stock} {tr("part.units", lang)}</p>}
-        </div>
+          {/* Price */}
+          <div className="mt-1">
+            {price > 0 ? (
+              <>
+                {promoPrice ? (
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-lg font-bold text-red-600">{fmtPrice(promoPrice, lang)}</span>
+                    <span className="text-xs text-muted-foreground line-through">{fmtPrice(price, lang)}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[10px] text-muted-foreground">{priceLabel}</span>
+                    <span className="text-lg font-bold text-foreground">{fmtPrice(finalPrice, lang)}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground italic">
+                {lang === "en" ? "Price on request" : lang === "es" ? "Precio bajo consulta" : "Preço sob consulta"}
+              </span>
+            )}
+          </div>
 
-        {/* Actions */}
-        <div className="px-4 pb-4 pt-2 flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={onViewDetail}>
-            {showAi ? <Info className="h-3.5 w-3.5 text-primary" /> : <Eye className="h-3.5 w-3.5" />}
-            {tr("part.details", lang)}
-          </Button>
+          {/* Single contextual badge */}
+          <div className="min-h-[20px]">
+            {isReadyToShip ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                <Zap className="h-3 w-3" /> {tr("part.readyToShip", lang)}
+              </span>
+            ) : isLastUnits ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                <AlertTriangle className="h-3 w-3" /> {tr("part.lastUnits", lang)}
+              </span>
+            ) : part.stock > 0 ? (
+              <span className="text-[11px] text-muted-foreground">
+                {part.stock} {tr("part.units", lang)}
+              </span>
+            ) : (
+              <span className="text-[11px] text-destructive">{tr("part.unavailable", lang)}</span>
+            )}
+          </div>
+
+          {/* Action */}
           <Button
             size="sm"
-            className="flex-1 gap-1.5"
-            onClick={onAdd}
+            className="w-full gap-1.5 mt-auto"
+            onClick={handleAdd}
             disabled={inCart || part.stock <= 0}
             variant={inCart ? "secondary" : "default"}
           >
-            <ShoppingCart className="h-3.5 w-3.5" />
+            <ShoppingCart className="h-4 w-4" />
             {inCart ? tr("part.added", lang) : tr("part.quote", lang)}
           </Button>
-        </div>
-        <div className="px-4 pb-3">
-          <Link to={`/cotacao/p/${encodeURIComponent(part.material)}`} className="text-[10px] text-muted-foreground hover:text-primary inline-flex items-center gap-1">
-            <ExternalLink className="h-2.5 w-2.5" /> Página da peça
-          </Link>
         </div>
       </CardContent>
     </Card>

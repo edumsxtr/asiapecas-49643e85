@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUtm } from "@/lib/utm";
@@ -12,13 +12,23 @@ import { track, trackServerConversion } from "@/lib/analytics";
 import { type Lang } from "./translations";
 
 const COPY = {
-  pt: { fab: "Sou empresa", title: "Atendimento corporativo", desc: "Frota, revenda ou alto volume? Receba uma tabela e proposta personalizada.", name: "Seu nome", company: "Empresa", cnpj: "CNPJ", segment: "Segmento (mineração, construção...)", volume: "Volume estimado / mês", phone: "Telefone / WhatsApp", email: "E-mail", message: "Conte sobre sua necessidade", submit: "Solicitar contato", success: "Recebemos! Em breve nosso time entra em contato." },
-  en: { fab: "I'm a business", title: "Corporate support", desc: "Fleet, reseller or high volume? Get a custom price list and proposal.", name: "Your name", company: "Company", cnpj: "Tax ID", segment: "Segment (mining, construction...)", volume: "Estimated monthly volume", phone: "Phone / WhatsApp", email: "Email", message: "Tell us about your needs", submit: "Request contact", success: "Got it! Our team will reach out shortly." },
-  es: { fab: "Soy empresa", title: "Atención corporativa", desc: "¿Flota, reventa o alto volumen? Reciba tabla y propuesta personalizada.", name: "Su nombre", company: "Empresa", cnpj: "CNPJ / NIT", segment: "Segmento (minería, construcción...)", volume: "Volumen mensual estimado", phone: "Teléfono / WhatsApp", email: "Correo", message: "Cuéntenos su necesidad", submit: "Solicitar contacto", success: "¡Recibido! Nuestro equipo contactará pronto." },
+  pt: { title: "Atendimento corporativo", desc: "Frota, revenda ou alto volume? Receba uma tabela e proposta personalizada.", name: "Seu nome", company: "Empresa", cnpj: "CNPJ", segment: "Segmento (mineração, construção...)", volume: "Volume estimado / mês", phone: "Telefone / WhatsApp", email: "E-mail", message: "Conte sobre sua necessidade", submit: "Solicitar contato", success: "Recebemos! Em breve nosso time entra em contato." },
+  en: { title: "Corporate support", desc: "Fleet, reseller or high volume? Get a custom price list and proposal.", name: "Your name", company: "Company", cnpj: "Tax ID", segment: "Segment (mining, construction...)", volume: "Estimated monthly volume", phone: "Phone / WhatsApp", email: "Email", message: "Tell us about your needs", submit: "Request contact", success: "Got it! Our team will reach out shortly." },
+  es: { title: "Atención corporativa", desc: "¿Flota, reventa o alto volumen? Reciba tabla y propuesta personalizada.", name: "Su nombre", company: "Empresa", cnpj: "CNPJ / NIT", segment: "Segmento (minería, construcción...)", volume: "Volumen mensual estimado", phone: "Teléfono / WhatsApp", email: "Correo", message: "Cuéntenos su necesidad", submit: "Solicitar contacto", success: "¡Recibido! Nuestro equipo contactará pronto." },
 };
 
-export default function B2BLeadDialog({ lang = "pt" }: { lang?: Lang }) {
-  const [open, setOpen] = useState(false);
+interface B2BLeadDialogProps {
+  lang?: Lang;
+  /** Custom trigger element. If omitted, no trigger is rendered (use `open`/`onOpenChange`). */
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+}
+
+export default function B2BLeadDialog({ lang = "pt", trigger, open: openProp, onOpenChange }: B2BLeadDialogProps) {
+  const [openLocal, setOpenLocal] = useState(false);
+  const open = openProp !== undefined ? openProp : openLocal;
+  const setOpen = onOpenChange ?? setOpenLocal;
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", company: "", cnpj: "", segment: "", estimated_volume: "", phone: "", email: "", message: "" });
   const t = COPY[lang];
@@ -38,18 +48,15 @@ export default function B2BLeadDialog({ lang = "pt" }: { lang?: Lang }) {
       toast.success(t.success);
       setForm({ name: "", company: "", cnpj: "", segment: "", estimated_volume: "", phone: "", email: "", message: "" });
       setOpen(false);
-    } catch (e: any) {
-      toast.error(e?.message || "Error");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Error";
+      toast.error(msg);
     } finally { setLoading(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="fixed bottom-44 right-6 z-40 bg-primary text-primary-foreground rounded-full px-4 h-12 shadow-xl flex items-center gap-2 hover:scale-105 transition-transform text-sm font-medium">
-          <Building2 className="h-4 w-4" /> {t.fab}
-        </button>
-      </DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t.title}</DialogTitle>
