@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye } from "lucide-react";
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
+import CategoryGroupedView from "./CategoryGroupedView";
 import { type Lang, tr } from "./translations";
 import { PART_CATEGORIES } from "./part-categories";
 
