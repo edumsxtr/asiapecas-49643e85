@@ -17,6 +17,8 @@ interface QuotePartCardProps {
     manufacturer: string | null;
     estimated_price?: number | null;
     image_url?: string | null;
+    subcategory?: string | null;
+    attributes?: Record<string, any> | null;
   };
   inCart: boolean;
   /** Kept for API compat with existing callers. No longer rendered. */
