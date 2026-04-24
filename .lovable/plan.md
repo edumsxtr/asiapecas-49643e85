@@ -1,112 +1,162 @@
 
 
-# Plano: Catálogo e-commerce + enriquecimento que realmente funciona
+# Plano: Inteligência de Catálogo — análise avançada + relatórios exportáveis
 
-Resolver os 4 problemas em uma única passada: enrichment falhando, botão B2B redundante, catálogo sem cara de loja e badges internos vazando para o cliente.
+Nova área dentro do Catálogo (`/catalog`) que transforma os dados brutos de estoque em respostas de gestão: "quantos pneus tenho?", "quais faróis e em que máquinas servem?", "qual o valor total parado em filtros?". Tudo navegável, agrupável e exportável (CSV/XLSX/PDF) dentro da própria plataforma.
 
-## 1. Enrichment "Sem fontes públicas confirmadas" — corrigir de verdade
+## 1. Onde fica
 
-**Causa**: o filtro `contentMatchesCompany` exige 2 tokens distintos do nome literal na página. Para nomes curtos, comuns ou empresas pequenas isso quase nunca passa, e tudo cai como "sem fonte".
+Nova aba **"Relatórios"** dentro do `CatalogPage` (ao lado das abas existentes). Estrutura interna em sub-abas:
 
-**Correções em `enrich-customer`**:
-- **Mais queries direcionadas e dependentes do dado já disponível**:
-  - `"<CNPJ>"` (se o cliente já tem CNPJ → vai direto a Receita/CNPJ.biz/Cnpjá)
-  - `"<empresa>" "<cidade>"` 
-  - `"<empresa>" telefone` / `"<empresa>" endereço`
-  - `<empresa> site:linkedin.com/company`
-  - `<empresa> site:gov.br` (licitações, sócios)
-- **Verificação em camadas** (não tudo-ou-nada):
-  - `strong`: nome literal completo aparece
-  - `medium`: ≥2 tokens OU CNPJ literal aparece OU domínio do site bate com slug do nome
-  - `weak`: 1 token + título da página menciona empresa → **aceito como fonte fraca** (marcado na evidência)
-- **Aceitar a busca como fonte mesmo sem scrape bem-sucedido**: se a SERP do Firecrawl tem `title`/`description` que mencionam a empresa, esses metadados viram fonte de baixa confiança em vez de descartar tudo.
-- **Sites confiáveis priorizados**: cnpj.biz, receita.fazenda, casadosdados.com.br, linkedin.com/company, jusbrasil → vão na frente da fila de scrape.
-- **Fallback de país**: hoje fixa `country: "br"`. Usar `customer.country` para Venezuela/Guiana (mercados reais da Ásia).
-- **URL manual como semente**: novo input "tenho um site/perfil dessa empresa, use como fonte" → manda direto para scrape + extração, pula a busca.
-- **Mensagem clara quando falha**: distinguir "buscamos em X consultas e nada veio" vs "achamos páginas mas nenhuma menciona o nome" — UI diferente para cada caso, com sugestão de ação.
+1. **Visão por subcategoria** (pneus, faróis, filtros, mangueiras, rolamentos…)
+2. **Cruzamento Subcategoria × Máquina** (matriz)
+3. **Construtor de relatório** (filtros livres + agrupamento)
+4. **Relatórios salvos** (templates do gestor)
+5. **Exportações** (histórico de planilhas geradas)
 
-**UI em `EnrichmentPanel`**:
-- Quando `confidence: low` mas existem fontes fracas → mostrar dados como "indícios não confirmados" (cinza, badge "indício") em vez de bloquear tudo.
-- Botão **"Adicionar fonte manual"** (cola URL) → chama nova rota `enrich-customer-from-url`.
-- Telemetria mínima na resposta: `searched_queries`, `urls_returned`, `urls_scraped_ok`, `urls_matched` — exibido em "Diagnóstico" expansível para o gestor entender por que falhou.
+## 2. Subcategorização inteligente — base de tudo
 
-## 2. Catálogo com cara de e-commerce de verdade
+Hoje as peças têm `part_category` (5 categorias macro: Mineração, Linha Amarela, etc.) mas **não** uma subcategoria funcional ("pneu", "farol", "filtro"). Sem isso, não dá para responder "quantos pneus tenho".
 
-**Hero (`QuoteHero` / `HeroCarousel`)**:
-- Layout split: copy à esquerda + imagem real de máquina XCMG à direita (não bg gradient genérico)
-- Busca grande com placeholder dinâmico ("Filtro de óleo XE215", "Bomba hidráulica…")
-- 3 selos abaixo da busca: "✓ Estoque real" · "✓ Garantia 3 meses" · "✓ Envio nacional"
-- Sem badges piscando
+**Solução em 2 camadas, ambas funcionando juntas**:
 
-**Categorias como tiles visuais (não chips)**: bloco com 5 cards grandes (mineração, linha amarela, perfuratriz, guindaste, caminhão) cada um com imagem/ícone, contagem de peças em estoque, link `/cotacao/c/:slug`.
+### a) Detecção por regras (instantânea, sem IA, cobre ~70%)
+Dicionário PT/EN/ES de keywords → subcategoria, aplicado em `description` + `material`. Exemplos:
+- `pneu|tire|tyre|llanta|neumatico` → **Pneu**
+- `farol|headlight|faro|lamp` → **Farol/Iluminação**
+- `filtro|filter|filtro de óleo|filtro ar` → **Filtro** (+ subtipo: óleo/ar/combustível/hidráulico)
+- `mangueira|hose|manguera` → **Mangueira**
+- `rolamento|bearing|cojinete` → **Rolamento**
+- `cilindro hidráulico|hydraulic cylinder` → **Cilindro hidráulico**
+- `bomba|pump|bomba hidráulica` → **Bomba**
+- `correia|belt|correa` → **Correia**
+- `vedação|seal|reten|o-ring|junta` → **Vedação**
+- `parafuso|bolt|tornillo|porca|nut|arruela|washer` → **Fixadores**
+- `lâmina|blade|cuchilla|dente|tooth|caçamba` → **Implemento de solo**
+- `bateria|battery` → **Bateria**
+- ~30 categorias funcionais cobrindo o catálogo XCMG
 
-**`QuotePartCard` redesenhado como card de produto**:
+Cada regra também tenta extrair **atributos** quando aplicável (regex simples):
+- Pneu → medida (ex.: `26.5R25`, `17.5-25`), padrão de banda (E3/E4/L5)
+- Farol → tipo (LED/halógeno), posição (dianteiro/traseiro/trabalho)
+- Filtro → fluido (óleo/ar/combustível/hidráulico)
+- Mangueira → diâmetro, comprimento
+- Rolamento → código padrão (ex.: `6205`, `30210`)
+
+### b) Refinamento com IA (cobre os 30% restantes)
+Botão **"Subcategorizar com IA"** (admin) chama uma edge function `subcategorize-parts` que:
+- Pega peças sem subcategoria detectada (ou com confiança baixa)
+- Manda em lote ao Lovable AI (Gemini Flash, barato e rápido) com a lista de subcategorias permitidas
+- Retorna subcategoria + atributos JSON
+- Salva em `parts.subcategory` + `parts.attributes` (jsonb)
+- Mostra progresso ("234/500 processadas") e relatório ao final
+
+### Migração de banco
+- `parts.subcategory text` (índice GIN trgm para busca)
+- `parts.attributes jsonb` (medidas, tipo, especificações extraídas)
+- `parts.subcategory_source text` (`rule` | `ai` | `manual`)
+- `parts.subcategory_confidence numeric` (0–1)
+- Função SQL `apply_subcategory_rules()` — roda o dicionário em massa, idempotente
+- Função `get_catalog_intelligence()` — agrega tudo para os relatórios (evita chamar 10 queries do front)
+
+## 3. Visão por subcategoria (painel principal)
+
+Tela com cards expansíveis, um por subcategoria detectada:
+
+```text
+┌─ PNEUS ───────────────────────────── [Exportar XLSX] ──┐
+│ 47 SKUs · 312 unidades · R$ 1.847.500 em estoque       │
+│ ▸ Por medida: 26.5R25 (12 SKUs · R$ 680k) · 17.5-25 …  │
+│ ▸ Compatível com: XE700 (8) · ZL50GN (6) · GR2153 (4)  │
+│ ▸ 18 unidades paradas há +2 anos (R$ 412k)             │
+│ [Ver lista completa] [Cruzar com máquinas]             │
+└────────────────────────────────────────────────────────┘
 ```
-┌─────────────────────┐
-│   [imagem real ou   │
-│    fallback XCMG]   │  ← aspect-square, lazy
-│   [badge promoção]  │
-├─────────────────────┤
-│ XCMG · XE215         │  ← chip discreto modelo
-│ Filtro de óleo hi…   │  ← descrição 2 linhas
-│ #803164325           │  ← código pequeno
-│                      │
-│ R$ 1.240,00          │  ← preço grande
-│ ⚡ Pronta entrega    │  ← UM badge contextual
-│                      │
-│ [+ Adicionar]  [👁]  │
-└─────────────────────┘
-```
-- **Remover o badge "Verificado com IA"** e "Pesquisar com IA" do card público. Esses controles são internos — clientes não devem ver isso. A descrição enriquecida pela IA continua aparecendo na descrição do produto e na página `/cotacao/p/:material`, sem badge gritante.
-- **Preço sempre visível** (já vem em `estimated_price`). Se houver `part_promotions` ativo, mostrar preço riscado + promo + % desconto + tag "OFERTA".
-- **Imagem**: usar `part.image_url`; fallback elegante com logo XCMG estilizado (não o ícone Lucide aleatório atual).
-- **Hover**: leve elevação + botão "Ver detalhes" sobreposto na imagem.
-- **Click no card inteiro** → abre `/cotacao/p/:material` (página dedicada SEO). O botão "+" continua adicionando ao carrinho sem navegar.
 
-**Lista (view "list")**: virar tabela tipo marketplace (imagem 60px + descrição + preço + estoque + ações), sem o badge "IA ✓".
+Cada card responde de cara: **quantos**, **valor**, **subdivisão por atributo principal**, **em que máquinas servem**, **alerta de capital parado**. Ordenável por valor, por SKUs ou por % parado.
 
-**Strip de destaques**: já existe, ajustar visual para combinar com o novo card (mesma proporção de imagem).
+## 4. Matriz Subcategoria × Máquina
 
-## 3. Botão "Sou empresa" redundante — repensar
+Tabela pivot (heatmap visual) cruzando subcategoria nas linhas × `machine_model` (+ `compatible_models`) nas colunas. Cada célula mostra:
+- Quantidade de SKUs
+- Valor total
+- Cor: vermelho = só estoque parado, verde = saudável
 
-**Hoje**: FAB flutuante em `bottom-44 right-6`, conflita visualmente com WhatsApp FAB e ConsentBanner.
+Permite responder visualmente "quais peças de XE215 eu tenho em quais categorias" e "qual modelo concentra meu estoque parado". Click em célula → drill-down para a lista de peças.
 
-**Solução**:
-- **Remover o FAB flutuante**.
-- Adicionar um link sutil **"Sou empresa / Comprar para frota"** no header (próximo ao WhatsApp), abre o mesmo dialog.
-- Adicionar uma **faixa B2B** dedicada no meio do catálogo (entre Featured e Catalog), discreta, contextual: "Compra recorrente ou frota? Receba tabela exclusiva." com 1 botão "Falar com consultor" → mesmo dialog.
-- Em **páginas de modelo** (`/cotacao/m/:slug`), manter CTA B2B em destaque (frota = ticket alto), mas como banner inline, não FAB.
+## 5. Construtor de relatório (drag & drop simples)
 
-## 4. Limpeza de elementos internos no público
+Formulário onde o gestor monta a query sem SQL:
 
-- **Remover badge "IA Verificado"** e botão "Pesquisar com IA" do `QuotePartCard` e da view list. Esses são controles operacionais; mover para a tela interna `/catalog`.
-- **Remover badge "Pesquisado"** equivalente que aparece em alguns lugares públicos.
-- A descrição técnica gerada pela IA continua aparecendo, só sem o selo que confunde o cliente.
-- Em `PartDetailPublicPage` (já existente): manter o bloco "Descrição técnica" sem dizer "IA"; chamar de **"Especificações técnicas"**.
+| Campo | Opções |
+|---|---|
+| **Agrupar por** | subcategoria, fabricante, modelo, categoria macro, `last_entry_time`, atributo (medida, tipo de filtro…) |
+| **Filtrar** | subcategoria contém, fabricante = , modelo = , estoque > , preço entre, parado há +N anos, tem promoção, vendido nos últimos 12m |
+| **Métricas** | SKUs, unidades, valor total, ticket médio, % do total, valor parado, dias de estoque |
+| **Visualização** | Tabela · Barras · Pizza · Linha temporal |
 
-## 5. Arquivos afetados
+Ao gerar, mostra a tabela + gráfico com botões **Exportar XLSX**, **Exportar CSV**, **Gerar PDF**, **Salvar template**.
+
+Exemplos prontos (1 clique):
+- "Pneus por medida e modelo de máquina"
+- "Faróis por tipo e fabricante"
+- "Filtros parados há +2 anos por tipo"
+- "Top 20 peças que mais consomem capital"
+- "Cobertura por modelo XCMG (quantas peças críticas tenho de cada)"
+
+## 6. Exportações reais (XLSX/CSV/PDF)
+
+Já existe `xlsx` no projeto (usado em `ExportCatalogButton`) e `jspdf` (proposals). Reaproveita:
+
+- **XLSX rico**: várias abas — "Resumo", "Detalhe por SKU", "Por subcategoria", "Por modelo", "Parados +2 anos". Formatação de moeda BR, autosize, freeze panes, totais com fórmulas reais (não valores hardcoded).
+- **CSV** via utilitário `src/lib/export-csv.ts` já existente (separador `;`, BOM UTF-8, Excel BR-friendly).
+- **PDF executivo** (1 clique, "Relatório para diretoria"): capa com logo Ásia, KPIs principais, top 10 subcategorias, top 10 máquinas com mais estoque, alertas de capital parado, gráficos renderizados via canvas → embed no jsPDF.
+
+Cada exportação grava 1 linha em `catalog_reports_log` (quem, quando, qual filtro, link do arquivo se PDF salvo no Storage) — auditoria.
+
+## 7. Templates salvos
+
+Tabela `catalog_report_templates`:
+- `name`, `description`, `config jsonb` (filtros + grouping + métricas + visualização), `created_by`, `created_at`, `is_shared bool`
+
+Gestor salva "Relatório semanal de pneus" e roda com 1 clique toda segunda. Templates compartilhados aparecem para todos os autenticados.
+
+## 8. Performance
+
+Catálogo tem milhares de SKUs. Estratégia:
+- **Tudo agregado no Postgres** via função `get_catalog_intelligence(filters jsonb)` que retorna JSON pronto. Front só renderiza.
+- React Query com `staleTime` de 60s.
+- Detalhe (lista de SKUs por célula da matriz) carrega sob demanda, paginado.
+- Subcategorização por regras roda **uma vez** via SQL function (segundos), depois fica persistida — não recalcula a cada acesso.
+
+## 9. Arquivos afetados
+
+**Novos**
+- Migração SQL: colunas `subcategory`/`attributes`/`subcategory_source`/`subcategory_confidence` em `parts`; função `apply_subcategory_rules()`; função `get_catalog_intelligence(filters jsonb)`; tabelas `catalog_report_templates` e `catalog_reports_log` com RLS authenticated
+- `supabase/functions/subcategorize-parts/index.ts` — IA em lote para o que regra não pegou
+- `src/lib/subcategory-rules.ts` — dicionário PT/EN/ES + regex de atributos (também usado pelo front para destacar termos)
+- `src/lib/export-xlsx.ts` — helper de XLSX multi-aba com formatação
+- `src/lib/export-pdf-report.ts` — relatório executivo em PDF
+- `src/hooks/use-catalog-intelligence.ts` — chama a função SQL, gerencia filtros
+- `src/components/catalog/reports/ReportsTab.tsx` — container das sub-abas
+- `src/components/catalog/reports/SubcategoryOverview.tsx` — cards expansíveis
+- `src/components/catalog/reports/SubcategoryMachineMatrix.tsx` — heatmap pivot
+- `src/components/catalog/reports/ReportBuilder.tsx` — construtor com filtros + grouping + viz
+- `src/components/catalog/reports/SavedTemplates.tsx`
+- `src/components/catalog/reports/ExportsHistory.tsx`
+- `src/components/catalog/reports/SubcategorizeAIButton.tsx`
 
 **Editados**
-- `supabase/functions/enrich-customer/index.ts` — verificação em camadas, queries por CNPJ, sites confiáveis, fallback de país, telemetria
-- `supabase/functions/prospect-search/index.ts` — mesma flexibilização de matching e país do cliente
-- `src/components/customers/EnrichmentPanel.tsx` — exibir indícios fracos, input de URL manual, painel diagnóstico
-- `src/hooks/use-customers.ts` — novo hook `useEnrichFromUrl`
-- `src/components/quote/QuotePartCard.tsx` — redesign e-commerce, remover badges IA, preço prominente, imagem real
-- `src/components/quote/QuoteCatalog.tsx` — view list sem badge IA, aplicar novo card
-- `src/components/quote/QuoteHero.tsx` — layout split + selos + tiles de categoria
-- `src/components/quote/FeaturedStrip.tsx` — alinhar visual aos cards novos, mostrar preço
-- `src/components/quote/B2BLeadDialog.tsx` — remover FAB, virar componente exposto via prop `triggerSlot`
-- `src/pages/QuotePage.tsx` — link B2B no header, faixa B2B inline, remover FAB B2B
-- `src/pages/PartDetailPublicPage.tsx` — renomear "Descrição técnica" → "Especificações técnicas", remover menção IA
-- `src/pages/CategoryPublicPage.tsx` / `ModelPublicPage.tsx` — usar novo card
-
-**Novo**
-- `supabase/functions/enrich-customer-from-url/index.ts` — recebe `customer_id` + `url`, scrapa direto, extrai e mescla na enrichment_data existente.
+- `src/pages/CatalogPage.tsx` — nova aba "Relatórios"
+- `src/components/catalog/CatalogContent.tsx` — pequeno ajuste para expor filtros à nova aba
+- `src/integrations/supabase/types.ts` — auto-gerado após migração
 
 ## Resultado
 
-- Enrichment passa a retornar dados úteis na maioria dos casos (CNPJ, LinkedIn, site, telefone) ou explica claramente o que tentou e como o gestor pode ajudar (URL manual).
-- Catálogo público parece uma loja: imagem, preço grande, 1 badge contextual, ação clara.
-- Sem badges internos vazando ("IA Verificado", "Pesquisar IA") na frente do cliente.
-- Botão B2B integrado ao header e ao fluxo do catálogo, sem FAB redundante competindo com WhatsApp.
+- "Quantos pneus eu tenho?" → resposta em 1 clique, com valor, medidas e máquinas compatíveis
+- Diretoria recebe PDF executivo profissional gerado dentro da plataforma
+- Gestor monta qualquer relatório (subcategoria × modelo × tempo de parada × fabricante) sem pedir nada para o time técnico
+- Subcategorização persistida no banco — performa rápido mesmo com 10k+ SKUs
+- IA só roda no que regras não cobriram (custo baixo, ~$0,01 por 100 peças)
+- Toda exportação fica auditada e templates podem ser reaproveitados
 
