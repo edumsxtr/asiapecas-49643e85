@@ -1,162 +1,79 @@
 
 
-# Plano: Inteligência de Catálogo — análise avançada + relatórios exportáveis
+# Plano: corrigir enriquecimento web (Firecrawl v2 retorna objeto, não array)
 
-Nova área dentro do Catálogo (`/catalog`) que transforma os dados brutos de estoque em respostas de gestão: "quantos pneus tenho?", "quais faróis e em que máquinas servem?", "qual o valor total parado em filtros?". Tudo navegável, agrupável e exportável (CSV/XLSX/PDF) dentro da própria plataforma.
+## Causa raiz
 
-## 1. Onde fica
+Logs mostram em loop: `TypeError: arr.filter is not a function` em `firecrawlSearch`. Toda chamada de busca falha → `firecrawl_hits = 0` → cliente recebe "Nenhum resultado público encontrado".
 
-Nova aba **"Relatórios"** dentro do `CatalogPage` (ao lado das abas existentes). Estrutura interna em sub-abas:
+Motivo: na **API v2 do Firecrawl**, o campo `data.web` da resposta de `/v2/search` é um **objeto** (com sub-arrays como `results`, ou estrutura `{ web: { ... } }`), não um array direto. O código atual faz:
 
-1. **Visão por subcategoria** (pneus, faróis, filtros, mangueiras, rolamentos…)
-2. **Cruzamento Subcategoria × Máquina** (matriz)
-3. **Construtor de relatório** (filtros livres + agrupamento)
-4. **Relatórios salvos** (templates do gestor)
-5. **Exportações** (histórico de planilhas geradas)
-
-## 2. Subcategorização inteligente — base de tudo
-
-Hoje as peças têm `part_category` (5 categorias macro: Mineração, Linha Amarela, etc.) mas **não** uma subcategoria funcional ("pneu", "farol", "filtro"). Sem isso, não dá para responder "quantos pneus tenho".
-
-**Solução em 2 camadas, ambas funcionando juntas**:
-
-### a) Detecção por regras (instantânea, sem IA, cobre ~70%)
-Dicionário PT/EN/ES de keywords → subcategoria, aplicado em `description` + `material`. Exemplos:
-- `pneu|tire|tyre|llanta|neumatico` → **Pneu**
-- `farol|headlight|faro|lamp` → **Farol/Iluminação**
-- `filtro|filter|filtro de óleo|filtro ar` → **Filtro** (+ subtipo: óleo/ar/combustível/hidráulico)
-- `mangueira|hose|manguera` → **Mangueira**
-- `rolamento|bearing|cojinete` → **Rolamento**
-- `cilindro hidráulico|hydraulic cylinder` → **Cilindro hidráulico**
-- `bomba|pump|bomba hidráulica` → **Bomba**
-- `correia|belt|correa` → **Correia**
-- `vedação|seal|reten|o-ring|junta` → **Vedação**
-- `parafuso|bolt|tornillo|porca|nut|arruela|washer` → **Fixadores**
-- `lâmina|blade|cuchilla|dente|tooth|caçamba` → **Implemento de solo**
-- `bateria|battery` → **Bateria**
-- ~30 categorias funcionais cobrindo o catálogo XCMG
-
-Cada regra também tenta extrair **atributos** quando aplicável (regex simples):
-- Pneu → medida (ex.: `26.5R25`, `17.5-25`), padrão de banda (E3/E4/L5)
-- Farol → tipo (LED/halógeno), posição (dianteiro/traseiro/trabalho)
-- Filtro → fluido (óleo/ar/combustível/hidráulico)
-- Mangueira → diâmetro, comprimento
-- Rolamento → código padrão (ex.: `6205`, `30210`)
-
-### b) Refinamento com IA (cobre os 30% restantes)
-Botão **"Subcategorizar com IA"** (admin) chama uma edge function `subcategorize-parts` que:
-- Pega peças sem subcategoria detectada (ou com confiança baixa)
-- Manda em lote ao Lovable AI (Gemini Flash, barato e rápido) com a lista de subcategorias permitidas
-- Retorna subcategoria + atributos JSON
-- Salva em `parts.subcategory` + `parts.attributes` (jsonb)
-- Mostra progresso ("234/500 processadas") e relatório ao final
-
-### Migração de banco
-- `parts.subcategory text` (índice GIN trgm para busca)
-- `parts.attributes jsonb` (medidas, tipo, especificações extraídas)
-- `parts.subcategory_source text` (`rule` | `ai` | `manual`)
-- `parts.subcategory_confidence numeric` (0–1)
-- Função SQL `apply_subcategory_rules()` — roda o dicionário em massa, idempotente
-- Função `get_catalog_intelligence()` — agrega tudo para os relatórios (evita chamar 10 queries do front)
-
-## 3. Visão por subcategoria (painel principal)
-
-Tela com cards expansíveis, um por subcategoria detectada:
-
-```text
-┌─ PNEUS ───────────────────────────── [Exportar XLSX] ──┐
-│ 47 SKUs · 312 unidades · R$ 1.847.500 em estoque       │
-│ ▸ Por medida: 26.5R25 (12 SKUs · R$ 680k) · 17.5-25 …  │
-│ ▸ Compatível com: XE700 (8) · ZL50GN (6) · GR2153 (4)  │
-│ ▸ 18 unidades paradas há +2 anos (R$ 412k)             │
-│ [Ver lista completa] [Cruzar com máquinas]             │
-└────────────────────────────────────────────────────────┘
+```ts
+const arr = (data.web || data.data || []) as Array<…>;
+return arr.filter(…);   // ❌ data.web é objeto truthy → .filter quebra
 ```
 
-Cada card responde de cara: **quantos**, **valor**, **subdivisão por atributo principal**, **em que máquinas servem**, **alerta de capital parado**. Ordenável por valor, por SKUs ou por % parado.
+O mesmo erro está em **3 edge functions** (não só `enrich-customer`):
+- `enrich-customer/index.ts` (linha 135)
+- `prospect-search/index.ts` (linha 28)
+- `prospect-from-customer/index.ts` (linha 47)
 
-## 4. Matriz Subcategoria × Máquina
+## Correção
 
-Tabela pivot (heatmap visual) cruzando subcategoria nas linhas × `machine_model` (+ `compatible_models`) nas colunas. Cada célula mostra:
-- Quantidade de SKUs
-- Valor total
-- Cor: vermelho = só estoque parado, verde = saudável
+Criar um **normalizador único e tolerante** ao formato de resposta v2, que aceita todas as variações que o Firecrawl pode retornar:
 
-Permite responder visualmente "quais peças de XE215 eu tenho em quais categorias" e "qual modelo concentra meu estoque parado". Click em célula → drill-down para a lista de peças.
+```ts
+function extractFirecrawlSearchResults(data: any): Array<{ url: string; title?: string; description?: string }> {
+  // v2 atual: { success, data: { web: [ {url,title,description} ] } }
+  // v2 alt:   { success, web: [ … ] }
+  // v2 alt:   { success, data: [ … ] }            (legacy)
+  // v2 alt:   { web: { results: [ … ] } }         (envelope object)
+  const candidates = [
+    data?.data?.web,
+    data?.web,
+    data?.data,
+    data?.web?.results,
+    data?.data?.web?.results,
+    data?.results,
+  ];
+  for (const c of candidates) {
+    if (Array.isArray(c)) return c.filter((r: any) => r && typeof r.url === "string");
+  }
+  return [];
+}
+```
 
-## 5. Construtor de relatório (drag & drop simples)
+Aplicar em todas as 3 edge functions, substituindo o trecho `(data.web || data.data || []).filter(...)`. Adicionar log do shape real quando vier vazio (`console.warn("firecrawl unknown shape", Object.keys(data ?? {}))`) — facilita diagnosticar futuras mudanças da API.
 
-Formulário onde o gestor monta a query sem SQL:
+## Robustez extra (mesma passagem)
 
-| Campo | Opções |
-|---|---|
-| **Agrupar por** | subcategoria, fabricante, modelo, categoria macro, `last_entry_time`, atributo (medida, tipo de filtro…) |
-| **Filtrar** | subcategoria contém, fabricante = , modelo = , estoque > , preço entre, parado há +N anos, tem promoção, vendido nos últimos 12m |
-| **Métricas** | SKUs, unidades, valor total, ticket médio, % do total, valor parado, dias de estoque |
-| **Visualização** | Tabela · Barras · Pizza · Linha temporal |
+1. **Logar quando search retorna 0** mesmo após normalizar — distingue "Firecrawl OK mas sem resultados" de "shape errado".
+2. **Telemetria mais clara no `enrich-customer`**: quando `urls_returned = 0` E `searched_queries > 0`, gravar no `_note` mensagem específica "Firecrawl não retornou resultados — verifique conexão/créditos" em vez do genérico "Nenhum resultado público encontrado".
+3. **Verificar créditos Firecrawl**: se qualquer `firecrawlSearch` retornar HTTP 402, propagar para o usuário com mensagem clara ("Créditos do Firecrawl esgotados — recarregue na conexão").
+4. **Reverificar que a chave `FIRECRAWL_API_KEY` está injetada** (já está no projeto conforme `<secrets>`, mas adicionar log na primeira chamada para confirmar).
 
-Ao gerar, mostra a tabela + gráfico com botões **Exportar XLSX**, **Exportar CSV**, **Gerar PDF**, **Salvar template**.
+## Validação após o fix
 
-Exemplos prontos (1 clique):
-- "Pneus por medida e modelo de máquina"
-- "Faróis por tipo e fabricante"
-- "Filtros parados há +2 anos por tipo"
-- "Top 20 peças que mais consomem capital"
-- "Cobertura por modelo XCMG (quantas peças críticas tenho de cada)"
+Rodar `enrich-customer` em 1 cliente real. Esperado nos logs:
+- `firecrawl_hits = N (N>0)`
+- `telemetry.urls_returned > 0`
+- `urls_scraped_ok > 0`
+- Painel do cliente mostra fontes verificadas + dados extraídos pela IA.
 
-## 6. Exportações reais (XLSX/CSV/PDF)
+Se ainda voltar 0 após o fix, o log do novo `console.warn("firecrawl unknown shape", …)` revela exatamente qual chave a API está usando hoje.
 
-Já existe `xlsx` no projeto (usado em `ExportCatalogButton`) e `jspdf` (proposals). Reaproveita:
+## Arquivos editados
 
-- **XLSX rico**: várias abas — "Resumo", "Detalhe por SKU", "Por subcategoria", "Por modelo", "Parados +2 anos". Formatação de moeda BR, autosize, freeze panes, totais com fórmulas reais (não valores hardcoded).
-- **CSV** via utilitário `src/lib/export-csv.ts` já existente (separador `;`, BOM UTF-8, Excel BR-friendly).
-- **PDF executivo** (1 clique, "Relatório para diretoria"): capa com logo Ásia, KPIs principais, top 10 subcategorias, top 10 máquinas com mais estoque, alertas de capital parado, gráficos renderizados via canvas → embed no jsPDF.
+- `supabase/functions/enrich-customer/index.ts` — usar `extractFirecrawlSearchResults`, propagar 402, melhorar `_note`
+- `supabase/functions/enrich-customer-from-url/index.ts` — adicionar verificação de 402 no scrape (não usa search, mas mesma classe de erro)
+- `supabase/functions/prospect-search/index.ts` — mesmo helper
+- `supabase/functions/prospect-from-customer/index.ts` — mesmo helper
 
-Cada exportação grava 1 linha em `catalog_reports_log` (quem, quando, qual filtro, link do arquivo se PDF salvo no Storage) — auditoria.
-
-## 7. Templates salvos
-
-Tabela `catalog_report_templates`:
-- `name`, `description`, `config jsonb` (filtros + grouping + métricas + visualização), `created_by`, `created_at`, `is_shared bool`
-
-Gestor salva "Relatório semanal de pneus" e roda com 1 clique toda segunda. Templates compartilhados aparecem para todos os autenticados.
-
-## 8. Performance
-
-Catálogo tem milhares de SKUs. Estratégia:
-- **Tudo agregado no Postgres** via função `get_catalog_intelligence(filters jsonb)` que retorna JSON pronto. Front só renderiza.
-- React Query com `staleTime` de 60s.
-- Detalhe (lista de SKUs por célula da matriz) carrega sob demanda, paginado.
-- Subcategorização por regras roda **uma vez** via SQL function (segundos), depois fica persistida — não recalcula a cada acesso.
-
-## 9. Arquivos afetados
-
-**Novos**
-- Migração SQL: colunas `subcategory`/`attributes`/`subcategory_source`/`subcategory_confidence` em `parts`; função `apply_subcategory_rules()`; função `get_catalog_intelligence(filters jsonb)`; tabelas `catalog_report_templates` e `catalog_reports_log` com RLS authenticated
-- `supabase/functions/subcategorize-parts/index.ts` — IA em lote para o que regra não pegou
-- `src/lib/subcategory-rules.ts` — dicionário PT/EN/ES + regex de atributos (também usado pelo front para destacar termos)
-- `src/lib/export-xlsx.ts` — helper de XLSX multi-aba com formatação
-- `src/lib/export-pdf-report.ts` — relatório executivo em PDF
-- `src/hooks/use-catalog-intelligence.ts` — chama a função SQL, gerencia filtros
-- `src/components/catalog/reports/ReportsTab.tsx` — container das sub-abas
-- `src/components/catalog/reports/SubcategoryOverview.tsx` — cards expansíveis
-- `src/components/catalog/reports/SubcategoryMachineMatrix.tsx` — heatmap pivot
-- `src/components/catalog/reports/ReportBuilder.tsx` — construtor com filtros + grouping + viz
-- `src/components/catalog/reports/SavedTemplates.tsx`
-- `src/components/catalog/reports/ExportsHistory.tsx`
-- `src/components/catalog/reports/SubcategorizeAIButton.tsx`
-
-**Editados**
-- `src/pages/CatalogPage.tsx` — nova aba "Relatórios"
-- `src/components/catalog/CatalogContent.tsx` — pequeno ajuste para expor filtros à nova aba
-- `src/integrations/supabase/types.ts` — auto-gerado após migração
+Sem mudança de schema, sem mudança de UI — só correção do parse de resposta e mensagens.
 
 ## Resultado
 
-- "Quantos pneus eu tenho?" → resposta em 1 clique, com valor, medidas e máquinas compatíveis
-- Diretoria recebe PDF executivo profissional gerado dentro da plataforma
-- Gestor monta qualquer relatório (subcategoria × modelo × tempo de parada × fabricante) sem pedir nada para o time técnico
-- Subcategorização persistida no banco — performa rápido mesmo com 10k+ SKUs
-- IA só roda no que regras não cobriram (custo baixo, ~$0,01 por 100 peças)
-- Toda exportação fica auditada e templates podem ser reaproveitados
+- Enriquecimento volta a funcionar para clientes reais (Anglo American, Alya Construtora, etc. que apareceram nos logs com 0 hits).
+- Quando falhar de verdade (sem créditos, empresa muito obscura), o usuário recebe mensagem específica em vez do genérico atual.
+- Logs futuros permitem detectar mudança de API do Firecrawl em segundos.
 
