@@ -21,6 +21,13 @@ type Telemetry = {
   urls_matched_medium?: number;
   urls_matched_weak?: number;
   country?: string;
+  rounds_executed?: number;
+  round1_yielded?: number;
+  round2_yielded?: number;
+  queries_round1?: string[];
+  queries_round2?: string[];
+  search_override?: string | null;
+  core_name_used?: string;
 };
 
 type Enrichment = {
