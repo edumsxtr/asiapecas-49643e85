@@ -21,14 +21,21 @@ import NewOrderPage from "./pages/NewOrderPage";
 import ProspectionPage from "./pages/ProspectionPage";
 import ReportPage from "./pages/ReportPage";
 import QuotePage from "./pages/QuotePage";
+import PartDetailPublicPage from "./pages/PartDetailPublicPage";
+import AdminVitrinePage from "./pages/AdminVitrinePage";
 import TrainingPage from "./pages/TrainingPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
+import { useEffect } from "react";
+import { captureUtm } from "@/lib/utm";
+import { initAnalytics } from "@/lib/analytics";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  useEffect(() => { captureUtm(); initAnalytics(); }, []);
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
@@ -39,11 +46,13 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/cotacao" element={<QuotePage />} />
+              <Route path="/cotacao/p/:material" element={<PartDetailPublicPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/admin/vitrine" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
               <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
@@ -65,6 +74,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
