@@ -146,6 +146,17 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
             {part.description}
           </p>
 
+          {/* Attribute chips (medida/tipo) */}
+          {part.attributes && Object.keys(part.attributes).length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(part.attributes).slice(0, 2).map(([k, v]) => (
+                <span key={k} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide">
+                  {String(v)}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Code */}
           <p className="font-mono text-[10px] text-muted-foreground/80">#{part.material}</p>
 
