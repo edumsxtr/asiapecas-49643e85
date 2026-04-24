@@ -177,6 +177,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
     setModel("all");
     setAvailability("all");
     setSort("relevance");
+    setAttrFilter(null);
+    if (onSubcategoryChange) onSubcategoryChange(null);
     if (onPartCategoryChange && partCategory) onPartCategoryChange(partCategory);
   };
 
