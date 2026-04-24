@@ -97,9 +97,9 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
         </div>
 
         {hasNoVerifiedSources && (
-          <Card className="border-yellow-500/40 bg-yellow-500/5">
+          <Card className="border-warning/40 bg-warning/5">
             <CardContent className="p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
               <div className="text-sm">
                 <p className="font-semibold">Sem fontes públicas confirmadas</p>
                 <p className="text-muted-foreground mt-1">
