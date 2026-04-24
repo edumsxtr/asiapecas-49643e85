@@ -20,6 +20,8 @@ interface QuoteCatalogProps {
   category: string | null;
   partCategory?: string | null;
   onPartCategoryChange?: (key: string) => void;
+  subcategory?: string | null;
+  onSubcategoryChange?: (val: string | null) => void;
   cartItems: CartItem[];
   onAddToCart: (part: any) => void;
   lang: Lang;
@@ -38,7 +40,7 @@ const CATEGORY_MAP: Record<string, string> = {
 type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" | "priceDesc";
 type ViewMode = "grid" | "list";
 
-export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
+export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, subcategory, onSubcategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
@@ -65,12 +67,12 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   });
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [search, category, partCategory, manufacturer, model, availability, sort]);
+  useEffect(() => { setPage(0); }, [search, category, partCategory, subcategory, manufacturer, model, availability, sort]);
 
-  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory].filter(Boolean).length;
+  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory, !!subcategory].filter(Boolean).length;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["quote-parts", search, category, partCategory, page, manufacturer, model, availability, sort],
+    queryKey: ["quote-parts", search, category, partCategory, subcategory, page, manufacturer, model, availability, sort],
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
@@ -88,6 +90,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
       if (availability === "ready") query = query.gt("stock", 10);
       if (availability === "low") query = query.lte("stock", 10);
       if (partCategory) query = query.eq("part_category", partCategory);
+      if (subcategory) query = query.eq("subcategory", subcategory);
 
       // Sort
       switch (sort) {
