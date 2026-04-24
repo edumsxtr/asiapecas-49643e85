@@ -94,6 +94,19 @@ export function productLd(part: { material: string; description: string; manufac
   };
 }
 
+export function itemListLd(parts: { material: string; description: string; manufacturer?: string | null; stock: number; estimated_price?: number; image_url?: string | null }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: parts.slice(0, 30).map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `${SITE_URL}/cotacao/p/${encodeURIComponent(p.material)}`,
+      item: productLd(p),
+    })),
+  };
+}
+
 export function breadcrumbLd(items: { name: string; url: string }[]) {
   return {
     "@context": "https://schema.org",

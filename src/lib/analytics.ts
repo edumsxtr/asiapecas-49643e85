@@ -58,7 +58,7 @@ function push(event: string, payload: Record<string, any> = {}) {
 
 export const track = {
   viewItemList: (items: any[], list_name = "catalog") =>
-    push("view_item_list", { ecommerce: { item_list_name: list_name, items: items.map(toItem) } }),
+    push("view_item_list", { ecommerce: { item_list_id: list_name, item_list_name: list_name, items: items.map(toItem) } }),
   viewItem: (part: any) =>
     push("view_item", { ecommerce: { items: [toItem(part)] } }),
   selectItem: (part: any) =>
@@ -69,6 +69,10 @@ export const track = {
     push("begin_checkout", { ecommerce: { items: items.map(toItem) } }),
   generateLead: (kind: "quote" | "b2b", payload: Record<string, any> = {}) =>
     push("generate_lead", { lead_kind: kind, ...payload }),
+  contact: (channel: string, payload: Record<string, any> = {}) =>
+    push("contact", { method: channel, ...payload }),
+  scroll75Category: (slug: string) =>
+    push("scroll_75_category", { slug }),
 };
 
 function toItem(p: any) {
@@ -82,7 +86,8 @@ function toItem(p: any) {
 }
 
 // Server-side conversion (Google Ads Enhanced Conversions)
-export async function trackServerConversion(payload: { event: "quote_submitted" | "b2b_lead"; value?: number; currency?: string; email?: string; phone?: string; transaction_id?: string }) {
+export type ConversionEvent = "quote_submitted" | "quote_lead" | "b2b_lead" | "whatsapp_click";
+export async function trackServerConversion(payload: { event: ConversionEvent; value?: number; currency?: string; email?: string; phone?: string; transaction_id?: string }) {
   try {
     await supabase.functions.invoke("track-conversion", { body: payload });
   } catch {/* silent */}
