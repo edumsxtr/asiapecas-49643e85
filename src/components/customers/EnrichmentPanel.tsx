@@ -319,14 +319,38 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
             <CollapsibleContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-[11px]">
                 <DiagItem label="Consultas executadas" value={telemetry.searched_queries} />
+                <DiagItem label="Rounds executados" value={telemetry.rounds_executed} />
                 <DiagItem label="URLs encontradas" value={telemetry.urls_returned} />
                 <DiagItem label="URLs únicas" value={telemetry.urls_unique} />
-                <DiagItem label="Páginas lidas com sucesso" value={telemetry.urls_scraped_ok} />
+                <DiagItem label="Páginas lidas" value={telemetry.urls_scraped_ok} />
                 <DiagItem label="Match forte" value={telemetry.urls_matched_strong} />
                 <DiagItem label="Match médio" value={telemetry.urls_matched_medium} />
                 <DiagItem label="Match fraco" value={telemetry.urls_matched_weak} />
+                <DiagItem label="Round 1 → URLs" value={telemetry.round1_yielded} />
+                <DiagItem label="Round 2 → URLs" value={telemetry.round2_yielded} />
                 <DiagItem label="País" value={telemetry.country?.toUpperCase()} />
+                <DiagItem label="Termo override" value={telemetry.search_override || "—"} />
               </div>
+              {telemetry.core_name_used && (
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Nome usado para busca: <strong className="text-foreground">{telemetry.core_name_used}</strong>
+                </p>
+              )}
+              {(telemetry.queries_round1?.length || telemetry.queries_round2?.length) ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Queries enviadas</p>
+                  {telemetry.queries_round1?.map((q, i) => (
+                    <div key={`r1-${i}`} className="text-[11px] font-mono bg-muted/30 rounded px-2 py-1">
+                      <span className="text-muted-foreground mr-1">R1:</span>{q}
+                    </div>
+                  ))}
+                  {telemetry.queries_round2?.map((q, i) => (
+                    <div key={`r2-${i}`} className="text-[11px] font-mono bg-muted/30 rounded px-2 py-1">
+                      <span className="text-muted-foreground mr-1">R2:</span>{q}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </CollapsibleContent>
           </Collapsible>
         )}
