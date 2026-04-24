@@ -17,6 +17,8 @@ interface QuotePartCardProps {
     manufacturer: string | null;
     estimated_price?: number | null;
     image_url?: string | null;
+    subcategory?: string | null;
+    attributes?: Record<string, any> | null;
   };
   inCart: boolean;
   /** Kept for API compat with existing callers. No longer rendered. */
@@ -143,6 +145,17 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
           <p className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
             {part.description}
           </p>
+
+          {/* Attribute chips (medida/tipo) */}
+          {part.attributes && Object.keys(part.attributes).length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(part.attributes).slice(0, 2).map(([k, v]) => (
+                <span key={k} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wide">
+                  {String(v)}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Code */}
           <p className="font-mono text-[10px] text-muted-foreground/80">#{part.material}</p>

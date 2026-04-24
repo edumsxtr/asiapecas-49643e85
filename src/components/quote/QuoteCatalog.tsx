@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, ShoppingCart, Eye } from "lucide-react";
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
+import CategoryGroupedView from "./CategoryGroupedView";
 import { type Lang, tr } from "./translations";
 import { PART_CATEGORIES } from "./part-categories";
 
@@ -49,6 +50,12 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   const [availability, setAvailability] = useState<string>("all");
   const [sort, setSort] = useState<SortOption>("relevance");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [attrFilter, setAttrFilter] = useState<{ key: string; value: string } | null>(null);
+
+  // Show grouped view when nothing is filtered (e-commerce default)
+  const isUnfilteredDefault =
+    !search && !category && !partCategory && !subcategory && !attrFilter &&
+    manufacturer === "all" && model === "all" && availability === "all";
 
   // Fetch filter options using RPC for full distinct values (no 1000-row limit)
   const { data: filterOptions } = useQuery({
@@ -67,16 +74,17 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   });
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [search, category, partCategory, subcategory, manufacturer, model, availability, sort]);
+  useEffect(() => { setPage(0); }, [search, category, partCategory, subcategory, manufacturer, model, availability, sort, attrFilter]);
 
-  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory, !!subcategory].filter(Boolean).length;
+  const activeFilterCount = [manufacturer !== "all", model !== "all", availability !== "all", !!partCategory, !!subcategory, !!attrFilter].filter(Boolean).length;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["quote-parts", search, category, partCategory, subcategory, page, manufacturer, model, availability, sort],
+    queryKey: ["quote-parts", search, category, partCategory, subcategory, page, manufacturer, model, availability, sort, attrFilter],
+    enabled: !isUnfilteredDefault,
     queryFn: async () => {
       let query: any = supabase
         .from("parts")
-        .select("id, material, description, machine_model, stock, manufacturer, estimated_price, image_url", { count: "exact" })
+        .select("id, material, description, machine_model, stock, manufacturer, estimated_price, image_url, subcategory, attributes", { count: "exact" })
         .gt("stock", 0);
 
       if (search.length >= 2) {
@@ -91,6 +99,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
       if (availability === "low") query = query.lte("stock", 10);
       if (partCategory) query = query.eq("part_category", partCategory);
       if (subcategory) query = query.eq("subcategory", subcategory);
+      if (attrFilter) query = query.eq(`attributes->>${attrFilter.key}`, attrFilter.value);
 
       // Sort
       switch (sort) {
@@ -168,6 +177,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
     setModel("all");
     setAvailability("all");
     setSort("relevance");
+    setAttrFilter(null);
+    if (onSubcategoryChange) onSubcategoryChange(null);
     if (onPartCategoryChange && partCategory) onPartCategoryChange(partCategory);
   };
 
@@ -269,6 +280,21 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
+          {isUnfilteredDefault ? (
+            <CategoryGroupedView
+              lang={lang}
+              cartMaterials={inCartMaterials}
+              onAddToCart={(p) => onAddToCart({ ...p, description: getDescription(p) })}
+              onViewDetail={(p) => setDetailPart({ ...p, description: getDescription(p) })}
+              onSelectSubcategory={(sub) => onSubcategoryChange?.(sub)}
+              onSelectAttribute={(sub, k, v) => {
+                onSubcategoryChange?.(sub);
+                setAttrFilter({ key: k, value: v });
+              }}
+            />
+          ) : (
+          <>
+
           {/* Top bar: results count + sort + mobile filter */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
@@ -468,6 +494,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                 {tr("catalog.next", lang)} <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+          )}
+          </>
           )}
         </div>
       </div>
