@@ -56,6 +56,8 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
   const verify = useVerifyCustomerSource();
   const enrichUrl = useEnrichFromUrl();
   const [manualUrl, setManualUrl] = useState("");
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideName, setOverrideName] = useState("");
   const data = (customer.enrichment_data || {}) as Enrichment;
   const isEnriched = customer.enrichment_status === "enriched";
   const sources = data.sources || [];
@@ -63,12 +65,34 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
   const telemetry = data.telemetry || {};
   const hasNoVerifiedSources = isEnriched && sources.length === 0;
 
+  const rawName = customer.company || customer.name || "";
+  // Detect "risky" names: legal suffixes, parens, accents in odd places, lots of punctuation
+  const nameLooksRisky = /\(|\)|S\/?A|S\.A|LTDA|EIRELI|EPP|\bME\b|\bCIA\b|\.[A-Z]/i.test(rawName) || /[À-Ÿ]/.test(rawName.slice(0, 1));
+  const cleanedPreview = rawName
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(s\/?a|s\.?a\.?|ltda|eireli|epp|me|cia|companhia)\b\.?/gi, " ")
+    .replace(/[.,;:/\\"'`]/g, " ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ").trim();
+
   const submitManualUrl = async () => {
     const url = manualUrl.trim();
     if (!url) return;
     try { new URL(url); } catch { toast.error("URL inválida"); return; }
     await enrichUrl.mutateAsync({ customer_id: customer.id, url });
     setManualUrl("");
+  };
+
+  const runEnrich = (override?: string) => {
+    enrich.mutate(override ? { customer_id: customer.id, search_override: override } : customer.id);
+  };
+
+  const submitOverride = () => {
+    const v = overrideName.trim();
+    if (!v) return;
+    runEnrich(v);
+    setOverrideOpen(false);
+    setOverrideName("");
   };
 
   if (!isEnriched) {
