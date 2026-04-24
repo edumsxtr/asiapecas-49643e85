@@ -114,6 +114,39 @@ function priorityScore(url: string): number {
   return 0;
 }
 
+// Tolerant normalizer for Firecrawl v2 search responses (shape varies between releases)
+function extractFirecrawlSearchResults(
+  data: unknown,
+): Array<{ url: string; title?: string; description?: string }> {
+  const d = data as Record<string, unknown> | null | undefined;
+  const candidates: unknown[] = [
+    (d as { data?: { web?: unknown } } | undefined)?.data?.web,
+    (d as { web?: unknown } | undefined)?.web,
+    (d as { data?: unknown } | undefined)?.data,
+    (d as { web?: { results?: unknown } } | undefined)?.web?.results,
+    (d as { data?: { web?: { results?: unknown } } } | undefined)?.data?.web?.results,
+    (d as { results?: unknown } | undefined)?.results,
+  ];
+  for (const c of candidates) {
+    if (Array.isArray(c)) {
+      return c.filter(
+        (r): r is { url: string; title?: string; description?: string } =>
+          !!r && typeof (r as { url?: unknown }).url === "string",
+      );
+    }
+  }
+  console.warn("firecrawl unknown shape", d ? Object.keys(d) : null);
+  return [];
+}
+
+// Custom error so callers can detect 402 (no credits) and surface a clear message
+class FirecrawlNoCreditsError extends Error {
+  constructor() {
+    super("Firecrawl 402 — sem créditos");
+    this.name = "FirecrawlNoCreditsError";
+  }
+}
+
 async function firecrawlSearch(
   apiKey: string,
   query: string,
@@ -127,14 +160,22 @@ async function firecrawlSearch(
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ query, limit, lang, country }),
     });
+    if (res.status === 402) {
+      console.error("firecrawl 402 — créditos esgotados", query);
+      throw new FirecrawlNoCreditsError();
+    }
     if (!res.ok) {
       console.warn("firecrawl search failed", res.status, query);
       return [];
     }
     const data = await res.json();
-    const arr = (data.web || data.data || []) as Array<{ url: string; title?: string; description?: string }>;
-    return arr.filter((r) => r?.url && !isJunkUrl(r.url));
+    const results = extractFirecrawlSearchResults(data).filter((r) => !isJunkUrl(r.url));
+    if (results.length === 0) {
+      console.info("firecrawl search returned 0 results for query:", query);
+    }
+    return results;
   } catch (e) {
+    if (e instanceof FirecrawlNoCreditsError) throw e;
     console.warn("firecrawl search error", e);
     return [];
   }
@@ -286,6 +327,9 @@ Deno.serve(async (req) => {
       .slice(0, 6);
 
     if (candidates.length === 0) {
+      const note = telemetry.searched_queries > 0
+        ? "Firecrawl não retornou resultados — verifique conexão/créditos do Firecrawl em Connectors, ou adicione uma URL manual (site/LinkedIn)."
+        : "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).";
       await supabase.from("customers").update({
         enrichment_status: "enriched",
         enriched_at: new Date().toISOString(),
@@ -295,7 +339,7 @@ Deno.serve(async (req) => {
           weak_sources: [],
           evidence: {},
           telemetry,
-          _note: "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).",
+          _note: note,
         },
       }).eq("id", customer_id);
       return new Response(JSON.stringify({ success: true, enrichment: { confidence: "low", sources: [], telemetry }, note: "no_public_results" }), {
@@ -434,13 +478,19 @@ ${sourcesBlock}`;
     });
   } catch (err) {
     console.error("enrich-customer error", err);
-    const msg = err instanceof Error ? err.message : "unknown";
+    const isNoCredits = err instanceof FirecrawlNoCreditsError;
+    const msg = isNoCredits
+      ? "Créditos do Firecrawl esgotados. Recarregue em Connectors → Firecrawl para voltar a enriquecer clientes."
+      : err instanceof Error ? err.message : "unknown";
     try {
       if (customer_id) {
         const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         await supabase.from("customers").update({ enrichment_status: "failed" }).eq("id", customer_id);
       }
     } catch (_) { /* ignore */ }
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: isNoCredits ? 402 : 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

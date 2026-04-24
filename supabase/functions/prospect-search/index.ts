@@ -16,6 +16,30 @@ function isJunkUrl(url: string): boolean {
   );
 }
 
+function extractFirecrawlSearchResults(
+  data: unknown,
+): Array<{ url: string; title?: string; description?: string }> {
+  const d = data as Record<string, unknown> | null | undefined;
+  const candidates: unknown[] = [
+    (d as { data?: { web?: unknown } } | undefined)?.data?.web,
+    (d as { web?: unknown } | undefined)?.web,
+    (d as { data?: unknown } | undefined)?.data,
+    (d as { web?: { results?: unknown } } | undefined)?.web?.results,
+    (d as { data?: { web?: { results?: unknown } } } | undefined)?.data?.web?.results,
+    (d as { results?: unknown } | undefined)?.results,
+  ];
+  for (const c of candidates) {
+    if (Array.isArray(c)) {
+      return c.filter(
+        (r): r is { url: string; title?: string; description?: string } =>
+          !!r && typeof (r as { url?: unknown }).url === "string",
+      );
+    }
+  }
+  console.warn("firecrawl unknown shape", d ? Object.keys(d) : null);
+  return [];
+}
+
 async function fcSearch(apiKey: string, query: string, limit = 6) {
   try {
     const res = await fetch(`${FIRECRAWL_V2}/search`, {
@@ -23,10 +47,15 @@ async function fcSearch(apiKey: string, query: string, limit = 6) {
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ query, limit, lang: "pt", country: "br" }),
     });
+    if (res.status === 402) {
+      console.error("firecrawl 402 — créditos esgotados", query);
+      return [];
+    }
     if (!res.ok) return [];
     const data = await res.json();
-    return ((data.web || data.data || []) as Array<{ url: string; title?: string; description?: string }>)
-      .filter((r) => r?.url && !isJunkUrl(r.url));
+    const results = extractFirecrawlSearchResults(data).filter((r) => !isJunkUrl(r.url));
+    if (results.length === 0) console.info("prospect-search firecrawl 0 results for:", query);
+    return results;
   } catch { return []; }
 }
 
