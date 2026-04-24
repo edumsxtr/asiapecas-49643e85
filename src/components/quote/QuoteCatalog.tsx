@@ -380,7 +380,6 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                         <TableCell className="font-mono text-xs font-semibold text-primary">{part.material}</TableCell>
                         <TableCell className="text-sm max-w-[300px] truncate">
                           {desc}
-                          {data.aiMap[part.id] && <Badge variant="outline" className="ml-2 text-[10px] border-emerald-500/30 text-emerald-600">IA ✓</Badge>}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{part.machine_model || "—"}</TableCell>
                         <TableCell className="text-right">

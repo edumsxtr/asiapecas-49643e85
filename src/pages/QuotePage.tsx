@@ -10,7 +10,7 @@ import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
-import { Search, ClipboardList, Send, MessageCircle, Menu } from "lucide-react";
+import { Search, ClipboardList, Send, MessageCircle, Menu, Building2 } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
 import { SEO, organizationLd } from "@/lib/seo";
 import asiaLogo from "@/assets/asia-logo.png";
@@ -29,6 +29,7 @@ export default function QuotePage() {
   const [partCategory, setPartCategory] = useState<string | null>(null);
   const [lang, setLang] = useState<Lang>("pt");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [b2bOpen, setB2bOpen] = useState(false);
 
   const { items: cartItems, addToCart, updateQty, removeItem, clearCart } = useCartSession();
 
@@ -61,6 +62,10 @@ export default function QuotePage() {
                 </button>
               ))}
             </div>
+            <button onClick={() => setB2bOpen(true)} className="text-xs text-secondary-foreground/80 hover:text-primary transition-colors border border-secondary-foreground/20 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5" />
+              {lang === "en" ? "I'm a business" : lang === "es" ? "Soy empresa" : "Sou empresa"}
+            </button>
             <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
               {tr("header.contact", lang)}
             </a>
@@ -122,6 +127,28 @@ export default function QuotePage() {
 
       <FeaturedStrip lang={lang} onAddToCart={addToCart} />
 
+      {/* B2B inline strip */}
+      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {lang === "en" ? "Buying for fleet or reselling?" : lang === "es" ? "¿Compra para flota o reventa?" : "Compra para frota ou revenda?"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {lang === "en" ? "Get an exclusive corporate price list." : lang === "es" ? "Reciba tabla exclusiva corporativa." : "Receba tabela exclusiva corporativa."}
+              </p>
+            </div>
+          </div>
+          <button onClick={() => setB2bOpen(true)} className="bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+            {lang === "en" ? "Talk to a consultant" : lang === "es" ? "Hablar con un consultor" : "Falar com consultor"}
+          </button>
+        </div>
+      </section>
+
       <section id="como-funciona" className="py-12 bg-card border-b">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-center text-foreground mb-8">{tr("how.title", lang)}</h2>
@@ -152,7 +179,7 @@ export default function QuotePage() {
       <QuoteCart items={cartItems} onUpdateQty={updateQty} onRemove={removeItem} onClear={clearCart} lang={lang} />
       <QuoteChat lang={lang} />
 
-      <B2BLeadDialog lang={lang} />
+      <B2BLeadDialog lang={lang} open={b2bOpen} onOpenChange={setB2bOpen} />
       <ConsentBanner lang={lang} />
 
       <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
