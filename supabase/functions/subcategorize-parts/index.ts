@@ -7,18 +7,38 @@ const corsHeaders = {
 };
 
 const SUBCATEGORIES = [
-  "Mangueiras e Conexões",
-  "Vedações e Retentores",
+  "Pneus",
+  "Faróis e Iluminação",
+  "Filtros",
+  "Mangueiras e Tubos",
   "Rolamentos",
-  "Parafusos e Fixadores",
-  "Cabos e Elétrica",
-  "Iluminação",
+  "Cilindros Hidráulicos",
+  "Bombas",
+  "Correias",
+  "Vedações e Retentores",
+  "Fixadores",
+  "Implementos de Solo",
+  "Baterias",
+  "Radiadores e Arrefecimento",
+  "Alternadores",
+  "Motor de Partida",
+  "Injetores e Bicos",
+  "Turbinas",
+  "Válvulas",
   "Sensores",
+  "Chicotes Elétricos",
+  "Freios e Embreagem",
+  "Amortecedores",
+  "Material Rodante",
+  "Engrenagens",
+  "Eixos e Cardans",
+  "Cabine e Vidros",
+  "Bancos",
+  "Retrovisores",
+  "Ar Condicionado",
   "Lubrificantes e Fluidos",
-  "Ferramentas",
-  "Pneus e Rodas",
-  "Cabine e Acabamento",
-  "Estrutura e Chassi",
+  "Adesivos e Plaquetas",
+  "Kits de Reparo",
   "Outros Acessórios",
 ] as const;
 
@@ -60,16 +80,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // preview: pega lote em "Acessórios e Outros" / sem categoria
+    // preview/auto: peças sem subcategoria (nova coluna funcional)
     const { data: parts, error } = await supabase
       .from("parts")
-      .select("id,material,description,manufacturer,machine_model,part_category")
-      .or("part_category.ilike.%acess%,part_category.is.null")
+      .select("id,material,description,manufacturer,machine_model,part_category,subcategory")
+      .is("subcategory", null)
       .limit(limit);
 
     if (error) throw error;
     if (!parts || parts.length === 0) {
-      return new Response(JSON.stringify({ suggestions: [] }), {
+      return new Response(JSON.stringify({ suggestions: [], updated: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
