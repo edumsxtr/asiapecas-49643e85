@@ -1,120 +1,95 @@
 
 
-# Plano: catálogo com cara de e-commerce + relatórios unificados + classificação completa
+# Plano: esconder preços do catálogo público + reforçar banners/promoções
 
-Três frentes ligadas, todas resolvendo o mesmo objetivo: a loja precisa parecer uma loja e a classificação precisa cobrir 100% do catálogo para que filtros, agrupamentos e relatórios façam sentido.
+Cliente final só vê **estoque, ficha técnica e CTA "Solicitar cotação"**. Preço (e desconto em %) só aparece para usuário autenticado interno. Banners e promoções ganham um fluxo de criação mais visível e um aviso quando estão ativos.
 
-## 1. Classificar os 7.763 SKUs faltantes (R$ 100 M sem subcategoria)
+## 1. Remover preço do catálogo público (visitantes não autenticados)
 
-Hoje 50 % do catálogo está sem subcategoria — por isso "vários pneus não estão agrupados" e o e-commerce não consegue mostrar coleções coerentes.
+Hoje 4 lugares mostram `estimated_price` direto para o público:
 
-**Ações** (migração SQL + função reescrita):
+| Arquivo | O que sai | O que entra |
+|---|---|---|
+| `QuotePartCard.tsx` | bloco "A partir de R$ X" + valor riscado promo | "Cotação sob consulta" + selo "Em promoção" (sem valor) quando há promo ativa |
+| `QuoteCatalog.tsx` (modo Lista) | coluna "Preço" | coluna "Disponibilidade" (Pronta entrega / Últimas N / Sob consulta). Remover opções de ordenação `priceAsc`/`priceDesc` para o público |
+| `QuoteCatalog.tsx` (Select de ordenação) | itens "Preço ↑/↓" | escondidos para visitantes |
+| `QuotePartDetail.tsx` (dialog) | já não mostra preço — manter |
+| `PartDetailPublicPage.tsx` | já não mostra preço — manter como está |
+| `FeaturedStrip.tsx` | hoje carrega `estimated_price` no select mas não renderiza. Tirar do select. |
 
-- **Reforçar `apply_subcategory_rules()`**: ampliar dicionário PT/EN/ES com termos que faltaram (ex.: `cabo`, `solenoide`, `injetor`, `turbocompressor`, `volante`, `radiador`, `silencioso`, `coletor`, `polia`, `pino`, `bucha`, `mancal`, `acoplamento`, `flange`, `niple`, `conexão`, `terminal`, `chave`, `relé`, `fusível`, `lâmpada`, `motor de partida`, `alternador`, `bobina`, `vela`, `ventoinha`, `tanque`, `reservatório`, `bocal`, `tampa`, `placa`, `suporte`, `braço`, `barra`, `pedal`, `alavanca`, etc.). Cada subcategoria vira "âncora" de listagem.
-- **Atributos extraídos com regex mais rígida**: hoje "744-199" virou "medida de pneu" porque a regex aceita qualquer `\d-\d`. Trocar por padrões reais: `\d{2,3}\.?\d?R\d{2}` (radial), `\d{2,3}\.?\d?-\d{2}` (diagonal), `\d{2,3}/\d{2,3}R\d{2}` (carro). Aplicar mesma rigidez para rolamentos (`6\d{3}|3\d{4}`), filtros (tipo: óleo/ar/combustível/hidráulico/cabine), faróis (LED/halógeno/xenon, dianteiro/traseiro/trabalho).
-- **`subcategory_confidence`** preenchido pela regra: 1.0 quando keyword forte (pneu, filtro), 0.7 quando ambígua. UI passa a usar esse campo.
-- **Re-rodar a função** sobre todo o estoque numa migração idempotente. Resultado esperado: cobertura sobe para >90 %.
-- **Botão "Refinar com IA" expande para 500 itens por execução** (hoje é 100), com progresso real ("324/500"). IA cobre o resíduo.
-- **Edição manual**: na tela admin do catálogo, dropdown de subcategoria editável por linha (já temos `subcategory_source = 'manual'`).
+**Quem decide**: usar `useAuth()`. Se `user` está logado E é interno (qualquer authenticated), exibe preço normalmente (útil para vendedor demonstrando o catálogo). Se não logado → preço escondido + texto "Cotação sob consulta" + botão "Solicitar cotação".
 
-## 2. Catálogo público com cara de e-commerce de verdade
+Selo de promoção continua aparecendo (`-X% OFERTA` vira apenas **"EM PROMOÇÃO"** sem percentual para o público, com percentual quando logado). O preço promocional só renderiza para logados.
 
-Inspiração: o banner XCMG enviado (categorias visuais, paleta amarelo/preto, bloco "peças que você encontra aqui", logos de compatibilidade, faixa de garantias).
+Texto multi-idioma novo em `translations.ts`:
+- pt: "Cotação sob consulta" / "Em promoção"
+- en: "Price on request" / "On promotion"
+- es: "Precio bajo consulta" / "En promoción"
 
-### a) Hero alinhado ao banner
+## 2. Banners — fluxo mais explícito + aviso visível
 
-`QuoteHero` ganha **bloco "Peças que você encontra aqui"** (ícone + nome + contagem real) baseado nas subcategorias top do estoque — exatamente o padrão do banner ("Caixa de transmissão", "Motor hidráulico", "Filtros", "Pneus 14.00R25", "Rolamentos"). Cada tile leva direto para a listagem filtrada por aquela subcategoria.
+Tudo já existe em `vitrine_banners` + `AdminVitrinePage` aba "Banners", mas ninguém percebe. Mudanças:
 
-Selo **"Peças originais XCMG"** + **strip de logos** dos fabricantes compatíveis (Carraro, Fleetguard, ZF, Cummins) puxados de `parts.manufacturer`.
+### a) No admin (`AdminVitrinePage` → `BannersPanel`)
 
-### b) Catálogo agrupado por subcategoria (modo padrão)
+- Cabeçalho da aba com **passo a passo curto** ("1. Suba imagem 1920×600 · 2. Defina título e CTA · 3. Ative · 4. Aparece no topo de `/cotacao`").
+- Cada `BannerCard` mostra **preview real** no tamanho do hero + selo "ATIVO" / "INATIVO" / "AGENDADO" (calculado de `starts_at`/`ends_at`).
+- Botão **"Ver no site"** (abre `/cotacao` em nova aba) ao lado do "Salvar".
+- Validação: bloqueia salvar se `image_url` vazio.
 
-Hoje o catálogo é uma grade sem agrupamento. Novo modo **"Por categoria"** (default) que renderiza:
+### b) No catálogo público
 
-```text
-┌──── PNEUS · 47 SKUs · 312 unidades ──────  [Ver todos →] ──┐
-│   [chips de medida: 26.5R25 (12) · 17.5-25 (8) · 14.00R25 (5)]│
-│   ┌────┐ ┌────┐ ┌────┐ ┌────┐                                 │
-│   │card│ │card│ │card│ │card│  ← top 4 da subcategoria       │
-│   └────┘ └────┘ └────┘ └────┘                                 │
-└────────────────────────────────────────────────────────────┘
+- `HeroCarousel` (já existe) renderiza no topo. Adicionar **dot navigation** quando há mais de 1 banner e **fallback gracioso** para o `QuoteHero` padrão quando não há banner ativo (já é o comportamento, só confirmar no código).
+- Quando `vitrine_settings.hero_mode = 'banner'` força carrossel; quando `'hero'` força hero estático. Hoje só temos `'carousel'`. Adicionar opção no admin.
 
-┌──── FILTROS · 646 SKUs · 57k unidades ── [Ver todos →] ──┐
-│   [chips: óleo (310) · ar (180) · combustível (95) · hidráulico (61)] │
-│   ┌────┐ ┌────┐ ┌────┐ ┌────┐                                 │
-│   ...
-```
+## 3. Promoções — criar do zero no admin + aviso ativo
 
-- O usuário continua tendo botão "Lista" e "Grade" como hoje.
-- Quando aplica filtro/busca, vai automaticamente para grade plana (modo atual).
-- Click em chip de atributo (medida/tipo) → aplica filtro adicional `attributes->>'medida' = '26.5R25'`.
+Tabela `part_promotions` já existe e é lida em `QuotePartCard`, mas **não há UI para criar**. Hoje só dá pra inserir via SQL. Resolver:
 
-### c) Card de produto refinado (já existe — pequenos ajustes)
+### a) Nova aba **"Promoções"** em `AdminVitrinePage`
 
-- Adicionar **chip de atributo principal** (ex.: medida do pneu, tipo de filtro) abaixo da descrição quando existir em `attributes`.
-- Logo do fabricante quando for marca conhecida (Fleetguard/ZF/Carraro/Cummins).
+`PromotionsPanel`:
+- Busca peça por código/descrição (igual ao `FeaturedPanel`).
+- Form rápido: preço promocional, data início, data fim, ativo (switch).
+- Lista de promoções ativas com: peça, preço original (interno), promo, % desconto, período, ações (pausar/excluir).
+- Aviso visual quando promoção expirou (badge "Expirada").
 
-### d) Faixa "Por que comprar" (rodapé do hero)
+### b) Aviso "Campanha ativa" no site público
 
-Réplica da faixa do banner: **Nota fiscal emitida · Entrega nacional · Cotação rápida via WhatsApp · Garantia 3 meses** com ícones.
+- Quando existe **qualquer** `part_promotions.active = true` dentro do período → faixa amarela acima do hero: **"⚡ Promoções ativas — fale com nosso time para condições especiais"** com botão WhatsApp.
+- Hook `useHasActivePromotions()` (TanStack Query, staleTime 5min, count head) consultado uma vez por sessão.
+- Cards com promoção ativa ganham badge "EM PROMOÇÃO" (vermelho) — sem mostrar valor para o público.
 
-## 3. Relatórios unificados (matar redundância)
+### c) Preview do preço promocional
 
-Hoje a aba Relatórios tem 3 sub-abas independentes (Visão por subcategoria · Matriz × Máquina · Construtor) cada uma com sua exportação. Vira **um único painel** onde tudo acontece em sequência:
+Para usuário **autenticado** (vendedor olhando o site), promo continua exibindo preço riscado + novo (comportamento atual). Para visitante, só o selo.
 
-```text
-┌─── Filtros (sempre no topo, sticky) ─────────────────────────┐
-│ Subcategoria: [todas ▾]  Modelo: [todos ▾]  Fabricante:[…] │
-│ Capital parado: ☐ apenas    Buscar: [______]                │
-│ Agrupar por: ⊙ Subcategoria  ○ Modelo  ○ Fabricante  ○ Atributo│
-└──────────────────────────────────────────────────────────────┘
+## 4. Pequenos polimentos
 
-┌─── KPIs (refletem filtros aplicados) ────────────────────────┐
-│ SKUs · Unidades · Valor · % parado · Ticket médio            │
-└──────────────────────────────────────────────────────────────┘
+- `QuoteCatalog.tsx`: ao remover ordenação por preço para público, default vira "Mais estoque" (já é).
+- `PartDetailPublicPage`: adicionar selo "EM PROMOÇÃO" se a peça tem promo ativa (consulta `part_promotions`).
+- `QuotePartCard` botão principal vira **"Solicitar cotação"** (já é `tr("part.quote", lang)` — confirmar string em PT está como "Solicitar cotação", se estiver "Adicionar à cotação" trocar).
 
-┌─── Visualização (tabs internas leves) ───────────────────────┐
-│ [Cards] [Tabela] [Gráfico] [Matriz × Máquina]                │
-│ ...conteúdo correspondente, mesmos dados filtrados...        │
-└──────────────────────────────────────────────────────────────┘
-
-[Exportar XLSX]  [PDF Executivo]  [Salvar visualização]
-```
-
-- **Um único conjunto de filtros** governa todas as visualizações.
-- **Uma única ação de exportação** (XLSX/PDF) — exporta o que está visível.
-- Cards, tabela, gráfico e matriz são **vistas alternativas dos mesmos dados**, não relatórios separados.
-- Drill-down universal: click em qualquer linha/célula/barra → drawer com a lista de SKUs daquele recorte.
-- "Salvar visualização" grava em `catalog_report_templates` (tabela já existe). Templates aparecem em barra horizontal acima dos filtros.
-
-## 4. Arquivos afetados
-
-**Migração**
-- `supabase/migrations/<timestamp>_subcategorize_v2.sql` — dicionário ampliado, regex restritas, re-roda em todo o estoque
+## 5. Arquivos afetados
 
 **Editados**
-- `supabase/functions/subcategorize-parts/index.ts` — limite 500, retorno com progresso
-- `src/lib/subcategory-rules.ts` — sincronizar ícones/labels com novas subcategorias
-- `src/components/quote/QuoteHero.tsx` — bloco "Peças que você encontra aqui" + faixa de garantias + logos de compatibilidade
-- `src/components/quote/QuoteCatalog.tsx` — modo "Por categoria" como default, chips de atributo, busca limpa filtro
-- `src/components/quote/QuotePartCard.tsx` — chip de atributo principal + logo do fabricante
-- `src/components/catalog/reports/ReportsTab.tsx` — virar painel único com filtros sticky
-- `src/components/catalog/reports/ReportBuilder.tsx` — absorvido pelo painel unificado, vira componente de visualização
-- `src/components/catalog/reports/SubcategoryMachineMatrix.tsx` — vira tab interna do painel
+- `src/components/quote/QuotePartCard.tsx` — preço gateado por auth, badge promo sem valor para público
+- `src/components/quote/QuoteCatalog.tsx` — coluna Preço só para autenticados, ordenação preço escondida
+- `src/components/quote/translations.ts` — novas strings PT/EN/ES
+- `src/components/quote/FeaturedStrip.tsx` — remover `estimated_price` do select
+- `src/pages/PartDetailPublicPage.tsx` — selo de promoção
+- `src/pages/AdminVitrinePage.tsx` — passos no header, preview real, selo status, validação, nova aba Promoções
+- `src/components/quote/QuoteHero.tsx` ou `QuotePage.tsx` — faixa "Campanha ativa" condicional
 
-**Removidos** (redundância)
-- A separação atual em 3 sub-abas. Vira tabs leves de visualização dentro de um painel só.
+**Novos**
+- `src/components/quote/PromoBanner.tsx` — faixa de aviso de campanha ativa
+- `src/hooks/use-active-promotions.ts` — count head de promoções ativas
 
-**Novo**
-- `src/components/catalog/reports/UnifiedFilters.tsx` — barra de filtros + agrupamento que alimenta tudo
-- `src/components/catalog/reports/SavedViews.tsx` — barra horizontal de templates salvos
-- `src/components/quote/CategoryShowcase.tsx` — bloco hero "peças que você encontra"
+**Sem mudança de schema** — `part_promotions`, `vitrine_banners` e `vitrine_settings` já cobrem tudo. RLS público de `part_promotions` (SELECT) já permite a leitura.
 
 ## Resultado
 
-- Catálogo passa a parecer o banner XCMG: vitrine por categoria, contagens reais, logos de compatíveis, faixa de garantias.
-- Pneus, filtros, rolamentos etc. ficam **agrupados** com chips por medida/tipo — busca e drill-down imediatos.
-- Cobertura de subcategoria sai de 50 % → >90 % via regras + IA, sem precisar revisão manual peça a peça.
-- Relatórios deixam de ser 3 telas redundantes — viram **um painel** com filtros únicos que controlam KPIs, cards, tabela, gráfico e matriz, com uma única exportação.
-- Diretoria pergunta "quantos pneus 26.5R25 eu tenho?" → 2 cliques (subcategoria Pneus → chip 26.5R25) → resposta com valor, máquinas e idade.
+- Visitante anônimo nunca vê preço — vê estoque, ficha, "Solicitar cotação" e selo de promoção (sem valor). Vendedor logado continua vendo tudo.
+- Banner editável em 4 cliques no admin, com preview e status visível, apareceu/não apareceu fica óbvio.
+- Promoção criável no admin pela primeira vez, com faixa de aviso no site público quando há campanha ativa.
 
