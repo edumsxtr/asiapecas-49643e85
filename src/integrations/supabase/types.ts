@@ -1462,6 +1462,7 @@ export type Database = {
         Args: { _only_missing?: boolean }
         Returns: number
       }
+      classify_dict_for: { Args: { _subcategory: string }; Returns: number }
       classify_parts_v4: { Args: { _only_missing?: boolean }; Returns: Json }
       cleanup_bad_attributes: { Args: never; Returns: number }
       find_duplicate_parts: {
