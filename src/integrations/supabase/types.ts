@@ -187,6 +187,72 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_report_templates: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_shared: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_shared?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_shared?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_reports_log: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          filters: Json | null
+          format: string
+          id: string
+          row_count: number | null
+          scope: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          filters?: Json | null
+          format: string
+          id?: string
+          row_count?: number | null
+          scope?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          filters?: Json | null
+          format?: string
+          id?: string
+          row_count?: number | null
+          scope?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       conversion_events: {
         Row: {
           created_at: string
@@ -533,6 +599,7 @@ export type Database = {
       }
       parts: {
         Row: {
+          attributes: Json | null
           compatible_models: string[] | null
           created_at: string
           description: string
@@ -551,10 +618,14 @@ export type Database = {
           part_category: string | null
           reviewed_at: string | null
           stock: number
+          subcategory: string | null
+          subcategory_confidence: number | null
+          subcategory_source: string | null
           supplier: string | null
           updated_at: string
         }
         Insert: {
+          attributes?: Json | null
           compatible_models?: string[] | null
           created_at?: string
           description: string
@@ -573,10 +644,14 @@ export type Database = {
           part_category?: string | null
           reviewed_at?: string | null
           stock?: number
+          subcategory?: string | null
+          subcategory_confidence?: number | null
+          subcategory_source?: string | null
           supplier?: string | null
           updated_at?: string
         }
         Update: {
+          attributes?: Json | null
           compatible_models?: string[] | null
           created_at?: string
           description?: string
@@ -595,6 +670,9 @@ export type Database = {
           part_category?: string | null
           reviewed_at?: string | null
           stock?: number
+          subcategory?: string | null
+          subcategory_confidence?: number | null
+          subcategory_source?: string | null
           supplier?: string | null
           updated_at?: string
         }
@@ -1282,6 +1360,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_subcategory_rules: {
+        Args: { _only_missing?: boolean }
+        Returns: number
+      }
       find_duplicate_parts: {
         Args: never
         Returns: {
@@ -1295,6 +1377,7 @@ export type Database = {
           stock_b: number
         }[]
       }
+      get_catalog_intelligence: { Args: never; Returns: Json }
       get_dashboard_stats: { Args: never; Returns: Json }
       get_distinct_values: {
         Args: { col_name: string; stock_min?: number }
