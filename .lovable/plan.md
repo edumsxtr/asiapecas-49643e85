@@ -1,133 +1,237 @@
 
 
-# Plano: corrigir a busca de IA dos clientes que volta vazia
+# Plano: classificação 100% determinística por código + busca inteligente sem IA
 
-## Diagnóstico real (do banco de dados, não chute)
+Mudança de filosofia: **a IA sai do caminho crítico**. Tudo que pode ser resolvido por código, regex, índices e dicionário fica em SQL/JS puro — instantâneo, determinístico, sem rate limit, sem custo, sem colapsar em lote. IA vira ferramenta opcional só para os ~2% de resíduo.
 
-Olhei os 14 últimos enriquecimentos. O padrão é nítido:
+## Parte 1 — Pipeline determinístico em 5 estágios (zero IA)
 
-| Cliente | URLs retornadas | Resultado |
-|---|---:|---|
-| AMARILLO GOLD | 25 | ✅ 3 fontes verificadas |
-| ANGLO AMERICAN MINERIO DE FERRO BRASIL S/A. | **0** | ❌ vazio |
-| ANDRADE GUTIERREZ CONSTRUCOES E SERVICOS S.A | **0** | ❌ vazio |
-| ALYA CONSTRUTORA S/A | **0** | ❌ vazio |
-| ÀGILIS MINERAÇÃO BRIT. E RECICLAGEM (BRITEC) | **0** | ❌ vazio |
-| ADS ASSESSORIA E MANUTENCAO | **0** | ❌ vazio |
+Roda 100% em SQL, processa 13k SKUs em segundos, idempotente.
 
-Quando o nome **funciona em busca manual no Google** mas o Firecrawl volta zero, a causa é o jeito que o nome está sendo enviado para o Firecrawl, não o Firecrawl em si.
-
-### As três causas reais
-
-1. **Aspas no nome inteiro com pontuação suja**. Hoje a função monta queries assim:
-   ```
-   "ANGLO AMERICAN MINERIO DE FERRO BRASIL S/A." Conceição do Mato Dentro MG
-   "ANDRADE GUTIERREZ CONSTRUCOES E SERVICOS S.A" telefone endereço
-   "ÀGILIS MINERAÇÃO BRIT. E RECICLAGEM (BRITEC)" CNPJ
-   ```
-   O `S/A.`, `S.A`, parênteses, abreviações `BRIT.` e o `À` com crase forçam o Google/Bing a procurar pela string literal exata, que **nunca aparece nesse formato** em sites públicos. Aí volta zero. Tirando as aspas, a Anglo American é o terceiro maior site de mineração do Brasil — claro que tem milhares de páginas.
-
-2. **Nome legal vs nome comercial**. "ANDRADE GUTIERREZ CONSTRUCOES E SERVICOS S.A" → o site real usa "Andrade Gutierrez Engenharia". "ALYA CONSTRUTORA S/A" → aparece como "Alya Construtora". Buscar a razão social inteira entre aspas afasta o resultado em vez de aproximar.
-
-3. **CNPJ vazio nas queries**. Para clientes sem CNPJ cadastrado, perdemos a query mais forte (a única que tem 100% de match único). E não há fallback que use só o nome curto + cidade sem aspas.
-
-Ou seja: **a função está pedindo coisas que o motor de busca não consegue achar literalmente, então ela recebe zero, então a IA recebe nada para ler, então o cliente vê "nenhum resultado encontrado"**. O Firecrawl está vivo (AMARILLO GOLD provou) e os créditos estão OK.
-
-## O que vou mudar
-
-### 1. Reescrever a montagem de queries (`enrich-customer/index.ts`)
-
-Criar função `buildSmartQueries(companyName, cnpj, city, state)` que produz três tipos de query, na ordem:
-
-**a. Queries fortes (uma só) — só quando existe CNPJ**
-```
-"<cnpj formatado>"
+```text
+parts não classificadas
+   │
+   ▼
+[1] Dicionário canônico (regex versionado por subcategoria)
+   │   resolve ~70% — termos óbvios em PT/EN/ES
+   ▼
+[2] Trigram fuzzy (pg_trgm) contra sinônimos
+   │   resolve ~15% — erros de digitação, abreviações
+   ▼
+[3] Herança por part_category + machine_model + manufacturer
+   │   resolve ~10% — peças genéricas com contexto forte
+   ▼
+[4] Cluster por código de material (prefixo SAP/OEM)
+   │   resolve ~3% — códigos da mesma família compartilham subcategoria
+   ▼
+[5] Resíduo marcado needs_review (fila manual ou IA opcional)
+       ~2% restante
 ```
 
-**b. Queries médias — nome curto sem pontuação, sem aspas no nome inteiro**
-A partir de "ANGLO AMERICAN MINERIO DE FERRO BRASIL S/A." gerar:
-- `core` = "ANGLO AMERICAN MINERIO DE FERRO BRASIL" (sem `S/A.`, `LTDA`, `EIRELI`, `EPP`, `ME`, `CIA`, `S.A`, `S/A`, parênteses e o que estiver dentro deles, abreviações como `BRIT.` viram `BRIT`).
-- `short` = primeiras 3 palavras do core: "ANGLO AMERICAN MINERIO".
-- Queries:
+### 1.1 Taxonomia editável em tabela (não mais hardcoded)
+
+Nova tabela `subcategory_taxonomy`:
+- `subcategory` (Pneus, Filtros, Rolamentos…)
+- `category_group` (Rodante, Hidráulico, Motor, Elétrico…)
+- `synonyms_pt[]`, `synonyms_en[]`, `synonyms_es[]`
+- `negative_terms[]` (palavras que excluem o match — ex.: para "Pneus", excluir "câmara", "protetor")
+- `attribute_extractors jsonb` — regex nomeados por atributo:
+  ```json
+  { "medida_radial":  "\\m(\\d{2}\\.?\\d?)\\s?[rR]\\s?(\\d{2})\\M",
+    "medida_diagonal":"\\m(\\d{1,2}\\.\\d{1,2})\\s?-\\s?(\\d{2})\\M",
+    "tipo":           "(?i)(radial|diagonal|otr)" }
   ```
-  Anglo American Minerio Conceicao do Mato Dentro
-  Anglo American Minerio site oficial
-  Anglo American Minerio linkedin
-  Anglo American Minerio cnpj
-  ```
-  Tudo **sem aspas** (deixa o motor fazer matching aproximado). Acentos removidos para tolerar variação ortográfica.
+- `priority` (ordem de tentativa, mais específico primeiro)
+- `min_score` (limiar para fuzzy match)
 
-**c. Queries de longo alcance — só nome curto + país**
+Edição via UI no AdminVitrine → aba **Taxonomia**. Sem SQL.
+
+### 1.2 Função `classify_parts_v4(_only_missing bool)`
+
+Substitui `apply_subcategory_rules`. Lê da taxonomia, monta SQL dinâmico. Para cada estágio popula `subcategory`, `subcategory_source` (`dict`/`fuzzy`/`inherit`/`code_cluster`/`review`), `subcategory_confidence`, e atributos extraídos em `attributes` JSONB.
+
+Cálculo de atributos por subcategoria (genérico, dirigido pela taxonomia):
+| Subcategoria | Atributos |
+|---|---|
+| Pneus | medida (canônica `26.5R25`), aro, tipo |
+| Filtros | fluido, código_oem |
+| Rolamentos | código_série, tipo |
+| Mangueiras | diâmetro, comprimento, pressão |
+| Cilindros Hidráulicos | diâmetro_haste, curso, posição |
+| Bombas | tipo, vazão |
+| Vedações | tipo, medida |
+| Correias | código, comprimento |
+| Iluminação | tipo, posição, tensão |
+| Baterias | tensão, Ah |
+| Material Rodante | tipo, passo |
+| Engrenagens | dentes |
+| Sensores | grandeza, faixa |
+| Válvulas | tipo, pressão |
+| (demais 12) | conforme schema |
+
+### 1.3 Cluster por código (estágio 4) — sem IA
+
+Muitos SKUs herdam classificação do prefixo do código (`material`):
+```sql
+-- exemplo: peças com mesmo prefixo de 6 caracteres tendem à mesma subcategoria
+WITH clusters AS (
+  SELECT substring(material, 1, 6) prefix,
+         mode() WITHIN GROUP (ORDER BY subcategory) dom_sub,
+         count(*) FILTER (WHERE subcategory IS NOT NULL) classified,
+         count(*) total
+  FROM parts WHERE length(material) >= 6
+  GROUP BY 1
+  HAVING count(*) FILTER (WHERE subcategory IS NOT NULL) >= 3
+     AND count(*) FILTER (WHERE subcategory IS NOT NULL)::float / count(*) >= 0.7
+)
+UPDATE parts p
+SET subcategory = c.dom_sub, subcategory_source = 'code_cluster',
+    subcategory_confidence = 0.75
+FROM clusters c
+WHERE substring(p.material,1,6) = c.prefix AND p.subcategory IS NULL;
 ```
-Anglo American mineração Brasil
+
+Resultado: peças sem descrição usável herdam de "irmãs" do mesmo prefixo.
+
+### 1.4 Limpeza dos atributos atuais corrompidos
+
+Migração de saneamento roda **antes** do v4:
+- Drop de `attributes->>'medida'` em todos os pneus (a regex antiga gerou `00R25`, `9744-19` etc.).
+- Drop de atributos de subcategorias incorretas (cross-pollination).
+- Re-extração com regex novos.
+
+## Parte 2 — Busca inteligente sem IA (instantânea)
+
+Hoje a busca é `ILIKE %x%` em description+material. Lenta acima de 5k SKUs e tola: digitar "rolam 6205" não acha.
+
+### 2.1 Índices full-text + trigram
+
+Migração:
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+ALTER TABLE parts ADD COLUMN search_vector tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('portuguese', unaccent(coalesce(material,''))), 'A') ||
+    setweight(to_tsvector('portuguese', unaccent(coalesce(description,''))), 'B') ||
+    setweight(to_tsvector('portuguese', unaccent(coalesce(manufacturer,''))), 'C') ||
+    setweight(to_tsvector('portuguese', unaccent(coalesce(machine_model,''))), 'C') ||
+    setweight(to_tsvector('portuguese', unaccent(coalesce(subcategory,''))), 'B')
+  ) STORED;
+
+CREATE INDEX idx_parts_search ON parts USING GIN (search_vector);
+CREATE INDEX idx_parts_trgm_desc ON parts USING GIN (description gin_trgm_ops);
+CREATE INDEX idx_parts_trgm_material ON parts USING GIN (material gin_trgm_ops);
+CREATE INDEX idx_parts_attributes ON parts USING GIN (attributes);
+CREATE INDEX idx_parts_subcategory ON parts (subcategory);
 ```
 
-**d. Tentativa direta no LinkedIn como query simples**
+### 2.2 RPC `search_parts(q text, filters jsonb, limit, offset)`
+
+Combina 3 sinais:
+1. **Match exato no `material`** (peso 100, top da lista).
+2. **`websearch_to_tsquery`** sobre `search_vector` (peso por rank).
+3. **Trigram similarity** ≥ 0.3 (fallback para typos).
+
+Boost adicional por chips ativos (subcategoria, modelo, fabricante, atributo). Devolve resultados ordenados em <50ms para 13k SKUs.
+
+### 2.3 Barra de busca inteligente (frontend)
+
+Componente novo `SmartSearchBar`:
+- **Tokenização visual**: ao digitar `"6205 rolamento sk"` aparecem 3 chips clicáveis (`código:6205`, `texto:rolamento`, `fabricante:SKF*` sugerido).
+- **Sugestões instantâneas** (debounced 150ms) via `search_parts` com `limit 8`: subcategoria, modelo, fabricante e top peças.
+- **Operadores**: `medida:26.5R25`, `cat:Pneus`, `mod:CAT`, `fab:Bridgestone`, `parado:>2a`.
+- **Histórico local** (últimas 10 buscas) + **buscas salvas** (`catalog_report_templates` já existe).
+- **Atalho `/`** foca a barra de qualquer tela.
+
+## Parte 3 — Centralização: 4 telas → 1 hub "Inteligência"
+
+### 3.1 Sidebar nova
+```text
+ANTES                       DEPOIS
+─────────────────           ─────────────────
+Catálogo                    Catálogo (operacional)
+Categorias        ←┐        Inteligência ← novo
+Estoque           ←┤        Clientes
+Relatório         ←┤        ...
+                  ←┘
 ```
-site:linkedin.com/company Anglo American Minerio
+
+### 3.2 Layout `/inteligencia`
+
+```text
+┌─ Header: SmartSearchBar + KPIs (sticky) ────────────────────────┐
+│ [/ buscar]   SKUs · R$ · % Parado · % Classif · 🟢🟡🔴 Saúde   │
+└─────────────────────────────────────────────────────────────────┘
+┌─ Filtros únicos (chips) ────────────────────────────────────────┐
+│ Subcat ▾ Modelo ▾ Fabricante ▾ Atributo ▾ [parado +2a] [zerados]│
+└─────────────────────────────────────────────────────────────────┘
+┌─ Tabs (mesmo dataset filtrado) ─────────────────────────────────┐
+│ [Galeria] [Tabela] [Modelo×Sub] [BCG] [Saúde] [Apresentação]    │
+│ [↓ XLSX] [↓ PDF]                                                │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-Se o nome curto tem ≤2 tokens muito comuns ("4B Mining", "Mw Projetos"), a busca acrescenta **`empresa` ou `mineração` ou `construção`** como pista de domínio (puxando do `customer.segment` quando houver).
+- **Galeria**: cards de subcategoria com chips clicáveis dos atributos (medida, fluido, tipo…) com contagem real.
+- **Drilldown único** (drawer): SKUs + máquinas compatíveis (agregado de `compatible_models` + JOIN `customer_equipment`).
+- **Apresentação executiva**: aba (não mais rota separada) que renderiza os slides do `export-pdf-report.ts` a partir do dataset filtrado atual. Fim das discrepâncias entre telas.
+- **Saúde**: 🟢 classificado · 🟡 atributos · 🔴 críticos. Click abre drawer com ações (refinar fila determinística, mesclar duplicatas, editar em massa).
 
-### 2. Adicionar um segundo round automático quando o primeiro vier zero
+### 3.3 RPC unificada `get_intelligence_view(filters jsonb)`
 
-Hoje, se `urls_returned = 0`, a função desiste e grava "nenhum resultado". Mudar para:
+Uma chamada → KPIs + galeria + tabela + matriz + BCG + saúde. Substitui `get_stock_analytics` + `get_catalog_intelligence` + parte de `get_dashboard_stats`.
 
-- Se primeiro round (queries com aspas e nome longo) retornou zero → roda automaticamente o segundo round (nome curto, sem aspas, com cidade).
-- Só desiste depois do segundo round.
+## Parte 4 — IA reposicionada (opcional, fora do caminho crítico)
 
-Telemetria nova: `rounds_executed: 1|2`, `final_round_yielded: N`.
+- Função `subcategorize-parts` continua existindo, mas só roda sob demanda na fila `needs_review` (estágio 5), batches pequenos de 50, com retomada.
+- Aprovação humana alimenta `taxonomy_feedback` → sinônimos novos vão para `subcategory_taxonomy` automaticamente. Próximo run determinístico já cobre.
+- Sem IA = sem rate limit, sem colapso, sem custo recorrente. IA = só ferramenta de melhoria contínua.
 
-### 3. Sanitização visível na UI quando houver acentos/caracteres atípicos
+## Parte 5 — Arquivos afetados
 
-No `EnrichmentPanel.tsx`, quando o cliente tem `À`, `Ç` no início, `(...)`, ou pontuação no meio, mostrar abaixo do botão "Reverificar":
-> "Buscando como **Anglo American Minerio** + cidade. [✏️ Buscar com outro nome]"
+**Migrações**
+- `<ts>_taxonomy_master.sql` — tabela `subcategory_taxonomy` + seed das 25+ subcategorias com sinônimos PT/EN/ES e regex de atributos
+- `<ts>_search_indexes.sql` — `pg_trgm`, `unaccent`, `search_vector` gerada, índices GIN
+- `<ts>_classify_v4.sql` — pipeline 5 estágios determinístico
+- `<ts>_search_parts_rpc.sql` — RPC com FTS + trigram + boost por chips
+- `<ts>_get_intelligence_view.sql` — RPC unificada
+- `<ts>_taxonomy_feedback.sql` — tabela para sinônimos aprovados
+- `<ts>_cleanup_bad_attributes.sql` — limpa atributos corrompidos antes do v4
 
-Botão "Buscar com outro nome" abre input rápido onde o usuário digita o termo de busca que ele sabe que funciona ("Anglo American", "Andrade Gutierrez"). Esse termo é usado como `companyName` só para essa requisição.
+**Backend**
+- `subcategorize-parts/index.ts` — só fila `needs_review`, batches 50, opcional
 
-### 4. Backend aceita override de termo
+**Frontend novos**
+- `src/pages/IntelligencePage.tsx` — hub
+- `src/components/intelligence/SmartSearchBar.tsx` — barra com tokens, operadores, sugestões, atalho `/`
+- `src/components/intelligence/HealthSemaphore.tsx`
+- `src/components/intelligence/SubcategoryGallery.tsx`
+- `src/components/intelligence/AttributeChips.tsx`
+- `src/components/intelligence/UnifiedFilters.tsx`
+- `src/components/intelligence/DrilldownDrawer.tsx`
+- `src/components/intelligence/ExecutivePresentation.tsx`
+- `src/components/intelligence/ReviewQueue.tsx`
+- `src/components/admin/TaxonomyEditor.tsx`
+- `src/hooks/use-intelligence.ts`, `src/hooks/use-smart-search.ts`
 
-A função `enrich-customer` passa a aceitar `body.search_override?: string`. Se vier, **substitui** o nome cadastrado para a montagem de queries (mas o matching do conteúdo continua usando o nome real do cliente, então a verificação de fonte segue rigorosa). Isso resolve casos como "ALYA CONSTRUTORA S/A" → usuário força "Alya Construtora".
+**Frontend editados**
+- `src/App.tsx` — rota `/inteligencia`; redirects de `/categorias`, `/estoque`, `/relatorio`
+- `src/components/AppSidebar.tsx` — colapsa 4 itens
+- `src/pages/CatalogPage.tsx` — usa `SmartSearchBar`, remove aba Relatórios
+- `src/pages/AdminVitrinePage.tsx` — aba Taxonomia
 
-### 5. Mensagem de erro no painel passa a ser acionável
+**Removidos / consolidados**
+- `src/pages/StockPage.tsx`, `src/pages/CategoriesPage.tsx`, `src/pages/ReportPage.tsx`
+- `src/components/catalog/reports/ReportsTab.tsx`
 
-Hoje vira "Nenhum resultado público encontrado" (ou seja: a culpa é do mundo). Trocar por:
-> "Nossa busca por **`<query usada>`** não retornou resultados no Firecrawl. Tente: 1) usar o botão **Buscar com outro nome** acima; 2) colar uma URL conhecida abaixo."
+## Critérios de aceitação
 
-Mostra a query exata que falhou — diretoria entende imediatamente.
-
-### 6. Diagnóstico estendido
-
-Telemetria já existe; adicionar no painel diagnóstico (Collapsible "Diagnóstico da pesquisa"):
-- "Queries enviadas:" com a lista das 4-7 strings que foram para o Firecrawl
-- "Round 1 → 0 / Round 2 → 12" 
-
-Assim qualquer falha futura é debugável sem precisar ler logs do servidor.
-
-## Arquivos editados
-
-- `supabase/functions/enrich-customer/index.ts`
-  - Nova `buildSmartQueries()` (sanitização + nome curto + sem aspas no nome longo)
-  - Aceita `search_override` no body
-  - Loop com 2 rounds antes de desistir
-  - Telemetria registra as queries que rodaram e em qual round vieram resultados
-- `src/components/customers/EnrichmentPanel.tsx`
-  - Aviso "Buscando como X" quando o nome tem caracteres de risco
-  - Botão + input "Buscar com outro nome"
-  - Lista de queries no diagnóstico
-  - Mensagem de erro mostra a query que falhou
-- `src/hooks/use-customers.ts`
-  - `useEnrichCustomer` aceita `{ id, search_override? }` em vez de só `id`
-
-Sem mudança de schema, sem chave nova.
-
-## Validação após o fix
-
-Reenrico Anglo American, Andrade Gutierrez e Alya — esperado:
-- Round 1 com nome longo: 0
-- Round 2 com nome curto: ≥10 URLs
-- Pelo menos 2 fontes verificadas (sites oficiais + LinkedIn)
-- Painel mostra os dados extraídos com badges de evidência
-
-Se ainda voltar zero em algum, a tela mostra exatamente qual string foi tentada — o usuário consegue digitar o nome certo e reverificar em 1 clique.
+1. **Cobertura ≥ 95%** classificada via pipeline determinístico (sem chamada de IA).
+2. **Pneus** somente formatos canônicos (`26.5R25`, `17.5-25`, `14.00R24`); zero `00R25` ou `9744-19`.
+3. **Busca por "6205 rolam"** retorna rolamentos 6205 em <50ms.
+4. **Busca por "pneu 26.5"** retorna apenas pneus dessa medida, ranqueados por estoque.
+5. **3 cliques** para "quantos `<atributo>` de `<subcategoria>` tenho, em quais máquinas, qual valor".
+6. **PDF executivo** gerado do mesmo dataset do hub (mesmos números).
+7. **Operador `cat:Pneus medida:26.5R25 parado:>2a`** funciona como query única.
 
