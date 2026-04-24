@@ -7,6 +7,7 @@ import B2BLeadDialog from "@/components/quote/B2BLeadDialog";
 import ConsentBanner from "@/components/quote/ConsentBanner";
 import QuoteCatalog from "@/components/quote/QuoteCatalog";
 import CategoryShowcase from "@/components/quote/CategoryShowcase";
+import PromoBanner from "@/components/quote/PromoBanner";
 import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
@@ -119,6 +120,8 @@ export default function QuotePage() {
         lang={lang}
         jsonLd={organizationLd()}
       />
+
+      <PromoBanner lang={lang} />
 
       <HeroCarousel
         lang={lang}

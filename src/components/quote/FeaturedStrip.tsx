@@ -12,7 +12,7 @@ interface Featured {
   badge_color: string | null;
   part: {
     id: string; material: string; description: string; manufacturer: string | null;
-    machine_model: string | null; stock: number; estimated_price: number; image_url: string | null;
+    machine_model: string | null; stock: number; image_url: string | null;
   };
 }
 
@@ -22,7 +22,7 @@ export default function FeaturedStrip({ lang, onAddToCart }: { lang: Lang; onAdd
     queryFn: async () => {
       const { data } = await supabase
         .from("vitrine_featured_parts")
-        .select("id, badge_label, badge_color, part:parts(id, material, description, manufacturer, machine_model, stock, estimated_price, image_url)")
+        .select("id, badge_label, badge_color, part:parts(id, material, description, manufacturer, machine_model, stock, image_url)")
         .eq("active", true)
         .order("sort_order", { ascending: true })
         .limit(12);
