@@ -433,6 +433,26 @@ export function useEnrichCustomer() {
   });
 }
 
+export function useEnrichFromUrl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ customer_id, url }: { customer_id: string; url: string }) => {
+      const { data, error } = await supabase.functions.invoke("enrich-customer-from-url", { body: { customer_id, url } });
+      if (error) {
+        const msg = (data as { error?: string } | null)?.error || error.message || "Erro";
+        throw new Error(msg);
+      }
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["customer", vars.customer_id] });
+      toast.success("Dados extraídos da URL informada");
+    },
+    onError: (e: Error) => toast.error("Erro: " + e.message),
+  });
+}
+
 export function useVerifyCustomerSource() {
   return useMutation({
     mutationFn: async ({ url, customer_name }: { url: string; customer_name: string }) => {

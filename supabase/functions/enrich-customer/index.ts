@@ -9,6 +9,23 @@ const corsHeaders = {
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 const SCRAPE_TIMEOUT_MS = 12000;
 
+// Sites that almost always carry verifiable company data — prioritized in scrape queue
+const PRIORITY_HOSTS = [
+  "cnpj.biz",
+  "cnpja.com",
+  "casadosdados.com.br",
+  "consultaempresa",
+  "receita.fazenda",
+  "linkedin.com/company",
+  "linkedin.com/in",
+  "jusbrasil.com.br",
+  "econodata.com.br",
+  "empresaaqui.com.br",
+  "guiamais.com.br",
+  "telelistas.net",
+  "gov.br",
+];
+
 // ---------- helpers ----------
 function normalize(s: string): string {
   return (s || "")
@@ -26,17 +43,37 @@ function nameTokens(name: string): string[] {
   return norm.split(" ").filter((t) => t.length >= 4);
 }
 
-function contentMatchesCompany(markdown: string, companyName: string): { ok: boolean; excerpt: string } {
-  if (!markdown || !companyName) return { ok: false, excerpt: "" };
+function nameSlug(name: string): string {
+  return normalize(name).replace(/\s+/g, "");
+}
+
+type MatchResult = {
+  level: "strong" | "medium" | "weak" | "none";
+  excerpt: string;
+};
+
+function contentMatchesCompany(markdown: string, companyName: string, cnpj?: string | null): MatchResult {
+  if (!markdown || !companyName) return { level: "none", excerpt: "" };
   const md = markdown.toLowerCase();
   const tokens = nameTokens(companyName);
-  if (tokens.length === 0) return { ok: false, excerpt: "" };
-  // Need at least 2 distinctive tokens to match (or the full normalized name as substring)
   const fullNorm = normalize(companyName);
+
+  // STRONG: full literal name
   if (fullNorm.length >= 6 && md.includes(fullNorm)) {
     const idx = md.indexOf(fullNorm);
-    return { ok: true, excerpt: markdown.slice(Math.max(0, idx - 80), idx + 200) };
+    return { level: "strong", excerpt: markdown.slice(Math.max(0, idx - 80), idx + 200) };
   }
+
+  // STRONG: literal CNPJ present
+  if (cnpj) {
+    const c = cnpj.replace(/\D/g, "");
+    if (c.length === 14 && md.replace(/\D/g, "").includes(c)) {
+      const idx = Math.max(0, md.search(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/));
+      return { level: "strong", excerpt: markdown.slice(Math.max(0, idx - 80), idx + 200) };
+    }
+  }
+
+  // Token-based scoring
   let hits = 0;
   let firstIdx = -1;
   for (const t of tokens) {
@@ -46,18 +83,22 @@ function contentMatchesCompany(markdown: string, companyName: string): { ok: boo
       if (firstIdx < 0) firstIdx = i;
     }
   }
-  const need = tokens.length >= 3 ? 2 : tokens.length;
-  if (hits >= need && firstIdx >= 0) {
-    return { ok: true, excerpt: markdown.slice(Math.max(0, firstIdx - 80), firstIdx + 200) };
+
+  // MEDIUM: ≥2 distinct tokens
+  if (hits >= 2 && firstIdx >= 0) {
+    return { level: "medium", excerpt: markdown.slice(Math.max(0, firstIdx - 80), firstIdx + 200) };
   }
-  return { ok: false, excerpt: "" };
+  // WEAK: 1 token (only acceptable if name is short)
+  if (hits >= 1 && firstIdx >= 0 && tokens.length <= 2) {
+    return { level: "weak", excerpt: markdown.slice(Math.max(0, firstIdx - 80), firstIdx + 200) };
+  }
+  return { level: "none", excerpt: "" };
 }
 
 function isJunkUrl(url: string): boolean {
   const u = url.toLowerCase();
   return (
     u.includes("/search?") ||
-    u.includes("/busca") ||
     u.includes("google.com/search") ||
     u.endsWith(".pdf") ||
     u.includes("youtube.com") ||
@@ -65,12 +106,26 @@ function isJunkUrl(url: string): boolean {
   );
 }
 
-async function firecrawlSearch(apiKey: string, query: string, limit = 6): Promise<Array<{ url: string; title?: string; description?: string }>> {
+function priorityScore(url: string): number {
+  const u = url.toLowerCase();
+  for (let i = 0; i < PRIORITY_HOSTS.length; i++) {
+    if (u.includes(PRIORITY_HOSTS[i])) return PRIORITY_HOSTS.length - i;
+  }
+  return 0;
+}
+
+async function firecrawlSearch(
+  apiKey: string,
+  query: string,
+  country: string,
+  lang: string,
+  limit = 5,
+): Promise<Array<{ url: string; title?: string; description?: string }>> {
   try {
     const res = await fetch(`${FIRECRAWL_V2}/search`, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit, lang: "pt", country: "br" }),
+      body: JSON.stringify({ query, limit, lang, country }),
     });
     if (!res.ok) {
       console.warn("firecrawl search failed", res.status, query);
@@ -175,64 +230,118 @@ Deno.serve(async (req) => {
 
     const companyName = (customer.company || customer.name).trim();
     const cityState = [customer.city, customer.state].filter(Boolean).join(" ");
+    const customerCountry = (customer.country || "BR").toLowerCase();
+    // Map country code to Firecrawl country/lang
+    const countryCode = customerCountry === "br" ? "br" : customerCountry === "ve" ? "ve" : customerCountry === "gy" ? "gy" : "br";
+    const langCode = countryCode === "ve" ? "es" : countryCode === "gy" ? "en" : "pt";
 
-    // 1. SEARCH — multiple targeted queries
-    const queries = [
-      `"${companyName}" ${cityState}`.trim(),
-      `"${companyName}" CNPJ`,
-      `"${companyName}" site oficial contato`,
-      `"${companyName}" linkedin`,
-    ];
-    const searchResults = (await Promise.all(queries.map((q) => firecrawlSearch(FIRECRAWL_API_KEY, q, 4)))).flat();
+    // 1. SEARCH — multiple targeted queries (CNPJ-aware + city + LinkedIn + gov)
+    const queries: string[] = [];
+    if (customer.cnpj_cpf && customer.cnpj_cpf.replace(/\D/g, "").length >= 11) {
+      queries.push(`"${customer.cnpj_cpf}"`);
+      queries.push(`"${customer.cnpj_cpf}" cnpj`);
+    }
+    queries.push(`"${companyName}" ${cityState}`.trim());
+    if (customer.city) queries.push(`"${companyName}" "${customer.city}"`);
+    queries.push(`"${companyName}" telefone endereço`);
+    queries.push(`"${companyName}" site:linkedin.com/company`);
+    if (countryCode === "br") queries.push(`"${companyName}" site:gov.br`);
+    queries.push(`"${companyName}" CNPJ`);
+    queries.push(`"${companyName}" site oficial contato`);
 
-    // dedupe by URL
+    const searchBatches = await Promise.all(queries.map((q) => firecrawlSearch(FIRECRAWL_API_KEY, q, countryCode, langCode, 4)));
+    const searchResults = searchBatches.flat();
+
+    // dedupe by URL, then sort by priority host
     const seen = new Set<string>();
-    const candidates = searchResults.filter((r) => {
+    let candidates = searchResults.filter((r) => {
       if (seen.has(r.url)) return false;
       seen.add(r.url);
       return true;
-    }).slice(0, 10);
+    });
+    candidates.sort((a, b) => priorityScore(b.url) - priorityScore(a.url));
+    candidates = candidates.slice(0, 12);
 
-    console.info("enrich-customer firecrawl_hits=", candidates.length, "for", companyName);
+    const telemetry = {
+      searched_queries: queries.length,
+      urls_returned: searchResults.length,
+      urls_unique: candidates.length,
+      urls_scraped_ok: 0,
+      urls_matched_strong: 0,
+      urls_matched_medium: 0,
+      urls_matched_weak: 0,
+      country: countryCode,
+    };
+
+    console.info("enrich-customer firecrawl_hits=", candidates.length, "for", companyName, "country=", countryCode);
+
+    // SERP-only weak fallback evidence (titles/descriptions that mention the company)
+    const serpWeak = candidates
+      .map((c) => {
+        const blob = `${c.title || ""} ${c.description || ""}`;
+        const m = contentMatchesCompany(blob, companyName, customer.cnpj_cpf);
+        return m.level !== "none" ? { url: c.url, title: c.title || "", description: c.description || "", level: m.level } : null;
+      })
+      .filter((x): x is { url: string; title: string; description: string; level: MatchResult["level"] } => x !== null)
+      .slice(0, 6);
 
     if (candidates.length === 0) {
-      await supabase.from("customers").update({
-        enrichment_status: "enriched",
-        enriched_at: new Date().toISOString(),
-        enrichment_data: { confidence: "low", sources: [], evidence: {}, _note: "Nenhum resultado público encontrado" },
-      }).eq("id", customer_id);
-      return new Response(JSON.stringify({ success: true, enrichment: { confidence: "low", sources: [] }, note: "no_public_results" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 2. SCRAPE top candidates in parallel and verify content matches the company
-    const top = candidates.slice(0, 5);
-    const scraped = await Promise.allSettled(top.map(async (c) => {
-      const md = await firecrawlScrape(FIRECRAWL_API_KEY, c.url);
-      if (!md) return null;
-      const m = contentMatchesCompany(md, companyName);
-      return m.ok ? { url: c.url, markdown: md, excerpt: m.excerpt } : null;
-    }));
-    const verified = scraped
-      .filter((s): s is PromiseFulfilledResult<{ url: string; markdown: string; excerpt: string } | null> => s.status === "fulfilled")
-      .map((s) => s.value)
-      .filter((v): v is { url: string; markdown: string; excerpt: string } => v !== null);
-
-    console.info("enrich-customer verified_sources=", verified.length, "dropped=", top.length - verified.length);
-
-    if (verified.length === 0) {
       await supabase.from("customers").update({
         enrichment_status: "enriched",
         enriched_at: new Date().toISOString(),
         enrichment_data: {
           confidence: "low",
           sources: [],
+          weak_sources: [],
           evidence: {},
-          _note: "Resultados encontrados, mas nenhum continha o nome da empresa de forma verificável",
+          telemetry,
+          _note: "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).",
         },
       }).eq("id", customer_id);
-      return new Response(JSON.stringify({ success: true, enrichment: { confidence: "low", sources: [] }, note: "no_verified_sources" }), {
+      return new Response(JSON.stringify({ success: true, enrichment: { confidence: "low", sources: [], telemetry }, note: "no_public_results" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. SCRAPE top candidates (priority-sorted) and verify
+    const top = candidates.slice(0, 6);
+    const scraped = await Promise.allSettled(top.map(async (c) => {
+      const md = await firecrawlScrape(FIRECRAWL_API_KEY, c.url);
+      if (!md) return null;
+      const m = contentMatchesCompany(md, companyName, customer.cnpj_cpf);
+      return { url: c.url, markdown: md, match: m };
+    }));
+
+    const ok = scraped
+      .filter((s): s is PromiseFulfilledResult<{ url: string; markdown: string; match: MatchResult } | null> => s.status === "fulfilled")
+      .map((s) => s.value)
+      .filter((v): v is { url: string; markdown: string; match: MatchResult } => v !== null);
+
+    telemetry.urls_scraped_ok = ok.length;
+    const verified = ok.filter((v) => v.match.level === "strong" || v.match.level === "medium");
+    telemetry.urls_matched_strong = ok.filter((v) => v.match.level === "strong").length;
+    telemetry.urls_matched_medium = ok.filter((v) => v.match.level === "medium").length;
+    telemetry.urls_matched_weak = ok.filter((v) => v.match.level === "weak").length;
+
+    console.info("enrich-customer telemetry", JSON.stringify(telemetry));
+
+    if (verified.length === 0) {
+      // Has only weak/none — surface SERP weak evidence as "indícios" instead of bare failure
+      await supabase.from("customers").update({
+        enrichment_status: "enriched",
+        enriched_at: new Date().toISOString(),
+        enrichment_data: {
+          confidence: "low",
+          sources: [],
+          weak_sources: serpWeak,
+          evidence: {},
+          telemetry,
+          _note: serpWeak.length
+            ? "Encontramos páginas que possivelmente mencionam a empresa, mas o nome não foi confirmado de forma inequívoca. Reveja os indícios abaixo ou adicione uma URL manual."
+            : "Resultados encontrados, mas nenhum continha o nome da empresa de forma verificável. Adicione uma URL manual (site/LinkedIn).",
+        },
+      }).eq("id", customer_id);
+      return new Response(JSON.stringify({ success: true, enrichment: { confidence: "low", sources: [], weak_sources: serpWeak, telemetry }, note: "no_verified_sources" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -280,14 +389,12 @@ ${sourcesBlock}`;
     if (!toolCall) throw new Error("AI did not return structured data");
     const args = JSON.parse(toolCall.function.arguments) as Record<string, unknown> & { evidence: Record<string, { source_url: string; source_excerpt: string }> };
 
-    // Validate CNPJ format strictly
     const cnpjRegex = /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/;
     if (args.cnpj_formatted && !cnpjRegex.test(args.cnpj_formatted as string)) {
       args.cnpj_formatted = null;
       delete args.evidence?.cnpj_formatted;
     }
 
-    // Drop fields whose evidence URL is not in our verified set
     const verifiedUrls = new Set(verified.map((v) => v.url));
     const cleanEvidence: Record<string, { source_url: string; source_excerpt: string }> = {};
     for (const [field, ev] of Object.entries(args.evidence || {})) {
@@ -296,13 +403,16 @@ ${sourcesBlock}`;
     }
 
     const filledCount = Object.keys(cleanEvidence).length;
-    const confidence: "high" | "medium" | "low" = verified.length >= 3 && filledCount >= 4 ? "high" : verified.length >= 1 && filledCount >= 2 ? "medium" : "low";
+    const strongCount = verified.filter((v) => v.match.level === "strong").length;
+    const confidence: "high" | "medium" | "low" = strongCount >= 2 && filledCount >= 4 ? "high" : verified.length >= 1 && filledCount >= 2 ? "medium" : "low";
 
     const enrichmentData = {
       ...args,
       evidence: cleanEvidence,
       sources: verified.map((v) => v.url),
+      weak_sources: serpWeak,
       confidence,
+      telemetry,
       _enriched_at: new Date().toISOString(),
     };
 

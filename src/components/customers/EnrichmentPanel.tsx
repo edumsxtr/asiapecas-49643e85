@@ -1,13 +1,27 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ExternalLink, RefreshCw, Info, AlertTriangle, ShieldCheck, ShieldAlert, FileSearch } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ExternalLink, RefreshCw, Info, AlertTriangle, ShieldCheck, ShieldAlert, FileSearch, Link as LinkIcon, ChevronDown, Activity } from "lucide-react";
 import type { Customer } from "@/hooks/use-customers";
-import { useEnrichCustomer, useVerifyCustomerSource } from "@/hooks/use-customers";
+import { useEnrichCustomer, useVerifyCustomerSource, useEnrichFromUrl } from "@/hooks/use-customers";
 import { toast } from "sonner";
 
 type Evidence = { source_url: string; source_excerpt: string };
+type WeakSource = { url: string; title?: string; description?: string; level?: string };
+type Telemetry = {
+  searched_queries?: number;
+  urls_returned?: number;
+  urls_unique?: number;
+  urls_scraped_ok?: number;
+  urls_matched_strong?: number;
+  urls_matched_medium?: number;
+  urls_matched_weak?: number;
+  country?: string;
+};
 
 type Enrichment = {
   official_name?: string | null;
@@ -24,32 +38,31 @@ type Enrichment = {
   commercial_notes?: string | null;
   confidence?: "high" | "medium" | "low";
   sources?: string[];
+  weak_sources?: WeakSource[];
   evidence?: Record<string, Evidence>;
+  telemetry?: Telemetry;
   _note?: string;
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  official_name: "Razão social",
-  cnpj_formatted: "CNPJ",
-  cnae: "CNAE",
-  company_size: "Porte",
-  segment: "Setor",
-  decision_maker_role: "Decisor típico",
-  alt_phone: "Telefone alt.",
-  full_address: "Endereço",
-  website: "Site",
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
-  commercial_notes: "Observações",
 };
 
 export function EnrichmentPanel({ customer }: { customer: Customer }) {
   const enrich = useEnrichCustomer();
   const verify = useVerifyCustomerSource();
+  const enrichUrl = useEnrichFromUrl();
+  const [manualUrl, setManualUrl] = useState("");
   const data = (customer.enrichment_data || {}) as Enrichment;
   const isEnriched = customer.enrichment_status === "enriched";
   const sources = data.sources || [];
+  const weakSources = data.weak_sources || [];
+  const telemetry = data.telemetry || {};
   const hasNoVerifiedSources = isEnriched && sources.length === 0;
+
+  const submitManualUrl = async () => {
+    const url = manualUrl.trim();
+    if (!url) return;
+    try { new URL(url); } catch { toast.error("URL inválida"); return; }
+    await enrichUrl.mutateAsync({ customer_id: customer.id, url });
+    setManualUrl("");
+  };
 
   if (!isEnriched) {
     return (
@@ -84,6 +97,9 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
               Confiança: {data.confidence || "—"}
             </Badge>
             <Badge variant="outline">{sources.length} fonte(s) verificada(s)</Badge>
+            {weakSources.length > 0 && (
+              <Badge variant="outline" className="border-amber-400/50 text-amber-700">{weakSources.length} indício(s)</Badge>
+            )}
             {customer.enriched_at && (
               <span className="text-xs text-muted-foreground">
                 · {new Date(customer.enriched_at).toLocaleDateString("pt-BR")}
@@ -97,18 +113,43 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
         </div>
 
         {hasNoVerifiedSources && (
-          <Card className="border-destructive/40 bg-destructive/5">
+          <Card className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/10">
             <CardContent className="p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-semibold">Sem fontes públicas confirmadas</p>
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-sm flex-1">
+                <p className="font-semibold">Sem confirmação inequívoca</p>
                 <p className="text-muted-foreground mt-1">
-                  {data._note || "Não encontramos páginas públicas que mencionem esta empresa de forma verificável. Preencha os dados manualmente ou tente novamente mais tarde."}
+                  {data._note || "Não conseguimos verificar o nome da empresa em fontes públicas. Cole abaixo uma URL (site, LinkedIn, perfil) que você sabe ser desta empresa para forçarmos a leitura."}
                 </p>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Manual URL input */}
+        <Card className="border-primary/20">
+          <CardContent className="p-4 space-y-2">
+            <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <LinkIcon className="h-3.5 w-3.5 text-primary" />
+              Adicionar fonte manual
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Tem o site oficial, LinkedIn ou perfil público desta empresa? Cole a URL aqui para extrair dados direto da página.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={manualUrl}
+                onChange={(e) => setManualUrl(e.target.value)}
+                placeholder="https://site-da-empresa.com.br"
+                className="h-9 text-sm"
+                onKeyDown={(e) => { if (e.key === "Enter") submitManualUrl(); }}
+              />
+              <Button size="sm" onClick={submitManualUrl} disabled={enrichUrl.isPending || !manualUrl.trim()}>
+                {enrichUrl.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Usar URL"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {!hasNoVerifiedSources && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -171,8 +212,61 @@ export function EnrichmentPanel({ customer }: { customer: Customer }) {
             </div>
           </div>
         )}
+
+        {weakSources.length > 0 && (
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Indícios (não confirmados)</p>
+            <div className="space-y-1.5">
+              {weakSources.map((s, i) => (
+                <div key={i} className="border border-amber-200/40 bg-amber-50/30 dark:bg-amber-950/10 rounded-md p-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[9px] border-amber-400/40 text-amber-700">indício</Badge>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-primary hover:underline truncate">
+                      {s.title || s.url}
+                    </a>
+                  </div>
+                  {s.description && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{s.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Diagnostic */}
+        {Object.keys(telemetry).length > 0 && (
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1 h-7">
+                <Activity className="h-3 w-3" />
+                Diagnóstico da pesquisa
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-[11px]">
+                <DiagItem label="Consultas executadas" value={telemetry.searched_queries} />
+                <DiagItem label="URLs encontradas" value={telemetry.urls_returned} />
+                <DiagItem label="URLs únicas" value={telemetry.urls_unique} />
+                <DiagItem label="Páginas lidas com sucesso" value={telemetry.urls_scraped_ok} />
+                <DiagItem label="Match forte" value={telemetry.urls_matched_strong} />
+                <DiagItem label="Match médio" value={telemetry.urls_matched_medium} />
+                <DiagItem label="Match fraco" value={telemetry.urls_matched_weak} />
+                <DiagItem label="País" value={telemetry.country?.toUpperCase()} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
     </TooltipProvider>
+  );
+}
+
+function DiagItem({ label, value }: { label: string; value: number | string | undefined }) {
+  return (
+    <div className="border rounded-md p-2 bg-muted/20">
+      <p className="text-muted-foreground">{label}</p>
+      <p className="font-semibold text-foreground">{value ?? "—"}</p>
+    </div>
   );
 }
 

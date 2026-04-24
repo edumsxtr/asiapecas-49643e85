@@ -119,7 +119,7 @@ export default function PartDetailPublicPage() {
 
               {ai?.technical_description && (
                 <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-                  <p className="text-xs font-semibold text-emerald-600">Descrição técnica</p>
+                  <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">Especificações técnicas</p>
                   <p className="text-sm text-foreground/80">{ai.technical_description}</p>
                 </div>
               )}
