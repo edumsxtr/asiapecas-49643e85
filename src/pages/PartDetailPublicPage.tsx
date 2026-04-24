@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SEO, productLd, breadcrumbLd, organizationLd } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ShoppingCart, Package, ShieldCheck, MessageCircle } from "lucide-react";
+import { ChevronLeft, ShoppingCart, Package, ShieldCheck, MessageCircle, Tag } from "lucide-react";
 import { useCartSession } from "@/hooks/use-cart-session";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
@@ -35,6 +35,22 @@ export default function PartDetailPublicPage() {
         .select("technical_description, compatible_machines, technical_specs, related_parts, maintenance_tips")
         .eq("part_id", part!.id).maybeSingle();
       return data;
+    },
+  });
+
+  const { data: hasPromo } = useQuery({
+    queryKey: ["public-part-promo", part?.id],
+    enabled: !!part?.id,
+    queryFn: async () => {
+      const nowIso = new Date().toISOString();
+      const { count } = await supabase
+        .from("part_promotions")
+        .select("id", { count: "exact", head: true })
+        .eq("part_id", part!.id)
+        .eq("active", true)
+        .or(`starts_at.is.null,starts_at.lte.${nowIso}`)
+        .or(`ends_at.is.null,ends_at.gte.${nowIso}`);
+      return (count ?? 0) > 0;
     },
   });
 
@@ -106,6 +122,11 @@ export default function PartDetailPublicPage() {
               <h1 className="text-2xl md:text-3xl font-bold font-['Space_Grotesk']">{part.description}</h1>
 
               <div className="flex flex-wrap gap-2">
+                {hasPromo && (
+                  <Badge className="bg-red-500 text-white border-0 inline-flex items-center gap-1">
+                    <Tag className="h-3 w-3" /> EM PROMOÇÃO
+                  </Badge>
+                )}
                 {part.manufacturer && <Badge variant="outline">{part.manufacturer}</Badge>}
                 {part.machine_model && <Badge variant="outline"><Package className="h-3 w-3 mr-1" />{part.machine_model}</Badge>}
                 {part.stock > 10 ? (

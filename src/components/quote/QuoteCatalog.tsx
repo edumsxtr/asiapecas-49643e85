@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal, X, LayoutGrid, List, Shop
 import QuotePartCard from "./QuotePartCard";
 import QuotePartDetail from "./QuotePartDetail";
 import CategoryGroupedView from "./CategoryGroupedView";
+import { useAuth } from "@/contexts/AuthContext";
 import { type Lang, tr } from "./translations";
 import { PART_CATEGORIES } from "./part-categories";
 
@@ -42,6 +43,8 @@ type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" 
 type ViewMode = "grid" | "list";
 
 export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, subcategory, onSubcategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
+  const { user } = useAuth();
+  const showPrice = !!user;
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
@@ -329,8 +332,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                   <SelectItem value="stockDesc">{tr("sort.stockDesc", lang)}</SelectItem>
                   <SelectItem value="nameAsc">{tr("sort.nameAsc", lang)}</SelectItem>
                   <SelectItem value="newest">{tr("sort.newest", lang)}</SelectItem>
-                  <SelectItem value="priceAsc">{tr("sort.priceAsc", lang)}</SelectItem>
-                  <SelectItem value="priceDesc">{tr("sort.priceDesc", lang)}</SelectItem>
+                  {showPrice && <SelectItem value="priceAsc">{tr("sort.priceAsc", lang)}</SelectItem>}
+                  {showPrice && <SelectItem value="priceDesc">{tr("sort.priceDesc", lang)}</SelectItem>}
                 </SelectContent>
               </Select>
 
@@ -396,7 +399,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                     <TableHead className="w-[80px]"></TableHead>
                     <TableHead>{lang === "pt" ? "Produto" : lang === "en" ? "Product" : "Producto"}</TableHead>
                     <TableHead className="hidden md:table-cell">{lang === "pt" ? "Modelo" : lang === "en" ? "Model" : "Modelo"}</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">{lang === "pt" ? "Preço" : lang === "en" ? "Price" : "Precio"}</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">{showPrice ? (lang === "pt" ? "Preço" : lang === "en" ? "Price" : "Precio") : tr("part.availability", lang)}</TableHead>
                     <TableHead className="text-right">{lang === "pt" ? "Estoque" : lang === "en" ? "Stock" : "Stock"}</TableHead>
                     <TableHead className="text-right w-[160px]">{lang === "pt" ? "Ações" : lang === "en" ? "Actions" : "Acciones"}</TableHead>
                   </TableRow>
@@ -432,11 +435,19 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{part.machine_model || "—"}</TableCell>
                         <TableCell className="text-right hidden sm:table-cell">
-                          {price > 0 ? (
+                          {showPrice && price > 0 ? (
                             <span className="text-sm font-semibold text-foreground">{fmtPrice(price)}</span>
-                          ) : (
+                          ) : showPrice ? (
                             <span className="text-xs text-muted-foreground italic">
                               {lang === "en" ? "On request" : lang === "es" ? "Bajo consulta" : "Sob consulta"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">
+                              {part.stock > 10
+                                ? (lang === "en" ? "Ready to ship" : lang === "es" ? "Entrega inmediata" : "Pronta entrega")
+                                : part.stock > 0
+                                ? `${lang === "en" ? "Last" : lang === "es" ? "Últimas" : "Últimas"} ${part.stock}`
+                                : tr("part.priceOnRequest", lang)}
                             </span>
                           )}
                         </TableCell>
