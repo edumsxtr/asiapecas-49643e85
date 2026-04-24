@@ -600,6 +600,7 @@ export type Database = {
       parts: {
         Row: {
           attributes: Json | null
+          classification_method: string | null
           compatible_models: string[] | null
           created_at: string
           description: string
@@ -615,6 +616,7 @@ export type Database = {
           machine_model: string | null
           manufacturer: string | null
           material: string
+          needs_review: boolean
           part_category: string | null
           reviewed_at: string | null
           stock: number
@@ -626,6 +628,7 @@ export type Database = {
         }
         Insert: {
           attributes?: Json | null
+          classification_method?: string | null
           compatible_models?: string[] | null
           created_at?: string
           description: string
@@ -641,6 +644,7 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material: string
+          needs_review?: boolean
           part_category?: string | null
           reviewed_at?: string | null
           stock?: number
@@ -652,6 +656,7 @@ export type Database = {
         }
         Update: {
           attributes?: Json | null
+          classification_method?: string | null
           compatible_models?: string[] | null
           created_at?: string
           description?: string
@@ -667,6 +672,7 @@ export type Database = {
           machine_model?: string | null
           manufacturer?: string | null
           material?: string
+          needs_review?: boolean
           part_category?: string | null
           reviewed_at?: string | null
           stock?: number
@@ -1097,6 +1103,95 @@ export type Database = {
           total_value?: number | null
         }
         Relationships: []
+      }
+      subcategory_taxonomy: {
+        Row: {
+          active: boolean
+          attribute_extractors: Json
+          category_group: string
+          created_at: string
+          id: string
+          min_score: number
+          negative_terms: string[]
+          priority: number
+          subcategory: string
+          synonyms_en: string[]
+          synonyms_es: string[]
+          synonyms_pt: string[]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          attribute_extractors?: Json
+          category_group: string
+          created_at?: string
+          id?: string
+          min_score?: number
+          negative_terms?: string[]
+          priority?: number
+          subcategory: string
+          synonyms_en?: string[]
+          synonyms_es?: string[]
+          synonyms_pt?: string[]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          attribute_extractors?: Json
+          category_group?: string
+          created_at?: string
+          id?: string
+          min_score?: number
+          negative_terms?: string[]
+          priority?: number
+          subcategory?: string
+          synonyms_en?: string[]
+          synonyms_es?: string[]
+          synonyms_pt?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      taxonomy_feedback: {
+        Row: {
+          applied: boolean
+          corrected_subcategory: string
+          created_at: string
+          description_snapshot: string | null
+          id: string
+          original_subcategory: string | null
+          part_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          applied?: boolean
+          corrected_subcategory: string
+          created_at?: string
+          description_snapshot?: string | null
+          id?: string
+          original_subcategory?: string | null
+          part_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          applied?: boolean
+          corrected_subcategory?: string
+          created_at?: string
+          description_snapshot?: string | null
+          id?: string
+          original_subcategory?: string | null
+          part_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomy_feedback_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
