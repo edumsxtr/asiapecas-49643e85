@@ -495,6 +495,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
               </Button>
             </div>
           )}
+          </>
+          )}
         </div>
       </div>
 
