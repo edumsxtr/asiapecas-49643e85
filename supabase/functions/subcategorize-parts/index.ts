@@ -7,18 +7,38 @@ const corsHeaders = {
 };
 
 const SUBCATEGORIES = [
-  "Mangueiras e Conexões",
-  "Vedações e Retentores",
+  "Pneus",
+  "Faróis e Iluminação",
+  "Filtros",
+  "Mangueiras e Tubos",
   "Rolamentos",
-  "Parafusos e Fixadores",
-  "Cabos e Elétrica",
-  "Iluminação",
+  "Cilindros Hidráulicos",
+  "Bombas",
+  "Correias",
+  "Vedações e Retentores",
+  "Fixadores",
+  "Implementos de Solo",
+  "Baterias",
+  "Radiadores e Arrefecimento",
+  "Alternadores",
+  "Motor de Partida",
+  "Injetores e Bicos",
+  "Turbinas",
+  "Válvulas",
   "Sensores",
+  "Chicotes Elétricos",
+  "Freios e Embreagem",
+  "Amortecedores",
+  "Material Rodante",
+  "Engrenagens",
+  "Eixos e Cardans",
+  "Cabine e Vidros",
+  "Bancos",
+  "Retrovisores",
+  "Ar Condicionado",
   "Lubrificantes e Fluidos",
-  "Ferramentas",
-  "Pneus e Rodas",
-  "Cabine e Acabamento",
-  "Estrutura e Chassi",
+  "Adesivos e Plaquetas",
+  "Kits de Reparo",
   "Outros Acessórios",
 ] as const;
 
@@ -42,8 +62,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
     const body = await req.json().catch(() => ({}));
-    const mode: "preview" | "apply" = body.mode === "apply" ? "apply" : "preview";
-    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 100);
+    const mode: "preview" | "apply" | "auto" = body.mode === "apply" ? "apply" : body.mode === "auto" ? "auto" : "preview";
+    const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
 
     if (mode === "apply") {
       const updates: Array<{ id: string; subcategory: string }> = body.updates || [];
@@ -60,16 +80,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // preview: pega lote em "Acessórios e Outros" / sem categoria
+    // preview/auto: peças sem subcategoria (nova coluna funcional)
     const { data: parts, error } = await supabase
       .from("parts")
-      .select("id,material,description,manufacturer,machine_model,part_category")
-      .or("part_category.ilike.%acess%,part_category.is.null")
+      .select("id,material,description,manufacturer,machine_model,part_category,subcategory")
+      .is("subcategory", null)
       .limit(limit);
 
     if (error) throw error;
     if (!parts || parts.length === 0) {
-      return new Response(JSON.stringify({ suggestions: [] }), {
+      return new Response(JSON.stringify({ suggestions: [], updated: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -156,7 +176,30 @@ Deno.serve(async (req) => {
     const args = toolCall ? JSON.parse(toolCall.function.arguments) : { results: [] };
 
     const partMap = new Map(parts.map((p) => [p.id, p]));
-    const suggestions = (args.results || []).map((r: any) => {
+    const results = (args.results || []) as Array<{ id: string; subcategory: string; confidence: number; reasoning?: string }>;
+
+    // auto mode: aplica direto no banco (confiança >= 0.5)
+    let updated = 0;
+    if (mode === "auto") {
+      for (const r of results) {
+        if (!r.subcategory || (r.confidence ?? 0) < 0.5) continue;
+        const { error: upErr } = await supabase
+          .from("parts")
+          .update({
+            subcategory: r.subcategory,
+            subcategory_source: "ai",
+            subcategory_confidence: r.confidence,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq("id", r.id);
+        if (!upErr) updated++;
+      }
+      return new Response(JSON.stringify({ updated, total: results.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const suggestions = results.map((r) => {
       const p = partMap.get(r.id);
       return {
         id: r.id,
