@@ -407,9 +407,9 @@ Deno.serve(async (req) => {
       .slice(0, 6);
 
     if (candidates.length === 0) {
-      const note = telemetry.searched_queries > 0
-        ? "Firecrawl não retornou resultados — verifique conexão/créditos do Firecrawl em Connectors, ou adicione uma URL manual (site/LinkedIn)."
-        : "Nenhum resultado público encontrado. Tente fornecer uma URL manual (site, LinkedIn, etc).";
+      const allQueries = [...round1, ...round2];
+      const sample = allQueries.slice(0, 3).map((q) => `"${q}"`).join(", ");
+      const note = `Nenhum resultado público para ${sample}${allQueries.length > 3 ? ` (+${allQueries.length - 3} variações)` : ""}. Tente o botão "Buscar com outro nome" acima ou cole uma URL conhecida (site/LinkedIn) abaixo.`;
       await supabase.from("customers").update({
         enrichment_status: "enriched",
         enriched_at: new Date().toISOString(),
