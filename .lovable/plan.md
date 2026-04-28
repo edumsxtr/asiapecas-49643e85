@@ -1,90 +1,125 @@
 
+# Catálogo Interativo de Planos de Manutenção (Filtros)
 
-# Plano de correções: testes feitos, problemas reais encontrados
+Transformar a planilha `PLANO_DE_MANUTENÇÃO_-_FILTROS.xlsx` em uma ferramenta integrada para vendedores estudarem, simularem trocas e **montarem pedidos a partir do estoque real** — tudo dentro da plataforma, com CRUD completo e reaproveitando carrinho, vendas e propostas que já existem.
 
-Testei o sistema como usuário/admin e cruzei com o banco. **Cinco coisas que você pediu não foram concluídas** apesar dos planos aprovados. Aqui está o estado real e o que vou consertar.
+## O que a planilha tem (medido)
 
-## Diagnóstico real (não chute)
+- **18 abas** por categoria (ESCAVADEIRA, CARREGADEIRA, ROLO, GUINDASTE, CAMINHÃO, AR CONDICIONADO, FLUIDOS, MAQUINAS ANTIGAS, etc.).
+- **161 modelos de máquina** (ex.: `XE150BR-I`, `LW180KV`, `XE210W`).
+- **1.227 linhas de filtro** → **581 códigos únicos** (`material`).
+- Por filtro: grupo (Motor/Hidráulico/Transmissão/AR), descrição, código, código substituto, quantidade, e marcação de troca em **100h / 500h / 1000h / 1500h / 2000h**, mais agregados "trocas em 1000h" e "trocas em 2000h".
+- ~50% dos códigos já existem em `parts` (verificado em amostra) — o resto vira "sem estoque cadastrado" (ainda assim listado, com botão "criar SKU").
 
-| Pedido seu | Estado real hoje | Evidência |
-|---|---|---|
-| Esconder preço no portal público | **Ainda aparece** (`R$ X,XX`) | `QuotePartCard.tsx` linha 49 lê `estimated_price` e renderiza |
-| Banners + promoções com aviso | **Zero banners, zero promoções ativas no banco** | `vitrine_banners` ativos = 0, `part_promotions` ativas = 0 |
-| IA de clientes funcionando | **Funcionou só em 1 dos 6 últimos** (Anglo, Andrade Gutierrez, Alya, Ágilis, ADS = `sources: []`) | `enrichment_data->sources` vazio; sem campo `telemetry.rounds_executed` (código novo nunca rodou) |
-| Centralizar 4 telas em "Inteligência" | **Hub não existe** | `src/pages/IntelligencePage.tsx` ausente, `src/components/intelligence/` ausente, sidebar idêntica |
-| Classificação determinística (pneus, filtros, todas as 25+ subcategorias) | **Migrações criadas mas nunca executadas** — pneus continuam com `00R25`, `2980-20`, `12R22`; Fixadores/Vedações/Sensores com **0 atributos** preenchidos; cobertura travada em **62.5%** (5.741 SKUs sem subcategoria) | `parts.attributes` ainda corrompido; `classify_parts_v4()` não foi invocada |
+## Modelo de dados (3 tabelas novas)
 
-## O que vou fazer (ordem de prioridade)
+```text
+maintenance_machines           maintenance_plans            maintenance_plan_items
+------------------------       --------------------------   ----------------------------
+id uuid pk                     id uuid pk                   id uuid pk
+category text                  machine_id → machines        plan_id → plans
+model text   (XE150BR-I)       interval_hours int (100..)   group text  (Motor/Hidráulico/...)
+serial text   (XUGA135...)     created_at                   description text
+notes text                                                  material text   (código)
+created_at, updated_at                                      substitute_codes text[]
+                                                            quantity int
+                                                            sort_order int
+```
 
-### 1. Esconder preço do portal público (15 min)
-- `QuotePartCard.tsx` e `QuotePartDetail.tsx`: condicionar bloco de preço ao `useAuth().user`. Se anônimo → mostra "Solicitar cotação" + selo de promoção (sem valor).
-- `PartDetailPublicPage.tsx`: idem. Selo "Em promoção" aparece se houver `part_promotions.active=true` no SKU, mas **sem** mostrar `promo_price`.
-- Vendedor logado continua vendo tudo (preço, margem, custo).
+- `interval_hours` é a "coluna" da planilha (100, 500, 1000, 1500, 2000). Cada item aparece N vezes por intervalo em que a planilha marca "1".
+- `material` é a chave de junção com `parts` (estoque) — sem foreign key formal porque alguns códigos não existem ainda.
 
-### 2. Executar a classificação determinística que já está no banco (10 min)
-A função `classify_parts_v4()` existe mas nunca foi rodada. Vou:
-- `SELECT cleanup_bad_attributes();` para zerar `00R25`, `2980-20` etc.
-- `SELECT classify_parts_v4(false);` (full re-run, lê da `subcategory_taxonomy` com 32 linhas já populadas).
-- Validar: pneus só em formato canônico (`26.5R25`, `17.5-25`); Filtros/Rolamentos/Sensores/Vedações/Fixadores com atributos extraídos; cobertura ≥ 95%.
-- Se `subcategory_taxonomy` estiver com regex de pneus ainda solta (deixou passar `00R25`), endurecer o pattern: `\m\d{2}\.?\d?R\d{2}\M` com lookbehind por espaço/início, e adicionar `negative_terms` (`câmara`, `protetor`).
+RLS:
+- **leitura pública** em `maintenance_machines` e `maintenance_plan_items` (vendedores logados e portal interno).
+- **CRUD** apenas para `authenticated`.
 
-### 3. Construir o hub `/inteligencia` de verdade (45 min)
-As RPCs `get_intelligence_view` e `get_drilldown` já existem no banco. Falta a UI:
-- `src/pages/IntelligencePage.tsx` — header com KPIs + semáforo 🟢🟡🔴, filtros únicos (chips), tabs `[Galeria][Tabela][Modelo×Sub][BCG][Saúde][Apresentação]`.
-- `src/components/intelligence/SmartSearchBar.tsx` — chama `search_parts` RPC (já existe), tokens visuais (`código:6205`, `medida:26.5R25`), atalho `/`.
-- `src/components/intelligence/SubcategoryGallery.tsx` — cards com chips clicáveis dos atributos (vem de `gallery[].chips`).
-- `src/components/intelligence/DrilldownDrawer.tsx` — usa `get_drilldown` que já agrega `compatible_models` + `customer_equipment`.
-- `src/components/intelligence/ExecutivePresentation.tsx` — mesma renderização do `export-pdf-report.ts` mas alimentada pelo dataset filtrado atual.
-- `App.tsx`: rota `/inteligencia`; `/categorias`, `/estoque`, `/relatorio` viram `<Navigate to="/inteligencia">`.
-- `AppSidebar.tsx`: 4 itens colapsam em 1 ("Inteligência").
-- `CatalogPage.tsx`: remove tab "Relatórios".
+## Importador único da planilha
 
-### 4. Banners e promoções com fluxo visível (30 min)
-- `AdminVitrinePage.tsx`: aba **"Banners"** com lista, criar/editar (image_url, title, subtitle, cta, datas, lang), preview ao vivo, badge "🟢 Ativo agora" / "⏸ Programado" / "🔴 Inativo".
-- Aba **"Promoções"** (não existia): listar `part_promotions` com busca de SKU, criar com data/hora, ativar/pausar.
-- `QuotePage.tsx`/portal público: faixa fixa no topo "🔥 X promoções ativas — fale com vendas" quando houver `part_promotions.active=true`. Sem mostrar preço promocional, só selo.
-- `HeroCarousel.tsx`: mostrar empty state com link para criar banner se admin logado e não houver banner ativo.
+Edge function `import-maintenance-plan` (POST com `file_url` do Storage):
+1. Lê o XLSX com `xlsx` (mesma lib do `import-catalog`).
+2. Detecta cabeçalho de modelo (linha com texto na col A, vazia depois).
+3. Detecta tabela de filtros pela linha "Grupo | Descrição | Código…".
+4. Para cada linha cria item em todos os intervalos onde houver "1".
+5. Idempotente: `(model, material, interval_hours)` é único; reimport substitui.
+6. Retorna relatório: modelos criados/atualizados, itens, códigos sem match em `parts`.
 
-### 5. Diagnosticar por que o enriquecimento de IA continua vazio (20 min)
-O fix anterior (rounds 1+2, sanitização, `search_override`) está no código mas **não está rodando** — os 5 enriquecimentos pós-fix não têm `telemetry.rounds_executed`. Possíveis causas:
-- Função não foi redeployada após o último edit, ou
-- Deploy quebrou em build, ou
-- O frontend não está enviando `search_override` quando o usuário clica reverificar e silenciosamente cai no path antigo.
+Botão de upload na página nova (admin), além de seed inicial via script único.
 
-Vou: (a) checar `supabase--edge_function_logs enrich-customer` por erro de build; (b) `supabase--curl_edge_functions` direto na função com `{customer_id, search_override:"Anglo American"}` para confirmar que aceita e responde; (c) corrigir o que aparecer (provavelmente redeploy) e refazer o teste com 3 clientes da lista vazia.
+## UI nova: página `/manutencao`
 
-### 6. Verificar a saúde dos dados via aba Saúde (já vem grátis com #3)
-O semáforo 🟡 "Atributos preenchidos" vai mostrar imediatamente:
-- Filtros: 81% têm atributo (bom)
-- Rolamentos: 41% (médio — taxonomia precisa mais sinônimos)
-- Fixadores/Vedações/Sensores/Cabine/Eixos: 0% (regex de atributo está faltando ou não bate)
+Rota protegida + entrada na sidebar ("Plano de Manutenção" — ícone `Wrench`).
 
-Onde estiver vermelho, abre drawer com SKUs e botão "adicionar sinônimo à taxonomia" → grava em `subcategory_taxonomy.synonyms_pt[]` → próximo `classify_parts_v4` cobre.
+Layout (3 colunas em desktop, drawer no mobile):
 
-## Arquivos afetados
+```text
+┌─ Sidebar navegacional ────┐ ┌─ Tabela de filtros do modelo ─────────────────┐
+│ 🔍 Buscar máquina/código  │ │ Modelo: XE150BR-I  ▾  • Total filtros: 13     │
+│ ▾ ESCAVADEIRA (28)        │ │ Tabs intervalos: [100h][500h][1000h][1500h][2000h][TUDO] │
+│   • XE150BR-I             │ │                                                │
+│   • XE150BRII   ◀ ativo   │ │ Grupo | Descrição | Código | Subst | Qtd | ✓Estoque | + │
+│   • XE180BR               │ │ Motor | Filtro óleo LF17535 | 800159597 | — | 1 | 12un R$420 | [+]│
+│ ▾ CARREGADEIRA (26)       │ │ Motor | Filtro sep. FS20019 | 800150422 | 800159366 | 1 | 0 ❗ | [criar SKU]│
+│ ▾ ROLO (7) ...            │ │ Hidr. | Filtro retorno | 860149012 | … | 1 | 4un R$1.250 | [+]│
+└───────────────────────────┘ │                                                │
+                              │ Resumo: simulação 1000h → 8 SKUs · R$ 14.320  │
+                              │ [+ Tudo no carrinho]  [Gerar proposta]        │
+                              └────────────────────────────────────────────────┘
+```
 
-**Frontend novos**: 
-`IntelligencePage.tsx`, `intelligence/SmartSearchBar.tsx`, `intelligence/SubcategoryGallery.tsx`, `intelligence/HealthSemaphore.tsx`, `intelligence/UnifiedFilters.tsx`, `intelligence/DrilldownDrawer.tsx`, `intelligence/ExecutivePresentation.tsx`, `intelligence/AttributeChips.tsx`, `admin/PromotionsManager.tsx`, `admin/BannersManager.tsx`, `hooks/use-intelligence.ts`, `hooks/use-smart-search.ts`.
+Funcionalidades:
+1. **Busca inteligente** (já existe `search_parts`): por modelo, código de filtro, descrição.
+2. **Tabs por intervalo** filtram o `interval_hours` mostrado.
+3. **Coluna estoque** lê de `parts` em tempo real — chip verde (em estoque), amarelo (baixo), vermelho (zerado).
+4. **Botão `+`** adiciona ao **carrinho existente** (`CartContext`) — usa o mesmo fluxo de `/cotacao`.
+5. **"+ Tudo no carrinho"** adiciona o intervalo inteiro (respeita quantidade × qtd_trocas).
+6. **"Gerar proposta"** abre o fluxo já existente em `SalesPage` com itens pré-carregados.
+7. **CRUD inline** (admin): editar descrição, código, substitutos, quantidade; adicionar/remover linha; clonar modelo (para variantes).
+8. **Importar/Reimportar** botão admin com upload XLSX → chama edge function.
 
-**Frontend editados**: 
-`QuotePartCard.tsx`, `QuotePartDetail.tsx`, `PartDetailPublicPage.tsx` (esconder preço para anônimo), `QuotePage.tsx` (faixa de promoção), `App.tsx` (rotas), `AppSidebar.tsx` (colapsar), `CatalogPage.tsx` (sem tab Relatórios), `AdminVitrinePage.tsx` (abas Banners + Promoções), `HeroCarousel.tsx` (empty state).
+## Componentes (frontend)
 
-**Backend/SQL** (operações, não migrações novas):
-- `cleanup_bad_attributes()` + `classify_parts_v4(false)` rodados via migração one-shot.
-- Endurecer regex de pneus em `subcategory_taxonomy` se necessário (UPDATE numa linha).
-- `enrich-customer` redeploy + verificação de logs.
+```
+src/pages/MaintenancePage.tsx                    — shell + roteamento por modelo (?model=)
+src/components/maintenance/MachineSidebar.tsx    — árvore categoria > modelo, busca
+src/components/maintenance/PlanTable.tsx         — tabela editável com tabs de intervalo
+src/components/maintenance/StockChip.tsx         — pill com qty + preço
+src/components/maintenance/AddAllButton.tsx      — bulk add ao carrinho
+src/components/maintenance/ImportPlanDialog.tsx  — upload XLSX (admin)
+src/components/maintenance/MachineEditDialog.tsx — CRUD modelo
+src/components/maintenance/PlanItemEditor.tsx    — CRUD linha
+src/hooks/use-maintenance.ts                     — react-query: máquinas, plano, mutations
+```
 
-**Removidos** (após /inteligencia validado):
-`src/pages/StockPage.tsx`, `src/pages/CategoriesPage.tsx`, `src/pages/ReportPage.tsx`, `catalog/reports/ReportsTab.tsx`.
+Reaproveitamentos:
+- `CartContext` para "adicionar ao carrinho" → mesma sacola usada em `/cotacao`.
+- `useAuth` + `useRole('admin')` para mostrar botões CRUD.
+- `search_parts` RPC para a busca global no header.
+- `generate-proposal-pdf` para "Gerar proposta" direto da tabela.
 
-## Critérios de aceitação (eu mesmo testo no fim)
+## Integrações com o que já existe
 
-1. Abrir `/cotacao` em janela anônima → **nenhum R$ visível**, só "Solicitar cotação" e selo de promoção.
-2. `SELECT count(*) FROM parts WHERE subcategory IS NULL` → ≤ 5% do total.
-3. `SELECT distinct attributes->>'medida' FROM parts WHERE subcategory='Pneus'` → só `26.5R25`, `17.5-25`, `14.00R24` e similares.
-4. Sidebar tem **"Inteligência"** no lugar de Categorias+Estoque+Relatório.
-5. Em `/inteligencia`: filtro `Subcat=Pneus` → card mostra chip `26.5R25 (X SKUs · R$ Y)` clicável → drawer com lista + máquinas compatíveis. **3 cliques.**
-6. Buscar `"6205 rolam"` na SmartSearchBar → rolamentos 6205 no topo em < 1s.
-7. Admin Vitrine → criar banner com imagem → portal público mostra; criar promoção → selo aparece sem preço.
-8. Reverificar Anglo American com `search_override="Anglo American"` → `enrichment_data.sources` com ≥ 2 URLs e `telemetry.rounds_executed=2`.
+- **Carrinho**: o botão `+` empurra `{ material, description, quantity }` no mesmo `CartContext`. Vendedor abre `/cotacao` e finaliza, ou usa `/pedidos/novo`.
+- **Vendas**: ao gerar proposta, cria registro em `sales` + `sale_items` (caminho atual de `NewOrderPage`).
+- **Estoque**: join lateral por `material` mostra estoque, preço, última entrada — nada duplicado, fonte única é `parts`.
+- **Categoria**: itens importados que ainda não têm SKU em `parts` ficam num "buffer" — botão `[criar SKU]` abre dialog que insere em `parts` (já há permissão para `authenticated`), pré-preenchendo `material`, `description`, `subcategory='Filtros'`, `machine_model`.
 
+## Critérios de aceitação
+
+1. Após import, `/manutencao` mostra **161 modelos** em 18 categorias, navegáveis.
+2. Selecionar **XE150BR-I → tab 1000h** mostra exatamente os filtros que a planilha marca em 1000h, com estoque atual ao lado.
+3. Clicar **"+ Tudo no carrinho"** num intervalo enche o `CartContext` na quantidade certa; abrir `/cotacao` exibe os itens.
+4. **Vendedor logado** vê estoque + preço; **admin** vê também botões editar/excluir/importar.
+5. **CRUD funcional**: criar modelo novo, editar item, deletar item — refletido imediatamente.
+6. **Reimportar a planilha** não duplica linhas (idempotente por `model+material+interval_hours`).
+7. Códigos sem SKU aparecem com chip "❗ sem cadastro" + botão para criar; uma vez criado, o estoque aparece sem refresh manual.
+
+## Etapas de implementação
+
+1. **Migração** das 3 tabelas + RLS + índices (`material`, `(model,material,interval)` único).
+2. **Edge function** `import-maintenance-plan` (parse XLSX → upsert).
+3. **Seed inicial**: rodar a função uma vez com a planilha enviada (vai para Storage). Snapshot do relatório aparece no admin.
+4. **UI** em `/manutencao` — readonly primeiro (sidebar + tabela + tabs + estoque + add ao carrinho).
+5. **CRUD admin** (editar/criar/excluir) + upload de planilha futura.
+6. **Polimento**: busca por código no header, atalho `/`, badge de estoque baixo, link "ver na ficha do produto".
+
+Sem mudança nas telas existentes — é um módulo novo que se pluga no carrinho e propostas atuais.
