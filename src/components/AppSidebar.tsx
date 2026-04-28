@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Tags,
   Sparkles,
+  Wrench,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import asiaLogo from "@/assets/asia-logo.png";
@@ -57,6 +58,7 @@ const toolItems = [
   { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
   { title: "Vitrine (Admin)", url: "/admin/vitrine", icon: Sparkles },
   { title: "Treinamento", url: "/treinamento", icon: GraduationCap },
+  { title: "Manutenção", url: "/manutencao", icon: Wrench },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];

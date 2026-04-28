@@ -28,6 +28,7 @@ import CategoriesIndexPage from "./pages/CategoriesIndexPage";
 import ModelsIndexPage from "./pages/ModelsIndexPage";
 import AdminVitrinePage from "./pages/AdminVitrinePage";
 import TrainingPage from "./pages/TrainingPage";
+import MaintenancePage from "./pages/MaintenancePage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -74,6 +75,7 @@ const App = () => {
               <Route path="/assistente" element={<ProtectedRoute><AssistantPage /></ProtectedRoute>} />
               <Route path="/relatorio" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
               <Route path="/treinamento" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+              <Route path="/manutencao" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><ComingSoonPage title="Configurações" /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
