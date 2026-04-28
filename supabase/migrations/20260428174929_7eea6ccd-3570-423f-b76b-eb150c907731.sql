@@ -1,0 +1,13 @@
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/801bd0acc21c.png' WHERE id='e6cf4f06-605a-4f6e-8e0e-331bd9f579e7';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/09a0a2fce9ee.jpeg' WHERE id='30e4030b-88ad-4fd6-812f-6e6af6e8771a';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/8c108b0ceab8.jpeg' WHERE id='0fd88e48-a412-4922-94ac-442a0b8708e8';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/2b9376d09ae8.jpeg' WHERE id='519f825f-ec8a-4654-987c-9212377e81cd';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/f1f02b8f91ec.jpeg' WHERE id='64186fb2-81f9-48c5-a8b3-feeffd4de970';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/be6aca871765.jpeg' WHERE id='ee5c8636-a848-4302-b829-ab8021769287';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/6c44b4aad93a.jpeg' WHERE id='6f619686-47b6-4428-9d96-8caed5b18c20';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/4d2540825d6a.jpeg' WHERE id='60504cb8-f96f-4492-97c3-33fd9c22dc20';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/94d314aa2d88.jpeg' WHERE id='cb5f9fbf-d4e3-4093-8cef-86b203b572b6';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/220aa2c5cf47.jpeg' WHERE id='7f9b48e2-9968-4cda-8f14-82e2db58696c';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/5a6e9602c8cd.jpeg' WHERE id='5bed942b-4795-42a6-927a-83beb2a4393b';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/c3dca6117f61.jpeg' WHERE id='7a4f4205-beaa-448b-8b77-b964c1187029';
+UPDATE public.maintenance_machines SET image_url='https://ustzlgdhzgkhvyunvxyw.supabase.co/storage/v1/object/public/machine-images/4625e848306a.png' WHERE id='c4e2a361-cd51-4f8d-b46e-df808205d29d';
