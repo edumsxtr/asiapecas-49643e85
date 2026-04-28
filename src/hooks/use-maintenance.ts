@@ -7,6 +7,7 @@ export type Machine = {
   model: string;
   serial: string | null;
   notes: string | null;
+  image_url: string | null;
 };
 
 export type PlanItem = {
