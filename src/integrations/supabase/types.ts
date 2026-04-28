@@ -497,6 +497,89 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_machines: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          model: string
+          notes: string | null
+          serial: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          model: string
+          notes?: string | null
+          serial?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          model?: string
+          notes?: string | null
+          serial?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      maintenance_plan_items: {
+        Row: {
+          created_at: string
+          description: string
+          group_name: string
+          id: string
+          interval_hours: number
+          machine_id: string
+          material: string
+          quantity: number
+          sort_order: number
+          substitute_codes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          group_name?: string
+          id?: string
+          interval_hours: number
+          machine_id: string
+          material: string
+          quantity?: number
+          sort_order?: number
+          substitute_codes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          group_name?: string
+          id?: string
+          interval_hours?: number
+          machine_id?: string
+          material?: string
+          quantity?: number
+          sort_order?: number
+          substitute_codes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plan_items_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_research: {
         Row: {
           availability: string | null
