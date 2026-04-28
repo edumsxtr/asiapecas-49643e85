@@ -502,6 +502,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          image_url: string | null
           model: string
           notes: string | null
           serial: string | null
@@ -512,6 +513,7 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
+          image_url?: string | null
           model: string
           notes?: string | null
           serial?: string | null
@@ -522,6 +524,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           model?: string
           notes?: string | null
           serial?: string | null

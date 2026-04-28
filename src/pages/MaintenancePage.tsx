@@ -134,9 +134,14 @@ export default function MaintenancePage() {
                   <button
                     key={m.id}
                     onClick={() => setMachineId(m.id)}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors ${machineId === m.id ? "bg-primary text-primary-foreground font-semibold" : ""}`}
+                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2 ${machineId === m.id ? "bg-primary text-primary-foreground font-semibold" : ""}`}
                   >
-                    {m.model}
+                    {m.image_url ? (
+                      <img src={m.image_url} alt="" className="h-7 w-9 object-cover rounded shrink-0 border" loading="lazy" />
+                    ) : (
+                      <div className="h-7 w-9 rounded bg-muted shrink-0 border" />
+                    )}
+                    <span className="truncate">{m.model}</span>
                   </button>
                 ))}
               </div>
@@ -158,11 +163,25 @@ export default function MaintenancePage() {
             </div>
           ) : (
             <div className="p-4 space-y-4">
-              <div>
-                <h1 className="text-2xl font-bold">{current.model}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {current.category} {current.serial && `· Série: ${current.serial}`}
-                </p>
+              <div className="flex items-start gap-4">
+                {current.image_url ? (
+                  <img
+                    src={current.image_url}
+                    alt={current.model}
+                    className="h-24 w-32 object-cover rounded-md border bg-muted shrink-0"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="h-24 w-32 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                    <Wrench className="h-8 w-8 text-muted-foreground/40" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-bold">{current.model}</h1>
+                  <p className="text-sm text-muted-foreground">
+                    {current.category} {current.serial && `· Série: ${current.serial}`}
+                  </p>
+                </div>
               </div>
 
               <Tabs value={String(interval)} onValueChange={v => setInterval(v === "all" ? "all" : Number(v))}>
