@@ -134,9 +134,14 @@ export default function MaintenancePage() {
                   <button
                     key={m.id}
                     onClick={() => setMachineId(m.id)}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors ${machineId === m.id ? "bg-primary text-primary-foreground font-semibold" : ""}`}
+                    className={`w-full text-left px-2 py-1.5 text-xs rounded hover:bg-accent transition-colors flex items-center gap-2 ${machineId === m.id ? "bg-primary text-primary-foreground font-semibold" : ""}`}
                   >
-                    {m.model}
+                    {m.image_url ? (
+                      <img src={m.image_url} alt="" className="h-7 w-9 object-cover rounded shrink-0 border" loading="lazy" />
+                    ) : (
+                      <div className="h-7 w-9 rounded bg-muted shrink-0 border" />
+                    )}
+                    <span className="truncate">{m.model}</span>
                   </button>
                 ))}
               </div>
