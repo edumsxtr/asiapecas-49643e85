@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { partImage } from "@/lib/default-part-image";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -52,11 +53,7 @@ export default function FeaturedStrip({ lang, onAddToCart }: { lang: Lang; onAdd
             <div key={id} className="flex-shrink-0 w-[260px] snap-start bg-background rounded-xl border hover:border-primary/40 hover:shadow-lg transition-all overflow-hidden">
               <Link to={`/cotacao/p/${encodeURIComponent(part.material)}`} className="block">
                 <div className="aspect-video bg-muted relative overflow-hidden">
-                  {part.image_url ? (
-                    <img src={part.image_url} alt={part.description} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30 text-4xl font-bold font-['Space_Grotesk']">XCMG</div>
-                  )}
+                  <img src={partImage(part.image_url)} alt={part.description} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   {badge_label && (
                     <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">{badge_label}</Badge>
                   )}

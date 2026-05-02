@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { partImage } from "@/lib/default-part-image";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -420,11 +421,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                       <TableRow key={part.id} className="hover:bg-muted/40 cursor-pointer" onClick={goToDetail}>
                         <TableCell className="p-2">
                           <div className="h-14 w-14 rounded-md bg-muted/40 overflow-hidden flex items-center justify-center">
-                            {part.image_url ? (
-                              <img src={part.image_url} alt={desc} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                            ) : (
-                              <span className="text-[10px] font-bold text-primary/40 font-['Space_Grotesk']">XCMG</span>
-                            )}
+                            <img src={partImage(part.image_url)} alt={desc} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           </div>
                         </TableCell>
                         <TableCell>

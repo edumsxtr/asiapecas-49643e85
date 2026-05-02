@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { partImage } from "@/lib/default-part-image";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO, productLd, breadcrumbLd, organizationLd } from "@/lib/seo";
@@ -110,11 +111,7 @@ export default function PartDetailPublicPage() {
 
           <div className="grid md:grid-cols-2 gap-8">
             <div className="aspect-square bg-muted rounded-xl overflow-hidden flex items-center justify-center">
-              {part.image_url ? (
-                <img src={part.image_url} alt={part.description} className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-muted-foreground/20 text-7xl font-bold font-['Space_Grotesk']">XCMG</div>
-              )}
+              <img src={partImage(part.image_url)} alt={part.description} className="w-full h-full object-cover" />
             </div>
 
             <div className="space-y-4">

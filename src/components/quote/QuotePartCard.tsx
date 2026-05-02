@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { partImage } from "@/lib/default-part-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Eye, Zap, AlertTriangle, Tag } from "lucide-react";
@@ -96,20 +97,13 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
       <CardContent className="p-0 flex flex-col h-full">
         {/* Image */}
         <div className="relative aspect-square bg-muted/40 overflow-hidden">
-          {part.image_url ? (
-            <img
-              src={part.image_url}
-              alt={part.description}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-secondary/5 to-primary/5">
-              <span className="text-5xl font-bold font-['Space_Grotesk'] text-primary/30 select-none">XCMG</span>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground/50 mt-1">peça original</span>
-            </div>
-          )}
+          <img
+            src={partImage(part.image_url)}
+            alt={part.description}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+          />
 
           {/* Promo badge — show % only to authenticated internal users */}
           {promoPrice && (
