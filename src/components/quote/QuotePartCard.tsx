@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { partImage } from "@/lib/default-part-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Eye, Zap, AlertTriangle, Tag } from "lucide-react";
