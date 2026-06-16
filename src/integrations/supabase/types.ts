@@ -688,6 +688,7 @@ export type Database = {
           attributes: Json | null
           classification_method: string | null
           compatible_models: string[] | null
+          consumer_price: number | null
           created_at: string
           description: string
           estimated_price: number
@@ -717,6 +718,7 @@ export type Database = {
           attributes?: Json | null
           classification_method?: string | null
           compatible_models?: string[] | null
+          consumer_price?: number | null
           created_at?: string
           description: string
           estimated_price?: number
@@ -746,6 +748,7 @@ export type Database = {
           attributes?: Json | null
           classification_method?: string | null
           compatible_models?: string[] | null
+          consumer_price?: number | null
           created_at?: string
           description?: string
           estimated_price?: number
