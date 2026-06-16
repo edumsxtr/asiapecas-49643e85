@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      _xcmg_staging: {
+        Row: {
+          consumer_price: number | null
+          description: string | null
+          estimated_price: number | null
+          manufacturer: string | null
+          material: string
+          stock: number | null
+        }
+        Insert: {
+          consumer_price?: number | null
+          description?: string | null
+          estimated_price?: number | null
+          manufacturer?: string | null
+          material: string
+          stock?: number | null
+        }
+        Update: {
+          consumer_price?: number | null
+          description?: string | null
+          estimated_price?: number | null
+          manufacturer?: string | null
+          material?: string
+          stock?: number | null
+        }
+        Relationships: []
+      }
       after_sales: {
         Row: {
           created_at: string
@@ -688,6 +715,7 @@ export type Database = {
           attributes: Json | null
           classification_method: string | null
           compatible_models: string[] | null
+          consumer_price: number | null
           created_at: string
           description: string
           estimated_price: number
@@ -717,6 +745,7 @@ export type Database = {
           attributes?: Json | null
           classification_method?: string | null
           compatible_models?: string[] | null
+          consumer_price?: number | null
           created_at?: string
           description: string
           estimated_price?: number
@@ -746,6 +775,7 @@ export type Database = {
           attributes?: Json | null
           classification_method?: string | null
           compatible_models?: string[] | null
+          consumer_price?: number | null
           created_at?: string
           description?: string
           estimated_price?: number
