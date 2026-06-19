@@ -1860,6 +1860,11 @@ export type Database = {
         Args: { _only_missing?: boolean }
         Returns: number
       }
+      cart_get: { Args: { p_session_id: string }; Returns: Json }
+      cart_upsert: {
+        Args: { p_items: Json; p_session_id: string }
+        Returns: undefined
+      }
       classify_dict_for: { Args: { _subcategory: string }; Returns: number }
       classify_parts_v4: { Args: { _only_missing?: boolean }; Returns: Json }
       cleanup_bad_attributes: { Args: never; Returns: number }
