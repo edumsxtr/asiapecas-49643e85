@@ -109,7 +109,7 @@ function BannersPanel() {
 
   const create = async () => {
     const { error } = await supabase.from("vitrine_banners").insert({ image_url: "", title: "Novo banner", lang: "pt", sort_order: (banners?.length || 0), active: false });
-    if (error) toast.error(error.message); else qc.invalidateQueries({ queryKey: ["admin-banners"] });
+    if (error) toast.error("Erro ao criar banner: " + error.message); else qc.invalidateQueries({ queryKey: ["admin-banners"] });
   };
 
   return (
