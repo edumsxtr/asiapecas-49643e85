@@ -24,6 +24,18 @@ export type Customer = {
   enrichment_status: string | null;
   enriched_at: string | null;
   enrichment_data: Record<string, unknown> | null;
+  // Fiscal & structured address (new)
+  legal_name?: string | null;
+  trade_name?: string | null;
+  state_registration?: string | null;
+  municipal_registration?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_district?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_zip?: string | null;
   created_at: string;
   updated_at: string;
 };
