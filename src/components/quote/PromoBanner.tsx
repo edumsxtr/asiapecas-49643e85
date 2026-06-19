@@ -7,7 +7,7 @@ interface Props {
   whatsapp?: string;
 }
 
-export default function PromoBanner({ lang, whatsapp = "5595974009289" }: Props) {
+export default function PromoBanner({ lang, whatsapp = "5531992293767" }: Props) {
   const hasPromo = useHasActivePromotions();
   if (!hasPromo) return null;
 

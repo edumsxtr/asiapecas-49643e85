@@ -161,7 +161,7 @@ export default function PartDetailPublicPage() {
                 <Button size="lg" className="gap-2" onClick={handleAdd} disabled={part.stock <= 0}>
                   <ShoppingCart className="h-5 w-5" /> Adicionar à cotação
                 </Button>
-                <a href={`https://wa.me/5595974009289?text=${encodeURIComponent(wppMsg)}`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://wa.me/5531992293767?text=${encodeURIComponent(wppMsg)}`} target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="outline" className="w-full gap-2 border-[hsl(142,71%,45%)] text-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,45%)]/10">
                     <MessageCircle className="h-5 w-5" /> WhatsApp
                   </Button>

@@ -36,7 +36,7 @@ export default function ReturnsPage() {
 
       <h2>4. Como solicitar</h2>
       <ol>
-        <li>Envie a solicitação para <a href="mailto:contato@asiapecas.com.br">contato@asiapecas.com.br</a> com o assunto "Devolução — [nº do pedido]".</li>
+        <li>Envie a solicitação para <a href="mailto:vendas@asiapecas.com">vendas@asiapecas.com</a> com o assunto "Devolução — [nº do pedido]".</li>
         <li>Aguarde a confirmação e as instruções de envio.</li>
         <li>Despache a peça conforme orientação, mantendo o comprovante de postagem.</li>
         <li>Após o recebimento e a conferência, o valor é restituído ou um novo item é enviado.</li>

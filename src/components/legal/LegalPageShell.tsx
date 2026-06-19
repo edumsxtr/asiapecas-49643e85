@@ -121,8 +121,8 @@ export default function LegalPageShell({ title, description, canonical, updatedA
           <div className="space-y-3">
             <h4 className="text-xs uppercase tracking-widest text-primary font-semibold">Atendimento</h4>
             <ul className="space-y-2 text-sm text-secondary-foreground/80">
-              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> contato@asiapecas.com.br</li>
-              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> +55 (95) 9 7400-9289</li>
+              <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> vendas@asiapecas.com</li>
+              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (31) 99229-3767</li>
               <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Brasil — Venezuela — Guiana</li>
             </ul>
           </div>

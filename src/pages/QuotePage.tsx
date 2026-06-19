@@ -53,9 +53,9 @@ export default function QuotePage() {
         <div className="max-w-6xl mx-auto px-6 py-1.5 flex items-center justify-between">
           <span className="uppercase tracking-widest">Distribuidor Autorizado XCMG — Brasil, Venezuela e Guiana</span>
           <div className="flex items-center gap-4">
-            <a href="mailto:contato@asiapecas.com.br" className="hover:text-primary">contato@asiapecas.com.br</a>
+            <a href="mailto:vendas@asiapecas.com" className="hover:text-primary">vendas@asiapecas.com</a>
             <span className="text-secondary-foreground/30">|</span>
-            <a href="tel:+5595974009289" className="hover:text-primary">+55 (95) 9 7400-9289</a>
+            <a href="tel:+5531992293767" className="hover:text-primary">(31) 99229-3767</a>
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function QuotePage() {
                 Entrar
               </Link>
             )}
-            <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
+            <a href="https://wa.me/5531992293767?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
               {tr("header.contact", lang)}
             </a>
           </nav>
@@ -135,7 +135,7 @@ export default function QuotePage() {
                     ))}
                   </div>
                 </div>
-                <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="mt-4 bg-primary text-primary-foreground px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                <a href="https://wa.me/5531992293767?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="mt-4 bg-primary text-primary-foreground px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
                   <MessageCircle className="h-4 w-4" />WhatsApp
                 </a>
               </nav>
@@ -228,7 +228,7 @@ export default function QuotePage() {
       <B2BLeadDialog lang={lang} open={b2bOpen} onOpenChange={setB2bOpen} />
       <ConsentBanner lang={lang} />
 
-      <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-primary text-primary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
+      <a href="https://wa.me/5531992293767?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-primary text-primary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
         <MessageCircle className="h-6 w-6" />
       </a>
     </div>

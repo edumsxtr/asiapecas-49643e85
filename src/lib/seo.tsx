@@ -68,7 +68,7 @@ export function organizationLd() {
     sameAs: [],
     contactPoint: [{
       "@type": "ContactPoint",
-      telephone: "+55-95-97400-9289",
+      telephone: "+55-31-99229-3767",
       contactType: "sales",
       areaServed: ["BR", "Latam"],
       availableLanguage: ["Portuguese", "English", "Spanish"],

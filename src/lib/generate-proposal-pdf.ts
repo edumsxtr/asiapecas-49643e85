@@ -24,8 +24,8 @@ const DEFAULT_COMPANY: CompanyData = {
   name: "Ásia Peças & Máquinas",
   cnpj: "XX.XXX.XXX/XXXX-XX",
   address: "Macapá - AP",
-  phone: "+55 95 97400-9289",
-  email: "contato@asiapecas.com.br",
+  phone: "+55 31 99229-3767",
+  email: "vendas@asiapecas.com",
 };
 
 const PRIMARY_COLOR: [number, number, number] = [204, 163, 0];

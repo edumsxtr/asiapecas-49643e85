@@ -25,14 +25,14 @@ export default function CompliancePage() {
       <p>
         O tratamento de dados pessoais segue a <a href="/politica-de-privacidade">Política de Privacidade</a>, em conformidade com
         a LGPD. Solicitações de titulares são respondidas pelo encarregado de dados via
-        <a href="mailto:contato@asiapecas.com.br"> contato@asiapecas.com.br</a>.
+        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a>.
       </p>
 
       <h2>3. Prevenção a fraudes</h2>
       <p>
         Recomendamos validar dados bancários e fiscais sempre por canais oficiais. A Ásia Peças &amp; Máquinas não solicita
         pagamentos em contas pessoais e não altera dados bancários por meio de mensagens informais. Em caso de dúvida,
-        confirme pelo telefone +55 (95) 9 7400-9289 antes de qualquer transferência.
+        confirme pelo telefone (31) 99229-3767 antes de qualquer transferência.
       </p>
 
       <h2>4. Conduta comercial</h2>
@@ -44,7 +44,7 @@ export default function CompliancePage() {
       <h2>5. Canal de denúncias</h2>
       <p>
         Relatos sobre suspeitas de fraude, assédio, conduta inadequada ou descumprimento de obrigações legais podem ser enviados
-        para <a href="mailto:contato@asiapecas.com.br">contato@asiapecas.com.br</a>, com o assunto "Canal de denúncias". O
+        para <a href="mailto:vendas@asiapecas.com">vendas@asiapecas.com</a>, com o assunto "Canal de denúncias". O
         sigilo é preservado e não toleramos retaliação contra denunciantes de boa-fé.
       </p>
 

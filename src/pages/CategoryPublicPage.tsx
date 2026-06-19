@@ -108,7 +108,7 @@ export default function CategoryPublicPage() {
   const noindex = !hasStock || !!seoOverride?.noindex;
 
   const wppText = `Olá! Tenho interesse em ${cat?.key || "peças"} XCMG.`;
-  const wppUrl = `https://wa.me/5595974009289?text=${encodeURIComponent(wppText)}`;
+  const wppUrl = `https://wa.me/5531992293767?text=${encodeURIComponent(wppText)}`;
 
   const defaultTitle = `${cat?.key} XCMG · ${total} em estoque · Ásia Peças`;
   const defaultDesc = `${total} ${cat?.key?.toLowerCase()} originais e equivalentes para máquinas XCMG. Estoque real em Macapá-AP. Cotação rápida via WhatsApp em PT/EN/ES.`;
