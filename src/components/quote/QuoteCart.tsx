@@ -43,10 +43,17 @@ const emptyForm = {
 
 export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang }: QuoteCartProps) {
   const { user } = useAuth();
+  const [open, setOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener("open-quote-cart", handler);
+    return () => window.removeEventListener("open-quote-cart", handler);
+  }, []);
 
   // Prefill from logged-in customer
   useEffect(() => {
