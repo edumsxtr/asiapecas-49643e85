@@ -70,6 +70,9 @@ export function CustomerImportsTab() {
         </TableBody>
       </Table>
 
+      <DataPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+
+
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Renomear importação</DialogTitle></DialogHeader>
