@@ -13,6 +13,17 @@ export type ProposalSettings = {
   default_delivery_terms: string;
   default_warranty_text: string;
   default_observations: string;
+  legal_company_name: string;
+  legal_state_registration: string | null;
+  website: string;
+  bank_name: string | null;
+  bank_agency: string | null;
+  bank_account: string | null;
+  bank_favored: string | null;
+  bank_cnpj: string | null;
+  pix_key: string | null;
+  pdf_theme: "bw_institutional" | "yellow_legacy";
+  intro_paragraph: string;
   updated_at: string;
 };
 
@@ -43,7 +54,7 @@ export function useUpdateProposalSettings() {
       if (!existing) throw new Error("Configurações não encontradas");
       const { error } = await supabase
         .from("proposal_settings")
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() } as never)
         .eq("id", existing.id);
       if (error) throw error;
     },
@@ -53,4 +64,11 @@ export function useUpdateProposalSettings() {
     },
     onError: (e: Error) => toast.error("Erro ao salvar: " + e.message),
   });
+}
+
+/** Generate AP-DDMMYYYY-NNN via DB RPC. */
+export async function generateProposalNumber(): Promise<string> {
+  const { data, error } = await supabase.rpc("generate_proposal_number");
+  if (error) throw error;
+  return data as string;
 }
