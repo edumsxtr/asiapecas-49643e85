@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Settings, Database, Users, ShoppingCart, FileText, Sparkles, Wrench, GraduationCap, ShieldCheck, Tags, TrendingUp, BarChart3,
+  Settings, Database, Users, ShoppingCart, FileText, Sparkles, Wrench, GraduationCap, ShieldCheck, Tags, TrendingUp, BarChart3, BookOpen,
 } from "lucide-react";
 
 type Section = {
@@ -33,9 +33,9 @@ const sections: { group: string; items: Section[] }[] = [
   {
     group: "Operação & Conteúdo",
     items: [
+      { title: "Blog", description: "Posts SEO com geração por IA. Apareça melhor no Google.", icon: BookOpen, to: "/configuracoes/blog" },
       { title: "Vitrine (Portal)", description: "Banners, coleções e SEO do portal público.", icon: Sparkles, to: "/admin/vitrine" },
       { title: "Manutenção", description: "Planos de manutenção por máquina.", icon: Wrench, to: "/manutencao" },
-      { title: "Treinamento", description: "Materiais e trilhas internas.", icon: GraduationCap, to: "/treinamento" },
       { title: "Relatório Executivo", description: "Indicadores consolidados.", icon: BarChart3, to: "/relatorio" },
     ],
   },

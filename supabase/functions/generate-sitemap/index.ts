@@ -22,7 +22,21 @@ Deno.serve(async (req) => {
       { loc: `${SITE}/cotacao`, priority: "0.9" },
       { loc: `${SITE}/cotacao/categorias`, priority: "0.8" },
       { loc: `${SITE}/cotacao/modelos`, priority: "0.8" },
+      { loc: `${SITE}/blog`, priority: "0.8" },
     ];
+
+    // Blog posts
+    const blogRes = await fetch(`${SUPABASE_URL}/rest/v1/blog_posts?select=slug,updated_at,published_at&status=eq.published&order=published_at.desc&limit=2000`, {
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+    });
+    const blogPosts = await blogRes.json() as any[];
+    for (const p of blogPosts) {
+      urls.push({
+        loc: `${SITE}/blog/${p.slug}`,
+        lastmod: (p.updated_at || p.published_at)?.split("T")[0],
+        priority: "0.7",
+      });
+    }
 
     const partsRes = await fetch(`${SUPABASE_URL}/rest/v1/parts?select=material,updated_at,part_category,machine_model,compatible_models&stock=gt.0&limit=5000`, {
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },

@@ -10,6 +10,8 @@ import { useCartSession } from "@/hooks/use-cart-session";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 import { useEffect } from "react";
+import { usePartImages } from "@/hooks/use-part-images";
+import { PartImageCarousel } from "@/components/quote/PartImageCarousel";
 
 export default function PartDetailPublicPage() {
   const { material } = useParams<{ material: string }>();
@@ -55,6 +57,8 @@ export default function PartDetailPublicPage() {
     },
   });
 
+  const { data: extraImages = [] } = usePartImages(part?.id);
+
   useEffect(() => { if (part) track.viewItem(part); }, [part]);
 
   if (isLoading) {
@@ -85,7 +89,7 @@ export default function PartDetailPublicPage() {
         canonical={`/cotacao/p/${encodeURIComponent(part.material)}`}
         image={part.image_url || undefined}
         type="product"
-        jsonLd={[organizationLd(), productLd(part), breadcrumbLd([
+        jsonLd={[organizationLd(), productLd({ ...part, images: extraImages.length > 0 ? extraImages.map(i => i.url) : undefined }), breadcrumbLd([
           { name: "Início", url: "/" },
           { name: "Catálogo", url: "/cotacao" },
           { name: part.description, url: `/cotacao/p/${encodeURIComponent(part.material)}` },
@@ -110,9 +114,11 @@ export default function PartDetailPublicPage() {
           </nav>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="aspect-square bg-muted rounded-xl overflow-hidden flex items-center justify-center">
-              <img src={partImage(part.image_url)} alt={part.description} className="w-full h-full object-cover" />
-            </div>
+            <PartImageCarousel
+              images={extraImages.map(i => ({ url: i.url, alt_text: i.alt_text }))}
+              fallbackUrl={part.image_url}
+              alt={part.description}
+            />
 
             <div className="space-y-4">
               <Badge className="bg-primary text-primary-foreground font-mono">{part.material}</Badge>

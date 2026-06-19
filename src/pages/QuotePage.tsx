@@ -12,6 +12,7 @@ import QuoteCart from "@/components/quote/QuoteCart";
 import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
+import { BlogHighlightStrip } from "@/components/quote/BlogHighlightStrip";
 import { Search, ClipboardList, Send, MessageCircle, Menu, Building2 } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
 import { SEO, organizationLd } from "@/lib/seo";
@@ -58,6 +59,7 @@ export default function QuotePage() {
             <a href="#pecas" className="hover:text-primary transition-colors">{tr("header.parts", lang)}</a>
             <a href="#como-funciona" className="hover:text-primary transition-colors">{tr("header.howItWorks", lang)}</a>
             <a href="#faq" className="hover:text-primary transition-colors">{tr("header.faq", lang)}</a>
+            <a href="/blog" className="hover:text-primary transition-colors">Blog</a>
             <div className="flex items-center gap-1 border border-secondary-foreground/20 rounded-lg px-1">
               {LANG_FLAGS.map(({ lang: l, label }) => (
                 <button key={l} onClick={() => setLang(l)} className={`px-2 py-1 rounded text-xs font-medium transition-colors ${lang === l ? "bg-primary text-primary-foreground" : "hover:bg-secondary-foreground/10"}`}>
@@ -186,6 +188,8 @@ export default function QuotePage() {
       <div id="pecas">
         <QuoteCatalog search={search} category={category} partCategory={partCategory} subcategory={subcategory} onSubcategoryChange={setSubcategory} onPartCategoryChange={(key) => setPartCategory(prev => prev === key ? null : key)} cartItems={cartItems} onAddToCart={addToCart} lang={lang} />
       </div>
+
+      <BlogHighlightStrip />
 
       <div id="faq"><QuoteFAQ lang={lang} /></div>
       <QuoteFooter lang={lang} />

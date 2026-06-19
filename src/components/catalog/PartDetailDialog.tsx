@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { type Part, formatBRL, getActiveCategories, useUpdatePart, useSimilarParts, usePartSales } from "@/hooks/use-parts";
-import { Package, Clock, Layers, Truck, Search, Brain, Pencil, CheckCircle2, Copy, ShoppingCart as ShoppingCartIcon } from "lucide-react";
+import { Package, Clock, Layers, Truck, Search, Brain, Pencil, CheckCircle2, Copy, ShoppingCart as ShoppingCartIcon, Image as ImageIcon } from "lucide-react";
 import { MarketResearchTab } from "./MarketResearchTab";
 import { PartAIResearch } from "./PartAIResearch";
+import { PartImagesManager } from "@/components/admin/PartImagesManager";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
@@ -153,12 +154,16 @@ function PartDetailContent({ part, onClose }: { part: Part; onClose: () => void 
         <Separator />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-5">
+            <TabsTrigger value="images" className="gap-1 text-xs"><ImageIcon className="h-3 w-3" /> Imagens</TabsTrigger>
             <TabsTrigger value="details" className="gap-1 text-xs"><Search className="h-3 w-3" /> Mercado</TabsTrigger>
             <TabsTrigger value="ai" className="gap-1 text-xs"><Brain className="h-3 w-3" /> IA</TabsTrigger>
             <TabsTrigger value="similar" className="gap-1 text-xs"><Copy className="h-3 w-3" /> Similares</TabsTrigger>
             <TabsTrigger value="sales" className="gap-1 text-xs"><ShoppingCartIcon className="h-3 w-3" /> Vendas</TabsTrigger>
           </TabsList>
+          <TabsContent value="images">
+            <PartImagesManager partId={part.id} material={part.material} />
+          </TabsContent>
           <TabsContent value="details">
             <MarketResearchTab partId={part.id} ourPrice={part.estimated_price} />
           </TabsContent>
