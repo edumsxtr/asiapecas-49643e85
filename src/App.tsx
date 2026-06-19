@@ -68,8 +68,9 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Public routes */}
-              <Route path="/cotacao" element={<QuotePage />} />
+              {/* Public routes — root is the customer portal */}
+              <Route path="/" element={<QuotePage />} />
+              <Route path="/cotacao" element={<Navigate to="/" replace />} />
               <Route path="/cotacao/banners" element={<BannersPage />} />
               <Route path="/cotacao/vitrine" element={<VitrinePage />} />
               <Route path="/cotacao/categorias" element={<CategoriesIndexPage />} />
@@ -96,8 +97,8 @@ const App = () => {
               <Route path="/seguranca-e-compliance" element={<CompliancePage />} />
               <Route path="/configuracoes/banners" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
 
-              {/* Protected routes */}
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              {/* Internal dashboard (auth) */}
+              <Route path="/painel" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/admin/vitrine" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
               <Route path="/admin/fontes" element={<Navigate to="/configuracoes/fontes" replace />} />
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />

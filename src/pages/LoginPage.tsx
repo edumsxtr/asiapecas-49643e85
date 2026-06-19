@@ -30,7 +30,7 @@ export default function LoginPage() {
     if (error) {
       toast.error("Erro ao entrar: " + error.message);
     } else {
-      navigate("/", { replace: true });
+      navigate("/painel", { replace: true });
     }
   };
 
