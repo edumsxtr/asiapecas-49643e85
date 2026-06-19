@@ -1,4 +1,4 @@
-# Public storefront and parts open to crawlers
+# Public storefront, blog and institutional pages open to crawlers
 User-agent: *
 Allow: /
 Allow: /cotacao
@@ -7,6 +7,16 @@ Allow: /cotacao/c/
 Allow: /cotacao/m/
 Allow: /cotacao/categorias
 Allow: /cotacao/modelos
+Allow: /blog
+Allow: /sobre
+Allow: /contato
+Allow: /faq
+Allow: /garantia
+Allow: /trocas-e-devolucoes
+Allow: /entrega-e-frete
+Allow: /politica-de-privacidade
+Allow: /termos-de-uso
+Allow: /politica-de-cookies
 
 # Internal tools — never index
 Disallow: /clientes
@@ -20,6 +30,7 @@ Disallow: /assistente
 Disallow: /treinamento
 Disallow: /catalogo
 Disallow: /estoque
+Disallow: /configuracoes
 Disallow: /admin/
 Disallow: /login
 Disallow: /reset-password
