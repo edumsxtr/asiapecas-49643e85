@@ -12,8 +12,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useProposalSettings, generateProposalNumber } from "@/hooks/use-proposal-settings";
 import { useSalespeople } from "@/hooks/use-salespeople";
-import { useWarrantyTemplates, pickTemplateForCategory } from "@/hooks/use-warranty-templates";
+import { useWarrantyTemplates, pickTemplateForCategory, useUpsertWarrantyTemplate } from "@/hooks/use-warranty-templates";
 import { usePaymentTemplates, buildSchedule } from "@/hooks/use-payment-templates";
+import { useGenerateWarrantyAI } from "@/hooks/use-warranty-ai";
 import { useCustomerById } from "@/hooks/use-customers";
 import { useCustomerContacts } from "@/hooks/use-customer-contacts";
 import { usePricingSettings, applySellPrice } from "@/hooks/use-pricing";
@@ -21,8 +22,9 @@ import type { Sale } from "@/hooks/use-sales";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProposalInstitutional, loadLogoAsBase64, type ProposalItem, type ProposalPayload } from "@/lib/generate-proposal-institutional";
 import ProposalPreviewInstitutional from "./ProposalPreviewInstitutional";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { FileDown, Loader2, Eye, Save } from "lucide-react";
+import { FileDown, Loader2, Eye, Save, Sparkles } from "lucide-react";
 
 type Props = {
   sale: Sale | null;
@@ -46,14 +48,21 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
   const [validityDays, setValidityDays] = useState(15);
   const [intro, setIntro] = useState("");
   const [paymentTemplateId, setPaymentTemplateId] = useState<string>("");
+  const [applyTemplateDiscount, setApplyTemplateDiscount] = useState<boolean>(true);
+  const [manualDiscount, setManualDiscount] = useState<string>(""); // "" = no override
   const [freight, setFreight] = useState("Por conta do comprador.");
   const [observations, setObservations] = useState("");
   const [items, setItems] = useState<ProposalItem[]>([]);
+  const [partMeta, setPartMeta] = useState<Record<string, { part_category: string | null; subcategory: string | null; manufacturer: string | null; machine_model: string | null }>>({});
+  const [aiLoadingIdx, setAiLoadingIdx] = useState<number | null>(null);
   const [proposalNumber, setProposalNumber] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>();
   const [logoBase64, setLogoBase64] = useState<string>();
+
+  const aiWarranty = useGenerateWarrantyAI();
+  const upsertWarranty = useUpsertWarrantyTemplate();
 
   useEffect(() => {
     if (!open) return;
@@ -90,21 +99,25 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
 
   // Build items whenever sale opens
   useEffect(() => {
-    if (!open || !sale) { setItems([]); return; }
+    if (!open || !sale) { setItems([]); setPartMeta({}); return; }
     (async () => {
-      // Fetch parts.part_category for each item to choose default warranty.
       const partIds = (sale.sale_items || []).map(i => i.part_id).filter(Boolean) as string[];
-      const cats: Record<string, string | null> = {};
+      const meta: Record<string, { part_category: string | null; subcategory: string | null; manufacturer: string | null; machine_model: string | null }> = {};
       if (partIds.length > 0) {
-        const { data } = await supabase.from("parts").select("id, part_category").in("id", partIds);
-        for (const p of (data || []) as Array<{ id: string; part_category: string | null }>) cats[p.id] = p.part_category;
+        const { data } = await supabase.from("parts")
+          .select("id, part_category, subcategory, manufacturer, machine_model")
+          .in("id", partIds);
+        for (const p of (data || []) as Array<{ id: string; part_category: string | null; subcategory: string | null; manufacturer: string | null; machine_model: string | null }>) {
+          meta[p.id] = { part_category: p.part_category, subcategory: p.subcategory, manufacturer: p.manufacturer, machine_model: p.machine_model };
+        }
       }
+      setPartMeta(meta);
       const built: ProposalItem[] = (sale.sale_items || []).map((si) => {
         const partRow = si.parts as { material?: string; description?: string } | null;
         const sp = (si as { sell_price?: number }).sell_price && (si as { sell_price?: number }).sell_price! > 0
           ? (si as { sell_price?: number }).sell_price!
           : applySellPrice(si.unit_price, markup);
-        const cat = si.part_id ? cats[si.part_id] : null;
+        const cat = si.part_id ? meta[si.part_id]?.part_category ?? null : null;
         return {
           id: si.id,
           material: partRow?.material || "—",
@@ -135,15 +148,34 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
   useEffect(() => {
     if (!open) {
       setSalespersonId(""); setContactId("none"); setPaymentTemplateId(""); setProposalNumber("");
+      setApplyTemplateDiscount(true); setManualDiscount("");
     }
   }, [open]);
 
+  // When template changes, reset discount toggle to its template's default behavior
+  useEffect(() => {
+    setManualDiscount("");
+    setApplyTemplateDiscount(true);
+  }, [paymentTemplateId]);
+
   const total = useMemo(() => items.reduce((s, it) => s + it.sell_price * it.quantity, 0), [items]);
   const paymentTemplate = payments.find(p => p.id === paymentTemplateId);
-  const schedule = useMemo(() => {
-    if (!paymentTemplate) return [];
-    return buildSchedule(paymentTemplate, total).schedule;
-  }, [paymentTemplate, total]);
+
+  // Effective discount: manual override wins; otherwise toggle decides between template % and 0.
+  const effectiveDiscountPct = useMemo(() => {
+    const manual = manualDiscount.trim() === "" ? null : Number(manualDiscount);
+    if (manual != null && !Number.isNaN(manual)) return Math.max(0, manual);
+    if (!paymentTemplate) return 0;
+    return applyTemplateDiscount ? paymentTemplate.discount_pct : 0;
+  }, [manualDiscount, applyTemplateDiscount, paymentTemplate]);
+
+  const scheduleResult = useMemo(() => {
+    if (!paymentTemplate) return { schedule: [], finalTotal: total, discount: 0, discountPct: 0 };
+    return buildSchedule(paymentTemplate, total, new Date(), effectiveDiscountPct);
+  }, [paymentTemplate, total, effectiveDiscountPct]);
+  const schedule = scheduleResult.schedule;
+  const discountAmount = scheduleResult.discount;
+  const finalTotal = scheduleResult.finalTotal;
 
   const salesperson = salespeople.find(s => s.id === salespersonId);
   const contact = contacts.find(c => c.id === contactId) || null;
@@ -213,6 +245,7 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
       salesperson_id: salespersonId || null,
       payment_template_id: paymentTemplateId || null,
       payment_schedule: schedule as never,
+      applied_discount_pct: effectiveDiscountPct,
       freight_terms: freight,
       validity_days: validityDays,
       intro_paragraph: intro,
@@ -220,6 +253,50 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
       contact_id: contactId !== "none" ? contactId : null,
       proposal_status: "rascunho",
     } as never).eq("id", sale.id);
+  };
+
+  const handleGenerateAIWarranty = async (idx: number, saveAsTemplate: boolean) => {
+    const item = items[idx];
+    if (!item) return;
+    const partId = (sale?.sale_items || [])[idx]?.part_id || null;
+    const meta = partId ? partMeta[partId] : null;
+    setAiLoadingIdx(idx);
+    try {
+      const result = await aiWarranty.mutateAsync({
+        material: item.material,
+        description: item.description,
+        condition: item.condition,
+        part_category: meta?.part_category ?? null,
+        subcategory: meta?.subcategory ?? null,
+        manufacturer: meta?.manufacturer ?? null,
+        machine_model: meta?.machine_model ?? null,
+      });
+      const text = [
+        result.intro_text,
+        result.conditions.length ? "\nCondições:\n- " + result.conditions.join("\n- ") : "",
+        result.exclusions.length ? "\nExclusões:\n- " + result.exclusions.join("\n- ") : "",
+      ].filter(Boolean).join("\n");
+      updateItem(idx, {
+        warranty_custom_months: result.months,
+        warranty_custom_text: text,
+      });
+      if (saveAsTemplate) {
+        upsertWarranty.mutate({
+          name: result.suggested_name,
+          months: result.months,
+          intro_text: result.intro_text,
+          conditions: result.conditions,
+          exclusions: result.exclusions,
+          default_for_category: meta?.part_category ?? null,
+          active: true,
+        });
+      }
+      toast.success("Garantia gerada por IA!");
+    } catch {
+      // toast already shown by hook
+    } finally {
+      setAiLoadingIdx(null);
+    }
   };
 
   const handleSaveDraft = async () => {
@@ -324,7 +401,21 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                           </div>
                         </div>
                         <div>
-                          <Label className="text-[10px]">Garantia (template)</Label>
+                          <div className="flex items-center justify-between mb-1">
+                            <Label className="text-[10px]">Garantia (template)</Label>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] gap-1"
+                              disabled={aiLoadingIdx === idx}
+                              onClick={() => handleGenerateAIWarranty(idx, false)}
+                              title="Gerar texto de garantia personalizado para este item via IA"
+                            >
+                              {aiLoadingIdx === idx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                              Gerar com IA
+                            </Button>
+                          </div>
                           <Select value={it.warranty_template?.id || "none"} onValueChange={v => {
                             if (v === "none") updateItem(idx, { warranty_template: null });
                             else updateItem(idx, { warranty_template: warranties.find(w => w.id === v) || null });
@@ -335,6 +426,18 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                               {warranties.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.months}m)</SelectItem>)}
                             </SelectContent>
                           </Select>
+                          {it.warranty_custom_text && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] mt-1"
+                              onClick={() => handleGenerateAIWarranty(idx, true)}
+                              disabled={aiLoadingIdx === idx}
+                            >
+                              + Salvar este texto como novo template
+                            </Button>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -361,10 +464,50 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                     <Select value={paymentTemplateId} onValueChange={setPaymentTemplateId}>
                       <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                       <SelectContent>
-                        {payments.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {payments.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}{p.discount_pct > 0 ? ` (−${p.discount_pct}%)` : ""}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {paymentTemplate && (
+                    <Card className="bg-muted/40">
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-xs">Aplicar desconto do template</Label>
+                            <p className="text-[10px] text-muted-foreground">
+                              Template tem {paymentTemplate.discount_pct}% de desconto configurado.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={applyTemplateDiscount}
+                            onCheckedChange={(v) => { setApplyTemplateDiscount(v); setManualDiscount(""); }}
+                            disabled={paymentTemplate.discount_pct === 0 && manualDiscount.trim() === ""}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Desconto manual (%) — opcional</Label>
+                          <Input
+                            type="number" min={0} step={0.5}
+                            value={manualDiscount}
+                            onChange={e => setManualDiscount(e.target.value)}
+                            placeholder={`Deixe vazio para usar ${applyTemplateDiscount ? paymentTemplate.discount_pct : 0}% do template`}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t">
+                          <div><p className="text-muted-foreground">Bruto</p><p className="font-mono">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></div>
+                          <div><p className="text-muted-foreground">Desc. ({effectiveDiscountPct}%)</p><p className="font-mono text-destructive">− R$ {discountAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></div>
+                          <div><p className="text-muted-foreground">Total final</p><p className="font-mono font-bold text-primary">R$ {finalTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <div>
                     <Label>Frete</Label>
                     <Input value={freight} onChange={e => setFreight(e.target.value)} />
@@ -379,7 +522,7 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                         ))}
                       </TableBody>
                     </Table>
-                    <p className="text-right text-sm font-bold mt-2">Total: R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="text-right text-sm font-bold mt-2">Total final: R$ {finalTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                   </div>
                 </TabsContent>
 
@@ -414,7 +557,11 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
         </div>
 
         <DialogFooter className="p-3 border-t gap-2">
-          <Badge variant="outline" className="mr-auto">Total: R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
+          <Badge variant="outline" className="mr-auto">
+            {discountAmount > 0
+              ? `Total: R$ ${finalTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (desc. ${effectiveDiscountPct}%)`
+              : `Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          </Badge>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button variant="outline" onClick={handleSaveDraft} disabled={savingDraft}>
             {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Rascunho
