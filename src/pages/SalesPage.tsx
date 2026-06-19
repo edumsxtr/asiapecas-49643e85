@@ -14,6 +14,7 @@ import { Plus, Eye, Trash2, ClipboardList, FileDown, Settings } from "lucide-rea
 import QuoteRequestsTab from "@/components/quote/QuoteRequestsTab";
 import ProposalGeneratorDialog from "@/components/sales/ProposalGeneratorDialog";
 import ProposalConfigTab from "@/components/sales/ProposalConfigTab";
+import SaleItemsTable from "@/components/sales/SaleItemsTable";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   orcamento: { label: "Orçamento", variant: "outline" },
@@ -183,30 +184,8 @@ export default function SalesPage() {
               )}
               {detailSale.notes && <p className="text-sm"><span className="text-muted-foreground">Notas:</span> {detailSale.notes}</p>}
 
-              {detailSale.sale_items && detailSale.sale_items.length > 0 && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead className="text-center">Qtd</TableHead>
-                      <TableHead>Preço Unit.</TableHead>
-                      <TableHead>Subtotal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {detailSale.sale_items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono text-xs">{item.parts?.material || "—"}</TableCell>
-                        <TableCell className="text-xs">{item.parts?.description || "—"}</TableCell>
-                        <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="font-mono">R$ {item.unit_price.toLocaleString("pt-BR")}</TableCell>
-                        <TableCell className="font-mono font-medium">R$ {item.total_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <SaleItemsTable saleId={detailSale.id} items={detailSale.sale_items || []} />
+
 
               <div className="flex justify-end pt-2">
                 <Button onClick={() => { setDetailSale(null); setProposalSale(detailSale); }} className="gap-2">
