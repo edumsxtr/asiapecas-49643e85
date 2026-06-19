@@ -286,6 +286,53 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_equipment: {
         Row: {
           created_at: string
@@ -422,6 +469,13 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          address_city: string | null
+          address_complement: string | null
+          address_district: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
           city: string | null
           cnpj_cpf: string | null
           company: string | null
@@ -435,6 +489,8 @@ export type Database = {
           interest_models: string[] | null
           last_proposal_at: string | null
           last_visit_at: string | null
+          legal_name: string | null
+          municipal_registration: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -442,11 +498,20 @@ export type Database = {
           segment: string | null
           source: string | null
           state: string | null
+          state_registration: string | null
           total_invoiced: number
+          trade_name: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           city?: string | null
           cnpj_cpf?: string | null
           company?: string | null
@@ -460,6 +525,8 @@ export type Database = {
           interest_models?: string[] | null
           last_proposal_at?: string | null
           last_visit_at?: string | null
+          legal_name?: string | null
+          municipal_registration?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -467,11 +534,20 @@ export type Database = {
           segment?: string | null
           source?: string | null
           state?: string | null
+          state_registration?: string | null
           total_invoiced?: number
+          trade_name?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           city?: string | null
           cnpj_cpf?: string | null
           company?: string | null
@@ -485,6 +561,8 @@ export type Database = {
           interest_models?: string[] | null
           last_proposal_at?: string | null
           last_visit_at?: string | null
+          legal_name?: string | null
+          municipal_registration?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -492,7 +570,9 @@ export type Database = {
           segment?: string | null
           source?: string | null
           state?: string | null
+          state_registration?: string | null
           total_invoiced?: number
+          trade_name?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -776,6 +856,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_condition_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          discount_pct: number
+          entry_pct: number
+          id: string
+          installments: number
+          interval_days: number
+          kind: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          discount_pct?: number
+          entry_pct?: number
+          id?: string
+          installments?: number
+          interval_days?: number
+          kind?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          discount_pct?: number
+          entry_pct?: number
+          id?: string
+          installments?: number
+          interval_days?: number
+          kind?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_settings: {
         Row: {
           default_markup: number
@@ -800,6 +922,11 @@ export type Database = {
       proposal_settings: {
         Row: {
           address: string
+          bank_account: string | null
+          bank_agency: string | null
+          bank_cnpj: string | null
+          bank_favored: string | null
+          bank_name: string | null
           cnpj: string
           company_name: string
           default_delivery_terms: string
@@ -808,12 +935,23 @@ export type Database = {
           default_warranty_text: string
           email: string
           id: string
+          intro_paragraph: string
+          legal_company_name: string
+          legal_state_registration: string | null
+          pdf_theme: string
           phone: string
+          pix_key: string | null
           updated_at: string
           updated_by: string | null
+          website: string
         }
         Insert: {
           address?: string
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_cnpj?: string | null
+          bank_favored?: string | null
+          bank_name?: string | null
           cnpj?: string
           company_name?: string
           default_delivery_terms?: string
@@ -822,12 +960,23 @@ export type Database = {
           default_warranty_text?: string
           email?: string
           id?: string
+          intro_paragraph?: string
+          legal_company_name?: string
+          legal_state_registration?: string | null
+          pdf_theme?: string
           phone?: string
+          pix_key?: string | null
           updated_at?: string
           updated_by?: string | null
+          website?: string
         }
         Update: {
           address?: string
+          bank_account?: string | null
+          bank_agency?: string | null
+          bank_cnpj?: string | null
+          bank_favored?: string | null
+          bank_name?: string | null
           cnpj?: string
           company_name?: string
           default_delivery_terms?: string
@@ -836,9 +985,15 @@ export type Database = {
           default_warranty_text?: string
           email?: string
           id?: string
+          intro_paragraph?: string
+          legal_company_name?: string
+          legal_state_registration?: string | null
+          pdf_theme?: string
           phone?: string
+          pix_key?: string | null
           updated_at?: string
           updated_by?: string | null
+          website?: string
         }
         Relationships: []
       }
@@ -1002,34 +1157,52 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          condition: string
           created_at: string
+          description_override: string | null
           id: string
           part_id: string | null
+          pickup_address: string | null
           quantity: number
           sale_id: string
           sell_price: number
           total_price: number
           unit_price: number
+          warranty_custom_months: number | null
+          warranty_custom_text: string | null
+          warranty_template_id: string | null
         }
         Insert: {
+          condition?: string
           created_at?: string
+          description_override?: string | null
           id?: string
           part_id?: string | null
+          pickup_address?: string | null
           quantity?: number
           sale_id: string
           sell_price?: number
           total_price?: number
           unit_price?: number
+          warranty_custom_months?: number | null
+          warranty_custom_text?: string | null
+          warranty_template_id?: string | null
         }
         Update: {
+          condition?: string
           created_at?: string
+          description_override?: string | null
           id?: string
           part_id?: string | null
+          pickup_address?: string | null
           quantity?: number
           sale_id?: string
           sell_price?: number
           total_price?: number
           unit_price?: number
+          warranty_custom_months?: number | null
+          warranty_custom_text?: string | null
+          warranty_template_id?: string | null
         }
         Relationships: [
           {
@@ -1046,46 +1219,90 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sale_items_warranty_template_id_fkey"
+            columns: ["warranty_template_id"]
+            isOneToOne: false
+            referencedRelation: "warranty_templates"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sales: {
         Row: {
+          contact_id: string | null
           created_at: string
           customer_id: string | null
+          freight_terms: string
           id: string
+          intro_paragraph: string | null
           notes: string | null
+          observations: string | null
           order_number: number
           payment_method: string | null
+          payment_schedule: Json
+          payment_template_id: string | null
           payment_terms: string | null
+          proposal_number: string | null
+          proposal_status: string
           sale_date: string
+          salesperson_id: string | null
           status: string
           total_amount: number
+          validity_days: number
         }
         Insert: {
+          contact_id?: string | null
           created_at?: string
           customer_id?: string | null
+          freight_terms?: string
           id?: string
+          intro_paragraph?: string | null
           notes?: string | null
+          observations?: string | null
           order_number?: number
           payment_method?: string | null
+          payment_schedule?: Json
+          payment_template_id?: string | null
           payment_terms?: string | null
+          proposal_number?: string | null
+          proposal_status?: string
           sale_date?: string
+          salesperson_id?: string | null
           status?: string
           total_amount?: number
+          validity_days?: number
         }
         Update: {
+          contact_id?: string | null
           created_at?: string
           customer_id?: string | null
+          freight_terms?: string
           id?: string
+          intro_paragraph?: string | null
           notes?: string | null
+          observations?: string | null
           order_number?: number
           payment_method?: string | null
+          payment_schedule?: Json
+          payment_template_id?: string | null
           payment_terms?: string | null
+          proposal_number?: string | null
+          proposal_status?: string
           sale_date?: string
+          salesperson_id?: string | null
           status?: string
           total_amount?: number
+          validity_days?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_customer_id_fkey"
             columns: ["customer_id"]
@@ -1093,7 +1310,60 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_payment_template_id_fkey"
+            columns: ["payment_template_id"]
+            isOneToOne: false
+            referencedRelation: "payment_condition_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_salesperson_id_fkey"
+            columns: ["salesperson_id"]
+            isOneToOne: false
+            referencedRelation: "salespeople"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      salespeople: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string | null
+          id: string
+          is_default: boolean
+          name: string
+          phone: string | null
+          role: string
+          signature_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          phone?: string | null
+          role?: string
+          signature_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          phone?: string | null
+          role?: string
+          signature_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       stock_import_items: {
         Row: {
@@ -1542,6 +1812,45 @@ export type Database = {
         }
         Relationships: []
       }
+      warranty_templates: {
+        Row: {
+          active: boolean
+          conditions: string[]
+          created_at: string
+          default_for_category: string | null
+          exclusions: string[]
+          id: string
+          intro_text: string
+          months: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          conditions?: string[]
+          created_at?: string
+          default_for_category?: string | null
+          exclusions?: string[]
+          id?: string
+          intro_text?: string
+          months?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          conditions?: string[]
+          created_at?: string
+          default_for_category?: string | null
+          exclusions?: string[]
+          id?: string
+          intro_text?: string
+          months?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1567,6 +1876,7 @@ export type Database = {
           stock_b: number
         }[]
       }
+      generate_proposal_number: { Args: never; Returns: string }
       get_catalog_intelligence: { Args: never; Returns: Json }
       get_dashboard_stats: { Args: never; Returns: Json }
       get_distinct_values: {

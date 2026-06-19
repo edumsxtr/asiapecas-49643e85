@@ -134,7 +134,21 @@ export default function CustomersPage() {
   const openCreate = () => { setEditingId(null); setForm(emptyCustomer); setOpen(true); };
   const openEdit = (c: Customer) => {
     setEditingId(c.id);
-    setForm({ name: c.name, company: c.company, cnpj_cpf: c.cnpj_cpf, email: c.email, phone: c.phone, address: c.address, city: c.city, state: c.state, segment: c.segment, notes: c.notes });
+    setForm({
+      name: c.name, company: c.company, cnpj_cpf: c.cnpj_cpf, email: c.email, phone: c.phone,
+      address: c.address, city: c.city, state: c.state, segment: c.segment, notes: c.notes,
+      legal_name: (c as Customer & { legal_name?: string | null }).legal_name ?? null,
+      trade_name: (c as Customer & { trade_name?: string | null }).trade_name ?? null,
+      state_registration: (c as Customer & { state_registration?: string | null }).state_registration ?? null,
+      municipal_registration: (c as Customer & { municipal_registration?: string | null }).municipal_registration ?? null,
+      address_street: (c as Customer & { address_street?: string | null }).address_street ?? null,
+      address_number: (c as Customer & { address_number?: string | null }).address_number ?? null,
+      address_complement: (c as Customer & { address_complement?: string | null }).address_complement ?? null,
+      address_district: (c as Customer & { address_district?: string | null }).address_district ?? null,
+      address_city: (c as Customer & { address_city?: string | null }).address_city ?? null,
+      address_state: (c as Customer & { address_state?: string | null }).address_state ?? null,
+      address_zip: (c as Customer & { address_zip?: string | null }).address_zip ?? null,
+    } as CustomerInsert);
     setOpen(true);
   };
 
@@ -361,37 +375,56 @@ export default function CustomersPage() {
 
       {/* Single create/edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Nome *</Label><Input value={form.name || ""} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
-              <div><Label>Empresa</Label><Input value={form.company || ""} onChange={(e) => setForm((f) => ({ ...f, company: e.target.value || null }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf || ""} onChange={(e) => setForm((f) => ({ ...f, cnpj_cpf: e.target.value || null }))} /></div>
-              <div><Label>Segmento</Label>
-                <Select value={form.segment || "geral"} onValueChange={(v) => setForm((f) => ({ ...f, segment: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SEGMENTS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
-                </Select>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Identificação</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Nome / Contato principal *</Label><Input value={form.name || ""} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
+                <div><Label>Empresa (rápido)</Label><Input value={form.company || ""} onChange={(e) => setForm((f) => ({ ...f, company: e.target.value || null }))} /></div>
+                <div><Label>Razão Social</Label><Input value={form.legal_name || ""} onChange={(e) => setForm((f) => ({ ...f, legal_name: e.target.value || null }))} /></div>
+                <div><Label>Nome Fantasia</Label><Input value={form.trade_name || ""} onChange={(e) => setForm((f) => ({ ...f, trade_name: e.target.value || null }))} /></div>
+                <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf || ""} onChange={(e) => setForm((f) => ({ ...f, cnpj_cpf: e.target.value || null }))} /></div>
+                <div><Label>Inscrição Estadual</Label><Input value={form.state_registration || ""} onChange={(e) => setForm((f) => ({ ...f, state_registration: e.target.value || null }))} /></div>
+                <div><Label>Inscrição Municipal</Label><Input value={form.municipal_registration || ""} onChange={(e) => setForm((f) => ({ ...f, municipal_registration: e.target.value || null }))} /></div>
+                <div><Label>Segmento</Label>
+                  <Select value={form.segment || "geral"} onValueChange={(v) => setForm((f) => ({ ...f, segment: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{SEGMENTS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Telefone</Label><Input value={form.phone || ""} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value || null }))} /></div>
-              <div><Label>Email</Label><Input type="email" value={form.email || ""} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value || null }))} /></div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div><Label>Cidade</Label><Input value={form.city || ""} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value || null }))} /></div>
-              <div><Label>Estado</Label><Input value={form.state || ""} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value || null }))} /></div>
-              <div><Label>Status</Label>
-                <Select value={form.relationship_status || "prospect"} onValueChange={(v) => setForm((f) => ({ ...f, relationship_status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
-                </Select>
+
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Contato</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Telefone</Label><Input value={form.phone || ""} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value || null }))} /></div>
+                <div><Label>Email</Label><Input type="email" value={form.email || ""} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value || null }))} /></div>
+                <div><Label>Status</Label>
+                  <Select value={form.relationship_status || "prospect"} onValueChange={(v) => setForm((f) => ({ ...f, relationship_status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div><Label>Endereço</Label><Input value={form.address || ""} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value || null }))} /></div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Endereço Fiscal</p>
+              <div className="grid grid-cols-6 gap-3">
+                <div className="col-span-4"><Label>Rua</Label><Input value={form.address_street || ""} onChange={(e) => setForm((f) => ({ ...f, address_street: e.target.value || null }))} /></div>
+                <div className="col-span-1"><Label>Nº</Label><Input value={form.address_number || ""} onChange={(e) => setForm((f) => ({ ...f, address_number: e.target.value || null }))} /></div>
+                <div className="col-span-1"><Label>CEP</Label><Input value={form.address_zip || ""} onChange={(e) => setForm((f) => ({ ...f, address_zip: e.target.value || null }))} /></div>
+                <div className="col-span-2"><Label>Complemento</Label><Input value={form.address_complement || ""} onChange={(e) => setForm((f) => ({ ...f, address_complement: e.target.value || null }))} /></div>
+                <div className="col-span-2"><Label>Bairro</Label><Input value={form.address_district || ""} onChange={(e) => setForm((f) => ({ ...f, address_district: e.target.value || null }))} /></div>
+                <div className="col-span-2"><Label>Cidade</Label><Input value={form.address_city || form.city || ""} onChange={(e) => setForm((f) => ({ ...f, address_city: e.target.value || null, city: e.target.value || null }))} /></div>
+                <div className="col-span-1"><Label>UF</Label><Input maxLength={2} value={form.address_state || form.state || ""} onChange={(e) => setForm((f) => ({ ...f, address_state: e.target.value.toUpperCase() || null, state: e.target.value.toUpperCase() || null }))} /></div>
+                <div className="col-span-6"><Label>Endereço (livre — opcional, fallback)</Label><Input value={form.address || ""} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value || null }))} /></div>
+              </div>
+            </div>
+
             <div><Label>Observações</Label><Textarea value={form.notes || ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value || null }))} /></div>
           </div>
           <DialogFooter>
