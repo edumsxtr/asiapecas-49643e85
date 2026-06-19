@@ -3,7 +3,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE = "https://asiapecas.lovable.app";
+const SITE = "https://asiapecas.com";
 
 function slugify(s: string) {
   return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()

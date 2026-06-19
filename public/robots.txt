@@ -9,6 +9,7 @@ Allow: /cotacao/categorias
 Allow: /cotacao/modelos
 
 # Internal tools — never index
+Disallow: /painel
 Disallow: /clientes
 Disallow: /vendas
 Disallow: /pedidos
@@ -20,9 +21,12 @@ Disallow: /assistente
 Disallow: /treinamento
 Disallow: /catalogo
 Disallow: /estoque
+Disallow: /configuracoes
 Disallow: /admin/
 Disallow: /login
 Disallow: /reset-password
+Disallow: /minhas-cotacoes
+Disallow: /portal/
 
-Sitemap: https://asiapecas.lovable.app/sitemap.xml
+Sitemap: https://asiapecas.com/sitemap.xml
 Sitemap: https://ustzlgdhzgkhvyunvxyw.supabase.co/functions/v1/generate-sitemap
