@@ -157,11 +157,12 @@ function BannerCard({ banner, onUpload, uploading, onChange }: any) {
     const { error } = await supabase.from("vitrine_banners").update({
       image_url: b.image_url, title: b.title, subtitle: b.subtitle, cta_label: b.cta_label, cta_link: b.cta_link, lang: b.lang, sort_order: b.sort_order, active: b.active,
     }).eq("id", b.id);
-    if (error) toast.error(error.message); else { toast.success("Salvo"); onChange(); }
+    if (error) toast.error("Erro ao salvar: " + error.message); else { toast.success("Salvo"); onChange(); }
   };
   const remove = async () => {
     if (!confirm("Excluir este banner?")) return;
-    await supabase.from("vitrine_banners").delete().eq("id", b.id);
+    const { error } = await supabase.from("vitrine_banners").delete().eq("id", b.id);
+    if (error) toast.error("Erro ao excluir: " + error.message);
     onChange();
   };
 
