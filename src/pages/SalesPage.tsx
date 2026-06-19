@@ -29,9 +29,15 @@ export default function SalesPage() {
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [proposalSale, setProposalSale] = useState<Sale | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const { data: sales = [], isLoading } = useSales(statusFilter);
   const updateStatus = useUpdateSaleStatus();
   const deleteMut = useDeleteSale();
+
+  const totalPages = Math.max(1, Math.ceil(sales.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedSales = sales.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleDelete = () => {
     if (!deleteId) return;
@@ -99,7 +105,7 @@ export default function SalesPage() {
                       <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : sales.length === 0 ? (
                       <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma venda encontrada</TableCell></TableRow>
-                    ) : sales.map(sale => (
+                    ) : pagedSales.map(sale => (
                       <TableRow key={sale.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailSale(sale)}>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {(sale as any).order_number ? `#${(sale as any).order_number}` : sale.id.slice(0, 6)}
@@ -133,6 +139,27 @@ export default function SalesPage() {
                     ))}
                   </TableBody>
                 </Table>
+                {sales.length > pageSize && (
+                  <div className="flex items-center justify-between gap-3 p-3 border-t text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Por página</span>
+                      <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                        <SelectTrigger className="h-7 w-20"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-muted-foreground">· {sales.length} venda(s)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="h-7" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Anterior</Button>
+                      <span className="text-muted-foreground tabular-nums">Pág. {currentPage} de {totalPages}</span>
+                      <Button variant="outline" size="sm" className="h-7" disabled={currentPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Próxima</Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
