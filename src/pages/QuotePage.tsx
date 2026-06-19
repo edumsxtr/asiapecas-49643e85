@@ -38,6 +38,7 @@ export default function QuotePage() {
   const [b2bOpen, setB2bOpen] = useState(false);
 
   const { items: cartItems, addToCart, updateQty, removeItem, clearCart } = useCartSession();
+  const { user } = useAuth();
 
   const handleCategoryClick = (key: string) => {
     setCategory(prev => (prev === key ? null : key));
