@@ -44,8 +44,7 @@ type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" 
 type ViewMode = "grid" | "list";
 
 export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, subcategory, onSubcategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
-  const { user } = useAuth();
-  const showPrice = !!user;
+  useAuth(); // keep hook for session refresh
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
