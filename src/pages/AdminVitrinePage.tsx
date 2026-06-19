@@ -103,7 +103,7 @@ function BannersPanel() {
       if (error) throw error;
       const { data } = supabase.storage.from("vitrine").getPublicUrl(path);
       return data.publicUrl;
-    } catch (e: any) { toast.error(e.message); return null; }
+    } catch (e: any) { toast.error("Erro no upload: " + (e?.message || e)); return null; }
     finally { setUploading(false); }
   };
 
