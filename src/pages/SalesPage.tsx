@@ -14,6 +14,7 @@ import { Plus, Eye, Trash2, ClipboardList, FileDown, Settings } from "lucide-rea
 import QuoteRequestsTab from "@/components/quote/QuoteRequestsTab";
 import ProposalGeneratorDialog from "@/components/sales/ProposalGeneratorDialog";
 import ProposalConfigTab from "@/components/sales/ProposalConfigTab";
+import SaleItemsTable from "@/components/sales/SaleItemsTable";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   orcamento: { label: "Orçamento", variant: "outline" },
@@ -28,9 +29,15 @@ export default function SalesPage() {
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [proposalSale, setProposalSale] = useState<Sale | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const { data: sales = [], isLoading } = useSales(statusFilter);
   const updateStatus = useUpdateSaleStatus();
   const deleteMut = useDeleteSale();
+
+  const totalPages = Math.max(1, Math.ceil(sales.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedSales = sales.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleDelete = () => {
     if (!deleteId) return;
@@ -98,7 +105,7 @@ export default function SalesPage() {
                       <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                     ) : sales.length === 0 ? (
                       <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma venda encontrada</TableCell></TableRow>
-                    ) : sales.map(sale => (
+                    ) : pagedSales.map(sale => (
                       <TableRow key={sale.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailSale(sale)}>
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {(sale as any).order_number ? `#${(sale as any).order_number}` : sale.id.slice(0, 6)}
@@ -132,6 +139,27 @@ export default function SalesPage() {
                     ))}
                   </TableBody>
                 </Table>
+                {sales.length > pageSize && (
+                  <div className="flex items-center justify-between gap-3 p-3 border-t text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Por página</span>
+                      <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                        <SelectTrigger className="h-7 w-20"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-muted-foreground">· {sales.length} venda(s)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="h-7" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Anterior</Button>
+                      <span className="text-muted-foreground tabular-nums">Pág. {currentPage} de {totalPages}</span>
+                      <Button variant="outline" size="sm" className="h-7" disabled={currentPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Próxima</Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -148,7 +176,7 @@ export default function SalesPage() {
 
       {/* Sale Detail Dialog */}
       <Dialog open={!!detailSale} onOpenChange={(o) => !o && setDetailSale(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Detalhes da Venda {(detailSale as any)?.order_number ? `#${(detailSale as any).order_number}` : ""}
@@ -183,30 +211,8 @@ export default function SalesPage() {
               )}
               {detailSale.notes && <p className="text-sm"><span className="text-muted-foreground">Notas:</span> {detailSale.notes}</p>}
 
-              {detailSale.sale_items && detailSale.sale_items.length > 0 && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead className="text-center">Qtd</TableHead>
-                      <TableHead>Preço Unit.</TableHead>
-                      <TableHead>Subtotal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {detailSale.sale_items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono text-xs">{item.parts?.material || "—"}</TableCell>
-                        <TableCell className="text-xs">{item.parts?.description || "—"}</TableCell>
-                        <TableCell className="text-center">{item.quantity}</TableCell>
-                        <TableCell className="font-mono">R$ {item.unit_price.toLocaleString("pt-BR")}</TableCell>
-                        <TableCell className="font-mono font-medium">R$ {item.total_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <SaleItemsTable saleId={detailSale.id} items={detailSale.sale_items || []} />
+
 
               <div className="flex justify-end pt-2">
                 <Button onClick={() => { setDetailSale(null); setProposalSale(detailSale); }} className="gap-2">
