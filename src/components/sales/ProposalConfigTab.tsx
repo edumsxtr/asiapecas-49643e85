@@ -231,9 +231,13 @@ function WarrantySection() {
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.name}</TableCell>
                 <TableCell>{t.months}m</TableCell>
-                <TableCell className="text-xs">{t.default_for_category || "—"}</TableCell>
+                <TableCell className="text-xs">{t.default_for_category ? <Badge variant="secondary" className="text-[10px]">{t.default_for_category}</Badge> : "—"}</TableCell>
                 <TableCell className="text-xs">{t.conditions.length} cond. · {t.exclusions.length} excl.</TableCell>
                 <TableCell className="text-right"><div className="flex gap-1 justify-end">
+                  <Button size="icon" variant="ghost" title="Duplicar" onClick={() => {
+                    const { id: _id, created_at: _c, updated_at: _u, ...rest } = t;
+                    setEditing({ ...rest, name: `${t.name} (cópia)` });
+                  }}><Plus className="h-3.5 w-3.5" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => setEditing(t)}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => del.mutate(t.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div></TableCell>
