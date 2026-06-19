@@ -56,6 +56,8 @@ export default function QuotePage() {
             <a href="mailto:vendas@asiapecas.com" className="hover:text-primary">vendas@asiapecas.com</a>
             <span className="text-secondary-foreground/30">|</span>
             <a href="tel:+5531992293767" className="hover:text-primary">(31) 99229-3767</a>
+            <span className="text-secondary-foreground/30">|</span>
+            <a href="tel:+5531987334504" className="hover:text-primary">(31) 98733-4504</a>
           </div>
         </div>
       </div>

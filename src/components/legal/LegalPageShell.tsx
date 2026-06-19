@@ -123,6 +123,7 @@ export default function LegalPageShell({ title, description, canonical, updatedA
             <ul className="space-y-2 text-sm text-secondary-foreground/80">
               <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> vendas@asiapecas.com</li>
               <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (31) 99229-3767</li>
+              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (31) 98733-4504</li>
               <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Brasil — Venezuela — Guiana</li>
             </ul>
           </div>
