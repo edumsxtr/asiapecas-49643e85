@@ -20,6 +20,10 @@ export function CustomerImportsTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [confirmDel, setConfirmDel] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total = imports?.length ?? 0;
+  const paginated = useMemo(() => (imports ?? []).slice((page - 1) * pageSize, page * pageSize), [imports, page, pageSize]);
 
   return (
     <Card className="overflow-hidden">
