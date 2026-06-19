@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar, Tag } from "lucide-react";
-import QuoteHero from "@/components/quote/QuoteHero";
+
 
 const PAGE_SIZE = 9;
 
