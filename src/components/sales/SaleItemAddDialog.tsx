@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAddSaleItem } from "@/hooks/use-sale-items";
 
-type Part = { id: string; material: string; description: string; sell_price: number | null; cost_price: number | null };
+type Part = { id: string; material: string; description: string; estimated_price: number | null; consumer_price: number | null };
 
 export default function SaleItemAddDialog({
   saleId,
