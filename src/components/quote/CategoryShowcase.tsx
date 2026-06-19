@@ -82,6 +82,11 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
           ))}
         </div>
 
+        {/* Custom category images (admin-configured) */}
+        <CategoryImageStrip lang={lang} />
+
+
+
         {/* Subcategory tiles */}
         <div>
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">
