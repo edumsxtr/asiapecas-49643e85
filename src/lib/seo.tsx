@@ -76,14 +76,15 @@ export function organizationLd() {
   };
 }
 
-export function productLd(part: { material: string; description: string; manufacturer?: string | null; stock: number; estimated_price?: number; image_url?: string | null }) {
+export function productLd(part: { material: string; description: string; manufacturer?: string | null; stock: number; estimated_price?: number; image_url?: string | null; images?: string[] }) {
+  const imageList = part.images && part.images.length > 0 ? part.images : [part.image_url || DEFAULT_IMAGE];
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     name: part.description,
     sku: part.material,
     brand: part.manufacturer ? { "@type": "Brand", name: part.manufacturer } : { "@type": "Brand", name: "XCMG" },
-    image: part.image_url || DEFAULT_IMAGE,
+    image: imageList,
     offers: {
       "@type": "Offer",
       priceCurrency: "BRL",

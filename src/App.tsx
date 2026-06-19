@@ -34,6 +34,9 @@ import TrainingPage from "./pages/TrainingPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import BlogIndexPage from "./pages/BlogIndexPage";
+import BlogPostPage from "./pages/BlogPostPage";
+import SettingsBlogPage from "./pages/settings/SettingsBlogPage";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { captureUtm } from "@/lib/utm";
@@ -59,6 +62,8 @@ const App = () => {
               <Route path="/cotacao/c/:slug" element={<CategoryPublicPage />} />
               <Route path="/cotacao/m/:slug" element={<ModelPublicPage />} />
               <Route path="/cotacao/p/:material" element={<PartDetailPublicPage />} />
+              <Route path="/blog" element={<BlogIndexPage />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
@@ -69,6 +74,7 @@ const App = () => {
               <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/configuracoes/fontes" element={<ProtectedRoute><SettingsSourcesPage /></ProtectedRoute>} />
               <Route path="/configuracoes/fontes/:tipo" element={<ProtectedRoute><SettingsSourceDetailPage /></ProtectedRoute>} />
+              <Route path="/configuracoes/blog" element={<ProtectedRoute><SettingsBlogPage /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
               <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
