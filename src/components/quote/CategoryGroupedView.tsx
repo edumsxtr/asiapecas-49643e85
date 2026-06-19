@@ -109,9 +109,11 @@ export default function CategoryGroupedView({
                 onClick={() => onSelectSubcategory(g.subcategory)}
                 className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
               >
-                <span className="text-3xl">{SUBCATEGORY_ICONS[g.subcategory] ?? "📦"}</span>
+                <div className="h-11 w-11 rounded-lg bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                  {(() => { const Icon = getSubcategoryIcon(g.subcategory); return <Icon className="h-5 w-5" strokeWidth={2} />; })()}
+                </div>
                 <div>
-                  <h3 className="font-bold text-lg text-foreground font-['Space_Grotesk'] leading-tight">
+                  <h3 className="font-bold text-lg text-foreground font-display leading-tight">
                     {g.subcategory}
                   </h3>
                   <p className="text-xs text-muted-foreground">

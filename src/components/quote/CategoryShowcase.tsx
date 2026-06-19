@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { SUBCATEGORY_ICONS } from "@/lib/subcategory-rules";
+import { getSubcategoryIcon } from "@/lib/subcategory-rules";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShieldCheck, Truck, MessageCircle, FileCheck } from "lucide-react";
 import { type Lang } from "./translations";
@@ -51,7 +51,7 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
       const topSubs = Array.from(subCount.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
-        .map(([sub, cnt]) => ({ sub, cnt }));
+        .map(([sub]) => ({ sub }));
       const topMfrs = Array.from(mfrCount.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
@@ -62,17 +62,16 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
   });
 
   const heading = lang === "en" ? "Parts you'll find here" : lang === "es" ? "Repuestos que encuentras aquí" : "Peças que você encontra aqui";
-  const partsLabel = lang === "en" ? "items" : lang === "es" ? "piezas" : "itens";
   const mfrHeading = lang === "en" ? "Compatible brands" : lang === "es" ? "Marcas compatibles" : "Marcas compatíveis";
 
   return (
-    <section className="bg-background border-y">
-      <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+    <section className="bg-background border-y border-foreground/10">
+      <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
         {/* Trust strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {TRUST[lang].map((t) => (
-            <div key={t.label} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
-              <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
+            <div key={t.label} className="flex items-center gap-3 bg-white border border-foreground/10 rounded-lg px-3 py-2.5">
+              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
                 <t.icon className="h-4 w-4" />
               </div>
               <span className="text-xs font-medium text-foreground">{t.label}</span>
@@ -82,7 +81,7 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
 
         {/* Subcategory tiles */}
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold font-['Space_Grotesk'] text-foreground mb-4">
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">
             {heading}
           </h2>
           {isLoading ? (
@@ -91,17 +90,21 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {data?.topSubs.map(({ sub, cnt }) => (
-                <button
-                  key={sub}
-                  onClick={() => onSubcategoryClick(sub)}
-                  className="group relative bg-card hover:bg-primary hover:text-primary-foreground border rounded-xl p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="text-3xl mb-1.5">{SUBCATEGORY_ICONS[sub] ?? "📦"}</div>
-                  <p className="text-sm font-semibold leading-tight line-clamp-2">{sub}</p>
-                  <p className="text-[11px] opacity-70 mt-1">{cnt.toLocaleString("pt-BR")} {partsLabel}</p>
-                </button>
-              ))}
+              {data?.topSubs.map(({ sub }) => {
+                const Icon = getSubcategoryIcon(sub);
+                return (
+                  <button
+                    key={sub}
+                    onClick={() => onSubcategoryClick(sub)}
+                    className="group relative bg-white hover:bg-foreground hover:text-background border border-foreground/10 rounded-xl p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center mb-3 group-hover:bg-primary">
+                      <Icon className="h-5 w-5" strokeWidth={2} />
+                    </div>
+                    <p className="text-sm font-display font-semibold leading-tight line-clamp-2">{sub}</p>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -109,10 +112,15 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
         {/* Compatible manufacturers strip */}
         {data && data.topMfrs.length > 0 && (
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{mfrHeading}</p>
+            <p className="text-[11px] font-display font-semibold uppercase tracking-[0.2em] text-foreground/70 mb-3">
+              {mfrHeading}
+            </p>
             <div className="flex flex-wrap gap-2">
               {data.topMfrs.map((m) => (
-                <div key={m} className="px-3 py-1.5 bg-muted/60 rounded-full text-xs font-semibold text-secondary-foreground/80 border">
+                <div
+                  key={m}
+                  className="px-4 py-2 bg-white border border-foreground/15 rounded-full text-sm font-display font-semibold tracking-wide text-foreground hover:border-primary transition-colors"
+                >
                   {m}
                 </div>
               ))}
