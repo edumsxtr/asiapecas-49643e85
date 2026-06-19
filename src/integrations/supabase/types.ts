@@ -357,6 +357,33 @@ export type Database = {
         }
         Relationships: []
       }
+      category_media: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          headline: string | null
+          image_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          headline?: string | null
+          image_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          headline?: string | null
+          image_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversion_events: {
         Row: {
           created_at: string
