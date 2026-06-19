@@ -396,7 +396,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                     <TableHead className="w-[80px]"></TableHead>
                     <TableHead>{lang === "pt" ? "Produto" : lang === "en" ? "Product" : "Producto"}</TableHead>
                     <TableHead className="hidden md:table-cell">{lang === "pt" ? "Modelo" : lang === "en" ? "Model" : "Modelo"}</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">{showPrice ? (lang === "pt" ? "Preço" : lang === "en" ? "Price" : "Precio") : tr("part.availability", lang)}</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">{tr("part.availability", lang)}</TableHead>
                     <TableHead className="text-right">{lang === "pt" ? "Estoque" : lang === "en" ? "Stock" : "Stock"}</TableHead>
                     <TableHead className="text-right w-[160px]">{lang === "pt" ? "Ações" : lang === "en" ? "Actions" : "Acciones"}</TableHead>
                   </TableRow>
