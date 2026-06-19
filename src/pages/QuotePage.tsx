@@ -87,6 +87,17 @@ export default function QuotePage() {
               <Building2 className="h-3.5 w-3.5" />
               {lang === "en" ? "I'm a business" : lang === "es" ? "Soy empresa" : "Sou empresa"}
             </button>
+            {user ? (
+              <Link to="/minhas-cotacoes" className="text-xs text-secondary-foreground/80 hover:text-primary transition-colors border border-secondary-foreground/20 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                Minhas cotações
+              </Link>
+            ) : (
+              <Link to="/portal/login" className="text-xs text-secondary-foreground/80 hover:text-primary transition-colors border border-secondary-foreground/20 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+                <LogIn className="h-3.5 w-3.5" />
+                Entrar
+              </Link>
+            )}
             <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
               {tr("header.contact", lang)}
             </a>
