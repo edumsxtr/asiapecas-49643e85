@@ -17,6 +17,19 @@ import { toast } from "sonner";
 export default function AdminVitrinePage() {
   const isAdmin = useIsAdmin();
   const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const handleBootstrap = async () => {
+    const { data, error } = await supabase.rpc("bootstrap_admin" as any);
+    if (error) { toast.error(error.message); return; }
+    if (data === true) {
+      toast.success("Você agora é administrador. Recarregando...");
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      toast.error("Já existe um administrador. Peça acesso a ele.");
+    }
+    qc.invalidateQueries();
+  };
 
   if (!user) return <AppLayout><div className="p-6">Faça login.</div></AppLayout>;
   if (!isAdmin) {
@@ -25,7 +38,9 @@ export default function AdminVitrinePage() {
         <div className="p-6 max-w-2xl mx-auto text-center space-y-4">
           <ShieldAlert className="h-12 w-12 text-destructive mx-auto" />
           <h1 className="text-2xl font-bold">Acesso restrito</h1>
-          <p className="text-muted-foreground">Você precisa ter a função <code className="bg-muted px-1.5 py-0.5 rounded">admin</code> para gerenciar a vitrine. Peça a um administrador para te adicionar via tabela <code className="bg-muted px-1.5 py-0.5 rounded">user_roles</code>.</p>
+          <p className="text-muted-foreground">Você precisa ter a função <code className="bg-muted px-1.5 py-0.5 rounded">admin</code> para gerenciar a vitrine.</p>
+          <p className="text-xs text-muted-foreground">Se a sua instalação ainda não tem nenhum administrador, você pode se promover agora (funciona apenas uma vez).</p>
+          <Button onClick={handleBootstrap}>Tornar-me administrador (primeiro acesso)</Button>
           <p className="text-xs text-muted-foreground">Seu user id: <code className="bg-muted px-1.5 py-0.5 rounded">{user.id}</code></p>
         </div>
       </AppLayout>
