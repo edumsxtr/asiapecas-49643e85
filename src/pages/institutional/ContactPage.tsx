@@ -21,13 +21,13 @@ export default function ContactPage() {
     setLoading(true);
     const { error } = await supabase.from("quote_requests").insert({
       customer_name: form.name,
-      customer_email: form.email,
-      customer_phone: form.phone,
-      customer_company: form.company,
+      email: form.email,
+      phone: form.phone,
+      company: form.company,
       notes: `[CONTATO] ${form.notes}`,
-      items: [] as any,
-      status: "new",
-    } as any);
+      items: [],
+      status: "pendente",
+    });
     setLoading(false);
     if (error) {
       toast.error("Não foi possível enviar a mensagem. Tente novamente.");
