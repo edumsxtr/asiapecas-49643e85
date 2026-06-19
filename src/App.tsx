@@ -37,6 +37,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PortalLoginPage from "./pages/portal/PortalLoginPage";
 import PortalSignupPage from "./pages/portal/PortalSignupPage";
 import MyQuotesPage from "./pages/portal/MyQuotesPage";
+import BannersPage from "./pages/portal/BannersPage";
+import VitrinePage from "./pages/portal/VitrinePage";
 import BlogIndexPage from "./pages/BlogIndexPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import SettingsBlogPage from "./pages/settings/SettingsBlogPage";
@@ -68,6 +70,8 @@ const App = () => {
             <Routes>
               {/* Public routes */}
               <Route path="/cotacao" element={<QuotePage />} />
+              <Route path="/cotacao/banners" element={<BannersPage />} />
+              <Route path="/cotacao/vitrine" element={<VitrinePage />} />
               <Route path="/cotacao/categorias" element={<CategoriesIndexPage />} />
               <Route path="/cotacao/modelos" element={<ModelsIndexPage />} />
               <Route path="/cotacao/c/:slug" element={<CategoryPublicPage />} />

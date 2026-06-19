@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Loader2, ShieldAlert, Search, ExternalLink, Tag, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { CategoryMediaTab } from "@/components/admin/CategoryMediaTab";
 
 export default function AdminVitrinePage() {
   const isAdmin = useIsAdmin();
@@ -66,6 +67,7 @@ export default function AdminVitrinePage() {
           <TabsList>
             <TabsTrigger value="banners">Banners</TabsTrigger>
             <TabsTrigger value="featured">Destaques</TabsTrigger>
+            <TabsTrigger value="categories">Imagens por categoria</TabsTrigger>
             <TabsTrigger value="promotions">Promoções</TabsTrigger>
             <TabsTrigger value="settings">Tracking & Settings</TabsTrigger>
             <TabsTrigger value="leads">Leads B2B</TabsTrigger>
@@ -73,6 +75,7 @@ export default function AdminVitrinePage() {
 
           <TabsContent value="banners" className="mt-4"><BannersPanel /></TabsContent>
           <TabsContent value="featured" className="mt-4"><FeaturedPanel /></TabsContent>
+          <TabsContent value="categories" className="mt-4"><CategoryMediaTab /></TabsContent>
           <TabsContent value="promotions" className="mt-4"><PromotionsPanel /></TabsContent>
           <TabsContent value="settings" className="mt-4"><SettingsPanel /></TabsContent>
           <TabsContent value="leads" className="mt-4"><LeadsPanel /></TabsContent>
