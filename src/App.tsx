@@ -27,6 +27,7 @@ import ModelPublicPage from "./pages/ModelPublicPage";
 import CategoriesIndexPage from "./pages/CategoriesIndexPage";
 import ModelsIndexPage from "./pages/ModelsIndexPage";
 import AdminVitrinePage from "./pages/AdminVitrinePage";
+import AdminSourcesPage from "./pages/AdminSourcesPage";
 import TrainingPage from "./pages/TrainingPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import LoginPage from "./pages/LoginPage";
@@ -62,6 +63,7 @@ const App = () => {
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/admin/vitrine" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
+              <Route path="/admin/fontes" element={<ProtectedRoute><AdminSourcesPage /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
               <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
