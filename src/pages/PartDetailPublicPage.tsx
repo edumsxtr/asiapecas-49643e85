@@ -10,6 +10,8 @@ import { useCartSession } from "@/hooks/use-cart-session";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 import { useEffect } from "react";
+import { usePartImages } from "@/hooks/use-part-images";
+import { PartImageCarousel } from "@/components/quote/PartImageCarousel";
 
 export default function PartDetailPublicPage() {
   const { material } = useParams<{ material: string }>();
