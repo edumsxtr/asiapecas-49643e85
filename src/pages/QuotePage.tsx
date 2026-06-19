@@ -13,12 +13,14 @@ import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
 import { BlogHighlightStrip } from "@/components/quote/BlogHighlightStrip";
-import { Search, ClipboardList, Send, MessageCircle, Menu, Building2 } from "lucide-react";
+import { Search, ClipboardList, Send, MessageCircle, Menu, Building2, User, LogIn } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
 import { SEO, organizationLd } from "@/lib/seo";
 import asiaLogo from "@/assets/asia-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCartSession } from "@/hooks/use-cart-session";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 const LANG_FLAGS: { lang: Lang; label: string }[] = [
   { lang: "pt", label: "PT" },
