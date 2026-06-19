@@ -41,8 +41,6 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Catálogo", url: "/catalogo", icon: Package },
-  { title: "Categorias", url: "/catalogo/categorias", icon: Tags },
-  { title: "Estoque", url: "/estoque", icon: TrendingUp },
 ];
 
 const crmItems = [
@@ -55,10 +53,7 @@ const crmItems = [
 
 const toolItems = [
   { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
-  { title: "Relatório Executivo", url: "/relatorio", icon: FileBarChart },
   { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
-  { title: "Vitrine (Admin)", url: "/admin/vitrine", icon: Sparkles },
-  { title: "Treinamento", url: "/treinamento", icon: GraduationCap },
   { title: "Manutenção", url: "/manutencao", icon: Wrench },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
   { title: "Fontes de Dados", url: "/admin/fontes", icon: Database },
