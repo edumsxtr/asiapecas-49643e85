@@ -57,6 +57,8 @@ export default function PartDetailPublicPage() {
     },
   });
 
+  const { data: extraImages = [] } = usePartImages(part?.id);
+
   useEffect(() => { if (part) track.viewItem(part); }, [part]);
 
   if (isLoading) {
