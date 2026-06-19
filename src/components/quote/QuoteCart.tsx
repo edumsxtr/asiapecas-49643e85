@@ -158,22 +158,33 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang 
       customerId = created?.id || null;
     }
 
-    const { error } = await supabase.from("quote_requests").insert({
+    const { data: quoteRow, error } = await supabase.from("quote_requests").insert({
       customer_name: form.name,
       company: form.trade_name || form.legal_name || null,
       cnpj_cpf: form.document,
       email: form.email,
       phone: form.phone,
-      items: items.map(({ material, quantity }) => ({ material, quantity })),
+      items: items.map(({ material, description, quantity }) => ({ material, description, quantity })),
       notes: form.notes || null,
       utm,
       auth_user_id: authUserId,
       customer_id: customerId,
       customer_payload: customerPayload,
       status: "pendente",
-    } as any);
+    } as any).select("id").single();
     setSubmitting(false);
     if (error) { toast.error(tr("cart.errorSend", lang) + ": " + error.message); return; }
+
+    // Fire-and-forget notification to sales inbox
+    supabase.functions.invoke("send-quote-notification", {
+      body: {
+        quote_id: quoteRow?.id,
+        customer: { ...customerPayload, name: form.name },
+        items: items.map(({ material, description, quantity }) => ({ material, description, quantity })),
+        notes: form.notes || null,
+      },
+    }).catch((e) => console.warn("send-quote-notification failed", e));
+
     track.generateLead("quote", { items: items.length });
     trackServerConversion({ event: "quote_lead", email: form.email, phone: form.phone, utm } as any);
     setSubmitted(true);
