@@ -281,6 +281,10 @@ export default function CustomerDetailPage() {
               )}
             </Customer360Section>
 
+            <Customer360Section id="propostas" title="Propostas / Orçamentos" icon={<FileSignature className="h-5 w-5 text-primary" />}>
+              <CustomerProposalsTab customerId={customer.id} />
+            </Customer360Section>
+
             <Customer360Section
               id="pedidos"
               title="Pedidos"
