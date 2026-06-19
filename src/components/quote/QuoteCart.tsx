@@ -201,7 +201,7 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang 
   const set = (k: keyof typeof form, v: any) => setForm(s => ({ ...s, [k]: v }));
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform">
           <ShoppingCart className="h-6 w-6" />
