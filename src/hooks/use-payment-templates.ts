@@ -71,13 +71,18 @@ export function useDeletePaymentTemplate() {
   });
 }
 
-/** Compute payment schedule from a template + total + start date. */
+/** Compute payment schedule from a template + total + start date.
+ * Pass `overrideDiscountPct` to use a custom discount (e.g. 0 to disable template discount,
+ * or a manual value). `null`/`undefined` means: use the template's own `discount_pct`.
+ */
 export function buildSchedule(
   t: PaymentTemplate,
   total: number,
   startDate: Date = new Date(),
-): { schedule: ScheduleEntry[]; finalTotal: number; discount: number } {
-  const discount = total * (t.discount_pct / 100);
+  overrideDiscountPct?: number | null,
+): { schedule: ScheduleEntry[]; finalTotal: number; discount: number; discountPct: number } {
+  const discountPct = overrideDiscountPct == null ? t.discount_pct : overrideDiscountPct;
+  const discount = total * (discountPct / 100);
   const finalTotal = total - discount;
   const schedule: ScheduleEntry[] = [];
 
@@ -114,5 +119,5 @@ export function buildSchedule(
       });
     }
   }
-  return { schedule, finalTotal, discount };
+  return { schedule, finalTotal, discount, discountPct };
 }
