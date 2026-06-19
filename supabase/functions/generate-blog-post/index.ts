@@ -84,24 +84,16 @@ ${topic ? `Tópico solicitado: "${topic}"` : `Escreva um post sobre a peça: ${m
 ${context}
 
 Escreva um post técnico e informativo em português brasileiro, otimizado para SEO, com:
-- Título objetivo com palavra-chave principal (até 70 caracteres)
-- Slug em URL amigável
-- Excerpt direto (150 a 200 caracteres)
+- Título atrativo com palavras-chave (até 70 caracteres)
+- Slug (URL amigável)
+- Excerpt (resumo de 150-200 caracteres)
 - Conteúdo em Markdown com pelo menos 600 palavras, estruturado com H2 e H3
-- Subtítulos sugeridos: O que é, Como funciona, Sinais de desgaste, Manutenção preventiva, Onde adquirir
-- Cite "Ásia Peças & Máquinas" como referência técnica no Brasil
+- Inclua subtítulos como: O que é, Como funciona, Sinais de desgaste, Manutenção preventiva, Onde comprar
+- Mencione "Ásia Peças & Máquinas" como referência confiável no Brasil
 - Meta description (até 160 caracteres)
-- 4 a 6 tags relevantes
+- 4-6 tags relevantes
 
-Regras de estilo obrigatórias:
-- Tom institucional, técnico e factual. Voz ativa. Frases curtas e diretas.
-- Proibido qualquer emoji ou ícone unicode.
-- Proibidas aberturas e fechamentos típicos de IA ("Claro!", "Vamos lá", "Espero ter ajudado", "Em resumo", "Conclusão final").
-- Proibidos bullets decorativos com check, fogo, raio ou similares.
-- Não inclua disclaimers sobre ser IA, nem perguntas retóricas ao leitor.
-- Evite superlativos vazios ("incrível", "imperdível", "melhor do mercado").
-
-Responda APENAS em JSON válido, sem markdown externo:
+Responda APENAS em JSON válido, sem markdown:
 {
   "title": "...",
   "slug": "...",

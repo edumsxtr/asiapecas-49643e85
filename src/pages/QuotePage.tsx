@@ -21,9 +21,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useCartSession } from "@/hooks/use-cart-session";
 
 const LANG_FLAGS: { lang: Lang; label: string }[] = [
-  { lang: "pt", label: "PT" },
-  { lang: "en", label: "EN" },
-  { lang: "es", label: "ES" },
+  { lang: "pt", label: "🇧🇷 PT" },
+  { lang: "en", label: "🇺🇸 EN" },
+  { lang: "es", label: "🇪🇸 ES" },
 ];
 
 export default function QuotePage() {

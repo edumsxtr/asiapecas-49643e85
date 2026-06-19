@@ -38,15 +38,6 @@ import BlogIndexPage from "./pages/BlogIndexPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import SettingsBlogPage from "./pages/settings/SettingsBlogPage";
 import NotFound from "./pages/NotFound";
-import AboutPage from "./pages/institutional/AboutPage";
-import ContactPage from "./pages/institutional/ContactPage";
-import PrivacyPage from "./pages/institutional/PrivacyPage";
-import TermsPage from "./pages/institutional/TermsPage";
-import CookiesPage from "./pages/institutional/CookiesPage";
-import WarrantyPage from "./pages/institutional/WarrantyPage";
-import ReturnsPage from "./pages/institutional/ReturnsPage";
-import ShippingPage from "./pages/institutional/ShippingPage";
-import FAQPage from "./pages/institutional/FAQPage";
 import { useEffect } from "react";
 import { captureUtm } from "@/lib/utm";
 import { initAnalytics } from "@/lib/analytics";
@@ -73,15 +64,6 @@ const App = () => {
               <Route path="/cotacao/p/:material" element={<PartDetailPublicPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
-              <Route path="/sobre" element={<AboutPage />} />
-              <Route path="/contato" element={<ContactPage />} />
-              <Route path="/politica-de-privacidade" element={<PrivacyPage />} />
-              <Route path="/termos-de-uso" element={<TermsPage />} />
-              <Route path="/politica-de-cookies" element={<CookiesPage />} />
-              <Route path="/garantia" element={<WarrantyPage />} />
-              <Route path="/trocas-e-devolucoes" element={<ReturnsPage />} />
-              <Route path="/entrega-e-frete" element={<ShippingPage />} />
-              <Route path="/faq" element={<FAQPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
