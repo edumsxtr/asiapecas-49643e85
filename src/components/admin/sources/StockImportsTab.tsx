@@ -121,6 +121,9 @@ export function StockImportsTab() {
         </TableBody>
       </Table>
 
+      <DataPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+
+
       {/* Edit metadata */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
