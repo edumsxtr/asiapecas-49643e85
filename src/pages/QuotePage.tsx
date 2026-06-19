@@ -45,8 +45,21 @@ export default function QuotePage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Sonner />
 
+      {/* Institutional top bar */}
+      <div className="hidden md:block bg-[hsl(0,0%,8%)] text-secondary-foreground/70 text-[11px] border-b border-secondary-foreground/10">
+        <div className="max-w-6xl mx-auto px-6 py-1.5 flex items-center justify-between">
+          <span className="uppercase tracking-widest">Distribuidor Autorizado XCMG — Brasil, Venezuela e Guiana</span>
+          <div className="flex items-center gap-4">
+            <a href="mailto:contato@asiapecas.com.br" className="hover:text-primary">contato@asiapecas.com.br</a>
+            <span className="text-secondary-foreground/30">|</span>
+            <a href="tel:+5595974009289" className="hover:text-primary">+55 (95) 9 7400-9289</a>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-secondary text-secondary-foreground border-b border-secondary-foreground/10">
+
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-10 w-auto rounded-lg" />
