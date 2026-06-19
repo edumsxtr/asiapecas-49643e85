@@ -74,6 +74,9 @@ const App = () => {
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/portal/login" element={<PortalLoginPage />} />
+              <Route path="/portal/cadastro" element={<PortalSignupPage />} />
+              <Route path="/minhas-cotacoes" element={<MyQuotesPage />} />
 
               {/* Institutional & legal */}
               <Route path="/sobre" element={<AboutPage />} />
