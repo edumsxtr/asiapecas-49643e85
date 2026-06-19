@@ -62,7 +62,7 @@ export default function QuotePage() {
 
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-10 w-auto rounded-lg" />
+            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-11 w-auto" />
             <div>
               <h1 className="font-bold text-sm font-['Space_Grotesk']">Ásia Peças & Máquinas</h1>
               <p className="text-[10px] text-secondary-foreground/60">{tr("header.subtitle", lang)}</p>
