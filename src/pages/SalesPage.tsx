@@ -149,7 +149,7 @@ export default function SalesPage() {
 
       {/* Sale Detail Dialog */}
       <Dialog open={!!detailSale} onOpenChange={(o) => !o && setDetailSale(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Detalhes da Venda {(detailSale as any)?.order_number ? `#${(detailSale as any).order_number}` : ""}
