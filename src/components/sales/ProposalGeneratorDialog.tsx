@@ -48,14 +48,21 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
   const [validityDays, setValidityDays] = useState(15);
   const [intro, setIntro] = useState("");
   const [paymentTemplateId, setPaymentTemplateId] = useState<string>("");
+  const [applyTemplateDiscount, setApplyTemplateDiscount] = useState<boolean>(true);
+  const [manualDiscount, setManualDiscount] = useState<string>(""); // "" = no override
   const [freight, setFreight] = useState("Por conta do comprador.");
   const [observations, setObservations] = useState("");
   const [items, setItems] = useState<ProposalItem[]>([]);
+  const [partMeta, setPartMeta] = useState<Record<string, { part_category: string | null; subcategory: string | null; manufacturer: string | null; machine_model: string | null }>>({});
+  const [aiLoadingIdx, setAiLoadingIdx] = useState<number | null>(null);
   const [proposalNumber, setProposalNumber] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>();
   const [logoBase64, setLogoBase64] = useState<string>();
+
+  const aiWarranty = useGenerateWarrantyAI();
+  const upsertWarranty = useUpsertWarrantyTemplate();
 
   useEffect(() => {
     if (!open) return;
