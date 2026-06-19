@@ -405,13 +405,6 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                   {data?.parts.map((part: any) => {
                     const desc = getDescription(part);
                     const isInCart = inCartMaterials.has(part.material);
-                    const price = Number(part.estimated_price || 0);
-                    const fmtPrice = (v: number) => {
-                      const locale = lang === "en" ? "en-US" : lang === "es" ? "es-AR" : "pt-BR";
-                      const currency = lang === "en" ? "USD" : "BRL";
-                      try { return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(v); }
-                      catch { return `R$ ${v.toFixed(2)}`; }
-                    };
                     const goToDetail = () => window.location.assign(`/cotacao/p/${encodeURIComponent(part.material)}`);
                     return (
                       <TableRow key={part.id} className="hover:bg-muted/40 cursor-pointer" onClick={goToDetail}>
@@ -428,21 +421,13 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{part.machine_model || "—"}</TableCell>
                         <TableCell className="text-right hidden sm:table-cell">
-                          {showPrice && price > 0 ? (
-                            <span className="text-sm font-semibold text-foreground">{fmtPrice(price)}</span>
-                          ) : showPrice ? (
-                            <span className="text-xs text-muted-foreground italic">
-                              {lang === "en" ? "On request" : lang === "es" ? "Bajo consulta" : "Sob consulta"}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">
-                              {part.stock > 10
-                                ? (lang === "en" ? "Ready to ship" : lang === "es" ? "Entrega inmediata" : "Pronta entrega")
-                                : part.stock > 0
-                                ? `${lang === "en" ? "Last" : lang === "es" ? "Últimas" : "Últimas"} ${part.stock}`
-                                : tr("part.priceOnRequest", lang)}
-                            </span>
-                          )}
+                          <span className="text-xs text-muted-foreground italic">
+                            {part.stock > 10
+                              ? (lang === "en" ? "Ready to ship" : lang === "es" ? "Entrega inmediata" : "Pronta entrega")
+                              : part.stock > 0
+                              ? `${lang === "en" ? "Last" : lang === "es" ? "Últimas" : "Últimas"} ${part.stock}`
+                              : tr("part.priceOnRequest", lang)}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right">
                           {part.stock > 10 ? (
