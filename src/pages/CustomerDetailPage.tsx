@@ -225,6 +225,10 @@ export default function CustomerDetailPage() {
               </div>
             </Customer360Section>
 
+            <Customer360Section id="contatos" title="Contatos da empresa" icon={<Users className="h-5 w-5 text-primary" />}>
+              <CustomerContactsTab customerId={customer.id} />
+            </Customer360Section>
+
             <Customer360Section id="ia" title="Informações complementares" icon={<InfoIcon className="h-5 w-5 text-primary" />}>
               <EnrichmentPanel customer={customer} />
             </Customer360Section>
