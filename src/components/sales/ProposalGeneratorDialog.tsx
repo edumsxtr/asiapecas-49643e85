@@ -557,7 +557,11 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
         </div>
 
         <DialogFooter className="p-3 border-t gap-2">
-          <Badge variant="outline" className="mr-auto">Total: R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
+          <Badge variant="outline" className="mr-auto">
+            {discountAmount > 0
+              ? `Total: R$ ${finalTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (desc. ${effectiveDiscountPct}%)`
+              : `Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          </Badge>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button variant="outline" onClick={handleSaveDraft} disabled={savingDraft}>
             {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Rascunho
