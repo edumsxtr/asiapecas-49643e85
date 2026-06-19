@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 // Sheet primitives are used inside Customer360Section
 import {
   ArrowLeft, Mail, Phone, MapPin, Building2, Info as InfoIcon, Plus, Target, ShoppingCart,
-  Wrench, Receipt, LifeBuoy, FileText, BadgeCheck,
+  Wrench, Receipt, LifeBuoy, FileText, BadgeCheck, Users, FileSignature,
 } from "lucide-react";
 import {
   useCustomerById, useCustomerEquipment, useCustomerInvoices, useProspectFromCustomer,
@@ -22,12 +22,16 @@ import { CustomerAfterSalesTab } from "@/components/customers/CustomerAfterSales
 import { CustomerProspectionTab } from "@/components/customers/CustomerProspectionTab";
 import { Customer360Section } from "@/components/customers/Customer360Section";
 import { WhatsAppButton } from "@/components/customers/WhatsAppButton";
+import { CustomerContactsTab } from "@/components/customers/CustomerContactsTab";
+import { CustomerProposalsTab } from "@/components/customers/CustomerProposalsTab";
 
 const SECTIONS = [
   { id: "contato", label: "Contato", icon: Phone },
+  { id: "contatos", label: "Contatos", icon: Users },
   { id: "ia", label: "Informações", icon: InfoIcon },
   { id: "equipamentos", label: "Equipamentos", icon: Wrench },
   { id: "faturamento", label: "Faturamento", icon: Receipt },
+  { id: "propostas", label: "Propostas", icon: FileSignature },
   { id: "pedidos", label: "Pedidos", icon: ShoppingCart },
   { id: "posvenda", label: "Pós-venda", icon: LifeBuoy },
   { id: "prospeccao", label: "Prospecção", icon: Target },
