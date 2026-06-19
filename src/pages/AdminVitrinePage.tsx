@@ -17,6 +17,19 @@ import { toast } from "sonner";
 export default function AdminVitrinePage() {
   const isAdmin = useIsAdmin();
   const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const handleBootstrap = async () => {
+    const { data, error } = await supabase.rpc("bootstrap_admin" as any);
+    if (error) { toast.error(error.message); return; }
+    if (data === true) {
+      toast.success("Você agora é administrador. Recarregando...");
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      toast.error("Já existe um administrador. Peça acesso a ele.");
+    }
+    qc.invalidateQueries();
+  };
 
   if (!user) return <AppLayout><div className="p-6">Faça login.</div></AppLayout>;
   if (!isAdmin) {
@@ -25,7 +38,9 @@ export default function AdminVitrinePage() {
         <div className="p-6 max-w-2xl mx-auto text-center space-y-4">
           <ShieldAlert className="h-12 w-12 text-destructive mx-auto" />
           <h1 className="text-2xl font-bold">Acesso restrito</h1>
-          <p className="text-muted-foreground">Você precisa ter a função <code className="bg-muted px-1.5 py-0.5 rounded">admin</code> para gerenciar a vitrine. Peça a um administrador para te adicionar via tabela <code className="bg-muted px-1.5 py-0.5 rounded">user_roles</code>.</p>
+          <p className="text-muted-foreground">Você precisa ter a função <code className="bg-muted px-1.5 py-0.5 rounded">admin</code> para gerenciar a vitrine.</p>
+          <p className="text-xs text-muted-foreground">Se a sua instalação ainda não tem nenhum administrador, você pode se promover agora (funciona apenas uma vez).</p>
+          <Button onClick={handleBootstrap}>Tornar-me administrador (primeiro acesso)</Button>
           <p className="text-xs text-muted-foreground">Seu user id: <code className="bg-muted px-1.5 py-0.5 rounded">{user.id}</code></p>
         </div>
       </AppLayout>
@@ -88,13 +103,13 @@ function BannersPanel() {
       if (error) throw error;
       const { data } = supabase.storage.from("vitrine").getPublicUrl(path);
       return data.publicUrl;
-    } catch (e: any) { toast.error(e.message); return null; }
+    } catch (e: any) { toast.error("Erro no upload: " + (e?.message || e)); return null; }
     finally { setUploading(false); }
   };
 
   const create = async () => {
     const { error } = await supabase.from("vitrine_banners").insert({ image_url: "", title: "Novo banner", lang: "pt", sort_order: (banners?.length || 0), active: false });
-    if (error) toast.error(error.message); else qc.invalidateQueries({ queryKey: ["admin-banners"] });
+    if (error) toast.error("Erro ao criar banner: " + error.message); else qc.invalidateQueries({ queryKey: ["admin-banners"] });
   };
 
   return (
@@ -142,11 +157,12 @@ function BannerCard({ banner, onUpload, uploading, onChange }: any) {
     const { error } = await supabase.from("vitrine_banners").update({
       image_url: b.image_url, title: b.title, subtitle: b.subtitle, cta_label: b.cta_label, cta_link: b.cta_link, lang: b.lang, sort_order: b.sort_order, active: b.active,
     }).eq("id", b.id);
-    if (error) toast.error(error.message); else { toast.success("Salvo"); onChange(); }
+    if (error) toast.error("Erro ao salvar: " + error.message); else { toast.success("Salvo"); onChange(); }
   };
   const remove = async () => {
     if (!confirm("Excluir este banner?")) return;
-    await supabase.from("vitrine_banners").delete().eq("id", b.id);
+    const { error } = await supabase.from("vitrine_banners").delete().eq("id", b.id);
+    if (error) toast.error("Erro ao excluir: " + error.message);
     onChange();
   };
 

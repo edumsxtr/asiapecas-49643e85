@@ -13,12 +13,14 @@ import QuoteFAQ from "@/components/quote/QuoteFAQ";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuoteChat from "@/components/quote/QuoteChat";
 import { BlogHighlightStrip } from "@/components/quote/BlogHighlightStrip";
-import { Search, ClipboardList, Send, MessageCircle, Menu, Building2 } from "lucide-react";
+import { Search, ClipboardList, Send, MessageCircle, Menu, Building2, User, LogIn } from "lucide-react";
 import { type Lang, tr } from "@/components/quote/translations";
 import { SEO, organizationLd } from "@/lib/seo";
 import asiaLogo from "@/assets/asia-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCartSession } from "@/hooks/use-cart-session";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 const LANG_FLAGS: { lang: Lang; label: string }[] = [
   { lang: "pt", label: "PT" },
@@ -36,6 +38,7 @@ export default function QuotePage() {
   const [b2bOpen, setB2bOpen] = useState(false);
 
   const { items: cartItems, addToCart, updateQty, removeItem, clearCart } = useCartSession();
+  const { user } = useAuth();
 
   const handleCategoryClick = (key: string) => {
     setCategory(prev => (prev === key ? null : key));
@@ -84,6 +87,17 @@ export default function QuotePage() {
               <Building2 className="h-3.5 w-3.5" />
               {lang === "en" ? "I'm a business" : lang === "es" ? "Soy empresa" : "Sou empresa"}
             </button>
+            {user ? (
+              <Link to="/minhas-cotacoes" className="text-xs text-secondary-foreground/80 hover:text-primary transition-colors border border-secondary-foreground/20 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                Minhas cotações
+              </Link>
+            ) : (
+              <Link to="/portal/login" className="text-xs text-secondary-foreground/80 hover:text-primary transition-colors border border-secondary-foreground/20 rounded-lg px-3 py-2 inline-flex items-center gap-1.5">
+                <LogIn className="h-3.5 w-3.5" />
+                Entrar
+              </Link>
+            )}
             <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity">
               {tr("header.contact", lang)}
             </a>

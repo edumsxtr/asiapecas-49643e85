@@ -34,6 +34,9 @@ import TrainingPage from "./pages/TrainingPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import PortalLoginPage from "./pages/portal/PortalLoginPage";
+import PortalSignupPage from "./pages/portal/PortalSignupPage";
+import MyQuotesPage from "./pages/portal/MyQuotesPage";
 import BlogIndexPage from "./pages/BlogIndexPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import SettingsBlogPage from "./pages/settings/SettingsBlogPage";
@@ -74,6 +77,9 @@ const App = () => {
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/portal/login" element={<PortalLoginPage />} />
+              <Route path="/portal/cadastro" element={<PortalSignupPage />} />
+              <Route path="/minhas-cotacoes" element={<MyQuotesPage />} />
 
               {/* Institutional & legal */}
               <Route path="/sobre" element={<AboutPage />} />

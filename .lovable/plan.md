@@ -1,60 +1,90 @@
 ## Objetivo
+Resolver 4 problemas: (1) admin de Banners/Vitrine não salva; (2) portal mostra agrupamento por categoria com "A partir de" no lugar de páginas; (3) formulário de cotação coleta poucos dados; (4) cliente não tem conta para acompanhar cotações.
 
-Refinar o Portal do Cliente (`/cotacao`) deixando-o estritamente preto, amarelo e branco, sem emojis, e com tipografia mais moderna e institucional alinhada à logo Ásia Peças.
+---
 
-## 1. Remover emojis do portal
+## 1. Banners & Vitrine — funcionar de verdade
 
-- `src/lib/subcategory-rules.ts` — remover o mapa `SUBCATEGORY_ICONS` (todas as entradas com emoji). Substituir o export por um helper `getSubcategoryIcon(sub)` que devolve um ícone vetorial do `lucide-react` (ex.: `Cog`, `Droplet`, `Zap`, `Wrench`, `CircleDot`, `Gauge`, `Snowflake`, `Battery`, `Lightbulb`, `Filter`, `Package`) com fallback `Package`.
-- `src/components/quote/CategoryShowcase.tsx` — trocar o `<div className="text-3xl">{emoji}</div>` por `<Icon className="h-6 w-6 text-primary" />` usando o helper. Remover a legenda secundária do título (deixar apenas "Peças que você encontra aqui" sem subtítulo/contagem decorativa? — manter apenas o título do bloco, conforme pedido: "retire das legendas do peças que você encontra aqui"). Remover o parágrafo `{cnt} {partsLabel}` dos tiles.
-- `src/components/quote/CategoryGroupedView.tsx` — mesma troca do emoji por ícone Lucide.
-- Nenhum outro arquivo do portal contém emoji (varredura confirmada).
+**Diagnóstico:** A página existe em `/configuracoes/banners` (`AdminVitrinePage.tsx`), mas:
+- Requer role `admin` em `user_roles` — se você não tem, a tela mostra "Acesso restrito" (mensagem atual é genérica).
+- O bucket de Storage `vitrine` pode não existir, fazendo o upload falhar silenciosamente.
+- Faltam `GRANT` em `vitrine_banners` / `vitrine_featured_parts` / `part_promotions` / `vitrine_settings` (RLS está, mas Data API exige GRANT).
 
-## 2. Tipografia mais moderna (logo Ásia)
+**Ações:**
+- Migração: criar bucket `vitrine` (público) se não existir; adicionar `GRANT SELECT, INSERT, UPDATE, DELETE ON public.vitrine_* TO authenticated; GRANT SELECT ON ... TO anon; GRANT ALL ... TO service_role`.
+- Melhorar mensagens de erro do `BannerCard.save` e do upload (mostrar erro real do Supabase no toast).
+- Adicionar botão "Promover meu usuário a admin" só visível ao primeiro admin / quando não há nenhum — usuário já logado pode se auto-promover via RPC `bootstrap_admin()` que só funciona se `user_roles` estiver vazia.
 
-- `src/index.css`:
-  - Trocar o import do Google Fonts para `Manrope` (400–800) como corpo e `Sora` (500–800) como display — pareamento geométrico e técnico que combina com o lettering reto da logo Ásia. Manter `Space Grotesk` removido das referências hardcoded.
-  - `body { font-family: 'Manrope', sans-serif; }`
-  - `h1..h6 { font-family: 'Sora', sans-serif; letter-spacing: -0.01em; }`
-  - Adicionar utilitário `.font-display { font-family: 'Sora', sans-serif; }`.
-- Substituir todas as ocorrências de `font-['Space_Grotesk']` no portal (`QuotePage.tsx`, `CategoryShowcase.tsx`, e demais componentes em `src/components/quote/*`) por `font-display`.
-- `CategoryShowcase.tsx` "Marcas compatíveis": aumentar peso e tracking — `text-[11px] font-display font-semibold uppercase tracking-[0.2em] text-foreground/70` no rótulo, e cada chip em `font-display font-semibold tracking-wide text-sm bg-white border border-foreground/15 text-foreground`.
+## 2. Portal `/cotacao` — paginação obrigatória, sem preço sugerido
 
-## 3. Tema preto, amarelo e branco
+**Mudanças em `QuoteCatalog.tsx`:**
+- Remover o modo `isUnfilteredDefault` → `CategoryGroupedView`. Sempre renderizar a grade paginada (12 por página, com numeração já existente).
+- Manter `CategoryShowcase` no topo como navegação por categoria (clique aplica filtro).
 
-Em `src/index.css` (apenas tokens `:root` — modo claro do portal):
+**Mudanças em `QuotePartCard.tsx` e na view "lista" de `QuoteCatalog.tsx`:**
+- Remover totalmente exibição de preço, "A partir de / From / Desde", riscado e percentual de desconto para qualquer visitante (logado ou não).
+- Em vez disso, mostrar apenas: status de disponibilidade ("Pronta entrega", "Últimas N unidades", "Sob consulta") e selo "Em promoção" quando aplicável (sem valor).
+- Remover opções de ordenação por preço.
+- `FeaturedStrip` e `PromoBanner`: tirar qualquer referência a "a partir de" ou números monetários.
 
-- `--background: 0 0% 100%`  (branco puro)
-- `--foreground: 0 0% 8%`     (preto)
-- `--card: 0 0% 100%`
-- `--muted: 0 0% 96%` / `--muted-foreground: 0 0% 35%`
-- `--border: 0 0% 90%` / `--input: 0 0% 90%`
-- `--secondary: 0 0% 8%` / `--secondary-foreground: 0 0% 100%` (header preto)
-- `--primary: 45 100% 50%` / `--primary-foreground: 0 0% 8%` (amarelo Ásia, mantido)
-- `--accent: 45 100% 50%` / `--accent-foreground: 0 0% 8%`
-- `--ring: 45 100% 50%`
+## 3. Cadastro completo no checkout da cotação
 
-Remover o tom bege quente atual (`40 20% 97%`) que destoa do branco. Não alterar tokens do modo `.dark` (usado no painel admin).
+**`QuoteCart.tsx` — formulário expandido (espelha cadastro de cliente):**
 
-## 4. Limpezas visuais coerentes com o tema
+Campos obrigatórios:
+- Nome completo do contato, E-mail, Telefone/WhatsApp, CNPJ ou CPF.
 
-- `QuotePage.tsx`:
-  - Faixa B2B (`bg-gradient-to-r from-primary/10 via-primary/5 to-transparent`) → `bg-foreground text-background` com botão amarelo. Remove o degradê colorido.
-  - Botão flutuante WhatsApp e CTA mobile: trocar `bg-[hsl(142,71%,45%)] text-white` por `bg-primary text-primary-foreground` para manter a paleta preto/amarelo/branco.
-- `CategoryShowcase.tsx`: trust strip com `bg-white border border-foreground/10` em vez de `bg-muted/40`; ícones em círculo `bg-primary text-primary-foreground`.
+Campos da empresa (obrigatórios para PJ):
+- Razão social (`legal_name`), Nome fantasia (`trade_name`), Inscrição estadual.
 
-## Fora de escopo
+Endereço estruturado:
+- CEP (com auto-preenchimento via ViaCEP), Rua, Número, Complemento, Bairro, Cidade, UF, País.
 
-- Tradução EN/ES de novos rótulos (mantém as strings existentes).
-- Alteração de páginas internas/admin, blog ou páginas legais.
-- Refatoração do `HeroCarousel`/`FeaturedStrip` além das trocas de fonte e cor já implícitas via tokens.
+Operacionais:
+- Segmento (mineração, construção, locação, revenda, outro), Modelos de interesse (multi-select dos modelos do catálogo), Observações.
 
-## Detalhes técnicos
+Conta (opcional):
+- Checkbox "Criar conta para acompanhar minhas cotações" → campos senha + confirmar senha. Se marcado, faz signup com `supabase.auth.signUp` e vincula a cotação ao usuário.
 
-Arquivos modificados:
-- `src/index.css`
-- `src/lib/subcategory-rules.ts`
-- `src/components/quote/CategoryShowcase.tsx`
-- `src/components/quote/CategoryGroupedView.tsx`
-- `src/pages/QuotePage.tsx`
+Validação com `zod` (mensagens em PT/EN/ES). Persistir todos os campos extras em `quote_requests.customer_payload` (jsonb) **e** criar/atualizar registro em `customers` na hora.
 
-Nenhum arquivo novo, nenhuma migração de banco, nenhuma mudança em edge functions.
+## 4. Conta do cliente + acompanhamento de cotações
+
+**Migração:**
+- Adicionar `quote_requests.auth_user_id uuid references auth.users(id)`, `customer_id uuid references customers(id)`, `customer_payload jsonb`, `status_history jsonb default '[]'`, `final_proposal_sale_id uuid references sales(id)`.
+- Política RLS extra: cliente autenticado pode `SELECT` suas próprias `quote_requests` (`auth_user_id = auth.uid()`).
+- Trigger: quando `sales.status` muda para `enviado` / `aprovado` / `recusado` em um sale vinculado, atualiza `quote_requests.status` e empurra evento no `status_history`.
+
+**Frontend:**
+- Página pública `/minhas-cotacoes` (rota nova): lista cotações do usuário logado, com status (pendente, em análise, proposta enviada, aprovada, recusada), data, itens e link para PDF da proposta final (`sales.proposal_number`).
+- Cabeçalho do portal: quando não logado mostra "Entrar / Criar conta"; quando logado mostra menu com "Minhas cotações" e "Sair".
+- Página `/portal/login` e `/portal/cadastro` (separadas da área interna/admin) usando o mesmo `AuthContext`.
+- No formulário do carrinho, se já estiver logado, pré-preenche os campos a partir do `customers` vinculado.
+
+**Vendedor/Admin:**
+- Em `QuoteRequestsTab` (interno), adicionar ação "Enviar proposta final" — gera proposta (já existe fluxo de sales) e marca `final_proposal_sale_id` + status `proposta_enviada`. Cliente vê automaticamente em `/minhas-cotacoes`.
+
+---
+
+## Arquivos afetados
+
+**Novos:**
+- `supabase/migrations/<ts>_vitrine_grants_and_quote_accounts.sql`
+- `src/pages/portal/MyQuotesPage.tsx`
+- `src/pages/portal/PortalLoginPage.tsx`
+- `src/pages/portal/PortalSignupPage.tsx`
+- `src/hooks/use-my-quotes.ts`
+- `src/lib/viacep.ts`
+
+**Editados:**
+- `src/pages/AdminVitrinePage.tsx` (mensagens de erro, bootstrap admin)
+- `src/components/quote/QuoteCatalog.tsx` (remover grouped default, remover sort por preço)
+- `src/components/quote/QuotePartCard.tsx` (remover preço/A partir de)
+- `src/components/quote/FeaturedStrip.tsx`, `PromoBanner.tsx` (remover valores)
+- `src/components/quote/QuoteCart.tsx` (form completo + signup opcional)
+- `src/pages/QuotePage.tsx` (menu cliente logado / Minhas cotações)
+- `src/App.tsx` (novas rotas públicas)
+- `src/hooks/use-quote-requests.ts` (incluir novos campos)
+- `src/components/quote/QuoteRequestsTab.tsx` (ação "Enviar proposta final")
+
+**Fora de escopo:** redesign visual adicional, blog, páginas legais.

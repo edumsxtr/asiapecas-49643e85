@@ -6,7 +6,6 @@ import { ShoppingCart, Eye, Zap, AlertTriangle, Tag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { type Lang, tr } from "./translations";
 
 interface QuotePartCardProps {
@@ -23,7 +22,6 @@ interface QuotePartCardProps {
     attributes?: Record<string, any> | null;
   };
   inCart: boolean;
-  /** Kept for API compat with existing callers. No longer rendered. */
   hasAiData?: boolean;
   aiPreview?: string | null;
   onAdd: () => void;
@@ -31,32 +29,18 @@ interface QuotePartCardProps {
   lang: Lang;
 }
 
-function fmtPrice(value: number, lang: Lang): string {
-  const locale = lang === "en" ? "en-US" : lang === "es" ? "es-AR" : "pt-BR";
-  const currency = lang === "en" ? "USD" : "BRL";
-  try {
-    return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(value);
-  } catch {
-    return `R$ ${value.toFixed(2)}`;
-  }
-}
-
 export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang }: QuotePartCardProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const showPrice = !!user;
   const isReadyToShip = part.stock > 10;
   const isLastUnits = part.stock >= 1 && part.stock <= 5;
-  const price = Number(part.estimated_price || 0);
 
-  // Active promo (per-part)
   const { data: promo } = useQuery({
     queryKey: ["promo", part.id],
     queryFn: async () => {
       const nowIso = new Date().toISOString();
       const { data } = await supabase
         .from("part_promotions")
-        .select("promo_price, starts_at, ends_at")
+        .select("starts_at, ends_at")
         .eq("part_id", part.id)
         .eq("active", true)
         .order("created_at", { ascending: false })
@@ -70,22 +54,11 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
     staleTime: 5 * 60 * 1000,
   });
 
-  const promoPrice = promo?.promo_price ? Number(promo.promo_price) : null;
-  const finalPrice = promoPrice ?? price;
-  const discountPct = promoPrice && price > 0 ? Math.round((1 - promoPrice / price) * 100) : null;
+  const hasPromo = !!promo;
 
   const goToDetail = () => navigate(`/cotacao/p/${encodeURIComponent(part.material)}`);
-
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onAdd();
-  };
-  const handleQuickView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onViewDetail();
-  };
-
-  const priceLabel = lang === "en" ? "From" : lang === "es" ? "Desde" : "A partir de";
+  const handleAdd = (e: React.MouseEvent) => { e.stopPropagation(); onAdd(); };
+  const handleQuickView = (e: React.MouseEvent) => { e.stopPropagation(); onViewDetail(); };
 
   return (
     <Card
@@ -95,7 +68,6 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
       }`}
     >
       <CardContent className="p-0 flex flex-col h-full">
-        {/* Image */}
         <div className="relative aspect-square bg-muted/40 overflow-hidden">
           <img
             src={partImage(part.image_url)}
@@ -105,19 +77,15 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
             decoding="async"
           />
 
-          {/* Promo badge — show % only to authenticated internal users */}
-          {promoPrice && (
+          {hasPromo && (
             <div className="absolute top-2 left-2">
               <Badge className="bg-red-500 text-white border-0 font-bold text-[11px] px-2 shadow inline-flex items-center gap-1">
                 <Tag className="h-3 w-3" />
-                {showPrice && discountPct && discountPct > 0
-                  ? `-${discountPct}% OFERTA`
-                  : tr("part.onPromotion", lang).toUpperCase()}
+                {tr("part.onPromotion", lang).toUpperCase()}
               </Badge>
             </div>
           )}
 
-          {/* Quick view button on hover */}
           <button
             onClick={handleQuickView}
             className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/90 text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow flex items-center justify-center hover:bg-background"
@@ -128,9 +96,7 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-4 flex flex-col gap-2 flex-1">
-          {/* Brand · model chip */}
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="font-semibold text-secondary-foreground/80">{part.manufacturer || "XCMG"}</span>
             {part.machine_model && (
@@ -141,12 +107,10 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
             )}
           </div>
 
-          {/* Description */}
           <p className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
             {part.description}
           </p>
 
-          {/* Attribute chips (medida/tipo) */}
           {part.attributes && Object.keys(part.attributes).length > 0 && (
             <div className="flex flex-wrap gap-1">
               {Object.entries(part.attributes).slice(0, 2).map(([k, v]) => (
@@ -157,34 +121,9 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
             </div>
           )}
 
-          {/* Code */}
           <p className="font-mono text-[10px] text-muted-foreground/80">#{part.material}</p>
 
-          {/* Price (authenticated internal users only) — public sees "Price on request" */}
-          <div className="mt-1">
-            {showPrice && price > 0 ? (
-              <>
-                {promoPrice ? (
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-lg font-bold text-red-600">{fmtPrice(promoPrice, lang)}</span>
-                    <span className="text-xs text-muted-foreground line-through">{fmtPrice(price, lang)}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-[10px] text-muted-foreground">{priceLabel}</span>
-                    <span className="text-lg font-bold text-foreground">{fmtPrice(finalPrice, lang)}</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className="text-xs text-muted-foreground italic">
-                {tr("part.priceOnRequest", lang)}
-              </span>
-            )}
-          </div>
-
-          {/* Single contextual badge */}
-          <div className="min-h-[20px]">
+          <div className="min-h-[20px] mt-1">
             {isReadyToShip ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
                 <Zap className="h-3 w-3" /> {tr("part.readyToShip", lang)}
@@ -198,11 +137,10 @@ export default function QuotePartCard({ part, inCart, onAdd, onViewDetail, lang 
                 {part.stock} {tr("part.units", lang)}
               </span>
             ) : (
-              <span className="text-[11px] text-destructive">{tr("part.unavailable", lang)}</span>
+              <span className="text-[11px] text-muted-foreground">{tr("part.priceOnRequest", lang)}</span>
             )}
           </div>
 
-          {/* Action */}
           <Button
             size="sm"
             className="w-full gap-1.5 mt-auto"

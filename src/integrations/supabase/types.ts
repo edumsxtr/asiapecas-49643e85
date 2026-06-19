@@ -1258,51 +1258,80 @@ export type Database = {
       }
       quote_requests: {
         Row: {
+          auth_user_id: string | null
           cnpj_cpf: string | null
           company: string | null
           converted_sale_id: string | null
           created_at: string
+          customer_id: string | null
           customer_name: string
+          customer_payload: Json | null
           email: string | null
+          final_proposal_sale_id: string | null
           id: string
           items: Json
           notes: string | null
           phone: string | null
           status: string
+          status_history: Json
           utm: Json | null
         }
         Insert: {
+          auth_user_id?: string | null
           cnpj_cpf?: string | null
           company?: string | null
           converted_sale_id?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name: string
+          customer_payload?: Json | null
           email?: string | null
+          final_proposal_sale_id?: string | null
           id?: string
           items?: Json
           notes?: string | null
           phone?: string | null
           status?: string
+          status_history?: Json
           utm?: Json | null
         }
         Update: {
+          auth_user_id?: string | null
           cnpj_cpf?: string | null
           company?: string | null
           converted_sale_id?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
+          customer_payload?: Json | null
           email?: string | null
+          final_proposal_sale_id?: string | null
           id?: string
           items?: Json
           notes?: string | null
           phone?: string | null
           status?: string
+          status_history?: Json
           utm?: Json | null
         }
         Relationships: [
           {
             foreignKeyName: "quote_requests_converted_sale_id_fkey"
             columns: ["converted_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_requests_final_proposal_sale_id_fkey"
+            columns: ["final_proposal_sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
             referencedColumns: ["id"]
@@ -2017,6 +2046,7 @@ export type Database = {
         Args: { _only_missing?: boolean }
         Returns: number
       }
+      bootstrap_admin: { Args: never; Returns: boolean }
       cart_get: { Args: { p_session_id: string }; Returns: Json }
       cart_upsert: {
         Args: { p_items: Json; p_session_id: string }

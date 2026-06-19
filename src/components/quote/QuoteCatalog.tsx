@@ -44,8 +44,7 @@ type SortOption = "relevance" | "stockDesc" | "nameAsc" | "newest" | "priceAsc" 
 type ViewMode = "grid" | "list";
 
 export default function QuoteCatalog({ search, category, partCategory, onPartCategoryChange, subcategory, onSubcategoryChange, cartItems, onAddToCart, lang }: QuoteCatalogProps) {
-  const { user } = useAuth();
-  const showPrice = !!user;
+  useAuth(); // keep hook for session refresh
   const [page, setPage] = useState(0);
   const [detailPart, setDetailPart] = useState<any | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
@@ -56,10 +55,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [attrFilter, setAttrFilter] = useState<{ key: string; value: string } | null>(null);
 
-  // Show grouped view when nothing is filtered (e-commerce default)
-  const isUnfilteredDefault =
-    !search && !category && !partCategory && !subcategory && !attrFilter &&
-    manufacturer === "all" && model === "all" && availability === "all";
+  // Always show paginated grid (no grouped default)
+  const isUnfilteredDefault = false;
 
   // Fetch filter options using RPC for full distinct values (no 1000-row limit)
   const { data: filterOptions } = useQuery({
@@ -333,8 +330,6 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                   <SelectItem value="stockDesc">{tr("sort.stockDesc", lang)}</SelectItem>
                   <SelectItem value="nameAsc">{tr("sort.nameAsc", lang)}</SelectItem>
                   <SelectItem value="newest">{tr("sort.newest", lang)}</SelectItem>
-                  {showPrice && <SelectItem value="priceAsc">{tr("sort.priceAsc", lang)}</SelectItem>}
-                  {showPrice && <SelectItem value="priceDesc">{tr("sort.priceDesc", lang)}</SelectItem>}
                 </SelectContent>
               </Select>
 
@@ -400,7 +395,7 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                     <TableHead className="w-[80px]"></TableHead>
                     <TableHead>{lang === "pt" ? "Produto" : lang === "en" ? "Product" : "Producto"}</TableHead>
                     <TableHead className="hidden md:table-cell">{lang === "pt" ? "Modelo" : lang === "en" ? "Model" : "Modelo"}</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">{showPrice ? (lang === "pt" ? "Preço" : lang === "en" ? "Price" : "Precio") : tr("part.availability", lang)}</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">{tr("part.availability", lang)}</TableHead>
                     <TableHead className="text-right">{lang === "pt" ? "Estoque" : lang === "en" ? "Stock" : "Stock"}</TableHead>
                     <TableHead className="text-right w-[160px]">{lang === "pt" ? "Ações" : lang === "en" ? "Actions" : "Acciones"}</TableHead>
                   </TableRow>
@@ -409,13 +404,6 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                   {data?.parts.map((part: any) => {
                     const desc = getDescription(part);
                     const isInCart = inCartMaterials.has(part.material);
-                    const price = Number(part.estimated_price || 0);
-                    const fmtPrice = (v: number) => {
-                      const locale = lang === "en" ? "en-US" : lang === "es" ? "es-AR" : "pt-BR";
-                      const currency = lang === "en" ? "USD" : "BRL";
-                      try { return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(v); }
-                      catch { return `R$ ${v.toFixed(2)}`; }
-                    };
                     const goToDetail = () => window.location.assign(`/cotacao/p/${encodeURIComponent(part.material)}`);
                     return (
                       <TableRow key={part.id} className="hover:bg-muted/40 cursor-pointer" onClick={goToDetail}>
@@ -432,21 +420,13 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{part.machine_model || "—"}</TableCell>
                         <TableCell className="text-right hidden sm:table-cell">
-                          {showPrice && price > 0 ? (
-                            <span className="text-sm font-semibold text-foreground">{fmtPrice(price)}</span>
-                          ) : showPrice ? (
-                            <span className="text-xs text-muted-foreground italic">
-                              {lang === "en" ? "On request" : lang === "es" ? "Bajo consulta" : "Sob consulta"}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">
-                              {part.stock > 10
-                                ? (lang === "en" ? "Ready to ship" : lang === "es" ? "Entrega inmediata" : "Pronta entrega")
-                                : part.stock > 0
-                                ? `${lang === "en" ? "Last" : lang === "es" ? "Últimas" : "Últimas"} ${part.stock}`
-                                : tr("part.priceOnRequest", lang)}
-                            </span>
-                          )}
+                          <span className="text-xs text-muted-foreground italic">
+                            {part.stock > 10
+                              ? (lang === "en" ? "Ready to ship" : lang === "es" ? "Entrega inmediata" : "Pronta entrega")
+                              : part.stock > 0
+                              ? `${lang === "en" ? "Last" : lang === "es" ? "Últimas" : "Últimas"} ${part.stock}`
+                              : tr("part.priceOnRequest", lang)}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right">
                           {part.stock > 10 ? (
