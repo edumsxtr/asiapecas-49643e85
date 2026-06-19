@@ -401,7 +401,21 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                           </div>
                         </div>
                         <div>
-                          <Label className="text-[10px]">Garantia (template)</Label>
+                          <div className="flex items-center justify-between mb-1">
+                            <Label className="text-[10px]">Garantia (template)</Label>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px] gap-1"
+                              disabled={aiLoadingIdx === idx}
+                              onClick={() => handleGenerateAIWarranty(idx, false)}
+                              title="Gerar texto de garantia personalizado para este item via IA"
+                            >
+                              {aiLoadingIdx === idx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                              Gerar com IA
+                            </Button>
+                          </div>
                           <Select value={it.warranty_template?.id || "none"} onValueChange={v => {
                             if (v === "none") updateItem(idx, { warranty_template: null });
                             else updateItem(idx, { warranty_template: warranties.find(w => w.id === v) || null });
@@ -412,6 +426,18 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                               {warranties.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.months}m)</SelectItem>)}
                             </SelectContent>
                           </Select>
+                          {it.warranty_custom_text && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] mt-1"
+                              onClick={() => handleGenerateAIWarranty(idx, true)}
+                              disabled={aiLoadingIdx === idx}
+                            >
+                              + Salvar este texto como novo template
+                            </Button>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
