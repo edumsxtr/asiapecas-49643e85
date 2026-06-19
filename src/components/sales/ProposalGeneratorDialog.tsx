@@ -245,6 +245,7 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
       salesperson_id: salespersonId || null,
       payment_template_id: paymentTemplateId || null,
       payment_schedule: schedule as never,
+      applied_discount_pct: effectiveDiscountPct,
       freight_terms: freight,
       validity_days: validityDays,
       intro_paragraph: intro,
@@ -252,6 +253,50 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
       contact_id: contactId !== "none" ? contactId : null,
       proposal_status: "rascunho",
     } as never).eq("id", sale.id);
+  };
+
+  const handleGenerateAIWarranty = async (idx: number, saveAsTemplate: boolean) => {
+    const item = items[idx];
+    if (!item) return;
+    const partId = (sale?.sale_items || [])[idx]?.part_id || null;
+    const meta = partId ? partMeta[partId] : null;
+    setAiLoadingIdx(idx);
+    try {
+      const result = await aiWarranty.mutateAsync({
+        material: item.material,
+        description: item.description,
+        condition: item.condition,
+        part_category: meta?.part_category ?? null,
+        subcategory: meta?.subcategory ?? null,
+        manufacturer: meta?.manufacturer ?? null,
+        machine_model: meta?.machine_model ?? null,
+      });
+      const text = [
+        result.intro_text,
+        result.conditions.length ? "\nCondições:\n- " + result.conditions.join("\n- ") : "",
+        result.exclusions.length ? "\nExclusões:\n- " + result.exclusions.join("\n- ") : "",
+      ].filter(Boolean).join("\n");
+      updateItem(idx, {
+        warranty_custom_months: result.months,
+        warranty_custom_text: text,
+      });
+      if (saveAsTemplate) {
+        upsertWarranty.mutate({
+          name: result.suggested_name,
+          months: result.months,
+          intro_text: result.intro_text,
+          conditions: result.conditions,
+          exclusions: result.exclusions,
+          default_for_category: meta?.part_category ?? null,
+          active: true,
+        });
+      }
+      toast.success("Garantia gerada por IA!");
+    } catch {
+      // toast already shown by hook
+    } finally {
+      setAiLoadingIdx(null);
+    }
   };
 
   const handleSaveDraft = async () => {
