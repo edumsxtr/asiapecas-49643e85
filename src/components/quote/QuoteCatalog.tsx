@@ -56,10 +56,8 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [attrFilter, setAttrFilter] = useState<{ key: string; value: string } | null>(null);
 
-  // Show grouped view when nothing is filtered (e-commerce default)
-  const isUnfilteredDefault =
-    !search && !category && !partCategory && !subcategory && !attrFilter &&
-    manufacturer === "all" && model === "all" && availability === "all";
+  // Always show paginated grid (no grouped default)
+  const isUnfilteredDefault = false;
 
   // Fetch filter options using RPC for full distinct values (no 1000-row limit)
   const { data: filterOptions } = useQuery({
