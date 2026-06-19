@@ -21,13 +21,9 @@ export function useCartSession() {
   // Load cart from backend on mount
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("cart_sessions")
-        .select("items")
-        .eq("session_id", sessionId.current)
-        .maybeSingle();
-      if (data?.items && Array.isArray(data.items)) {
-        setItems(data.items as unknown as CartItem[]);
+      const { data } = await supabase.rpc("cart_get", { p_session_id: sessionId.current });
+      if (data && Array.isArray(data)) {
+        setItems(data as unknown as CartItem[]);
       }
       setLoaded(true);
     })();
@@ -37,10 +33,10 @@ export function useCartSession() {
   const persist = useCallback((newItems: CartItem[]) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      await supabase.from("cart_sessions").upsert(
-        { session_id: sessionId.current, items: newItems as any, updated_at: new Date().toISOString() },
-        { onConflict: "session_id" }
-      );
+      await supabase.rpc("cart_upsert", {
+        p_session_id: sessionId.current,
+        p_items: newItems as any,
+      });
     }, 500);
   }, []);
 
