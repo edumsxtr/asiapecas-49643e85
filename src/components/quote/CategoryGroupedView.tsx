@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
-import { SUBCATEGORY_ICONS } from "@/lib/subcategory-rules";
+import { getSubcategoryIcon } from "@/lib/subcategory-rules";
 import QuotePartCard from "./QuotePartCard";
 import { type Lang, tr } from "./translations";
 
