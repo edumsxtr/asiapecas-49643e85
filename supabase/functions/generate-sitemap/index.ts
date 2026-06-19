@@ -23,6 +23,14 @@ Deno.serve(async (req) => {
       { loc: `${SITE}/cotacao/categorias`, priority: "0.8" },
       { loc: `${SITE}/cotacao/modelos`, priority: "0.8" },
       { loc: `${SITE}/blog`, priority: "0.8" },
+      { loc: `${SITE}/sobre`, priority: "0.6" },
+      { loc: `${SITE}/contato`, priority: "0.6" },
+      { loc: `${SITE}/garantia`, priority: "0.5" },
+      { loc: `${SITE}/trocas-e-devolucoes`, priority: "0.5" },
+      { loc: `${SITE}/politica-de-privacidade`, priority: "0.3" },
+      { loc: `${SITE}/termos-de-uso`, priority: "0.3" },
+      { loc: `${SITE}/politica-de-cookies`, priority: "0.3" },
+      { loc: `${SITE}/seguranca-e-compliance`, priority: "0.3" },
     ];
 
     // Blog posts

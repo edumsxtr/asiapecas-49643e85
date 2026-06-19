@@ -38,6 +38,14 @@ import BlogIndexPage from "./pages/BlogIndexPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import SettingsBlogPage from "./pages/settings/SettingsBlogPage";
 import NotFound from "./pages/NotFound";
+import AboutPage from "./pages/legal/AboutPage";
+import ContactPage from "./pages/legal/ContactPage";
+import PrivacyPage from "./pages/legal/PrivacyPage";
+import TermsPage from "./pages/legal/TermsPage";
+import CookiesPage from "./pages/legal/CookiesPage";
+import WarrantyPage from "./pages/legal/WarrantyPage";
+import ReturnsPage from "./pages/legal/ReturnsPage";
+import CompliancePage from "./pages/legal/CompliancePage";
 import { useEffect } from "react";
 import { captureUtm } from "@/lib/utm";
 import { initAnalytics } from "@/lib/analytics";
@@ -66,6 +74,17 @@ const App = () => {
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+              {/* Institutional & legal */}
+              <Route path="/sobre" element={<AboutPage />} />
+              <Route path="/contato" element={<ContactPage />} />
+              <Route path="/politica-de-privacidade" element={<PrivacyPage />} />
+              <Route path="/termos-de-uso" element={<TermsPage />} />
+              <Route path="/politica-de-cookies" element={<CookiesPage />} />
+              <Route path="/garantia" element={<WarrantyPage />} />
+              <Route path="/trocas-e-devolucoes" element={<ReturnsPage />} />
+              <Route path="/seguranca-e-compliance" element={<CompliancePage />} />
+              <Route path="/configuracoes/banners" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
 
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
