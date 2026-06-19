@@ -156,22 +156,22 @@ export default function QuotePage() {
       <FeaturedStrip lang={lang} onAddToCart={addToCart} />
 
       {/* B2B inline strip */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+      <section className="bg-foreground text-background border-y border-foreground">
+        <div className="max-w-6xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-sm font-display font-semibold text-background">
                 {lang === "en" ? "Buying for fleet or reselling?" : lang === "es" ? "¿Compra para flota o reventa?" : "Compra para frota ou revenda?"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-background/60">
                 {lang === "en" ? "Get an exclusive corporate price list." : lang === "es" ? "Reciba tabla exclusiva corporativa." : "Receba tabela exclusiva corporativa."}
               </p>
             </div>
           </div>
-          <button onClick={() => setB2bOpen(true)} className="bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+          <button onClick={() => setB2bOpen(true)} className="bg-primary text-primary-foreground text-sm font-semibold px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
             {lang === "en" ? "Talk to a consultant" : lang === "es" ? "Hablar con un consultor" : "Falar com consultor"}
           </button>
         </div>
