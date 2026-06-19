@@ -65,7 +65,10 @@ const App = () => {
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/admin/vitrine" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
-              <Route path="/admin/fontes" element={<ProtectedRoute><AdminSourcesPage /></ProtectedRoute>} />
+              <Route path="/admin/fontes" element={<Navigate to="/configuracoes/fontes" replace />} />
+              <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/configuracoes/fontes" element={<ProtectedRoute><SettingsSourcesPage /></ProtectedRoute>} />
+              <Route path="/configuracoes/fontes/:tipo" element={<ProtectedRoute><SettingsSourceDetailPage /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
               <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
