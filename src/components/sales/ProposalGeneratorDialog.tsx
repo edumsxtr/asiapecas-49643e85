@@ -148,15 +148,34 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
   useEffect(() => {
     if (!open) {
       setSalespersonId(""); setContactId("none"); setPaymentTemplateId(""); setProposalNumber("");
+      setApplyTemplateDiscount(true); setManualDiscount("");
     }
   }, [open]);
 
+  // When template changes, reset discount toggle to its template's default behavior
+  useEffect(() => {
+    setManualDiscount("");
+    setApplyTemplateDiscount(true);
+  }, [paymentTemplateId]);
+
   const total = useMemo(() => items.reduce((s, it) => s + it.sell_price * it.quantity, 0), [items]);
   const paymentTemplate = payments.find(p => p.id === paymentTemplateId);
-  const schedule = useMemo(() => {
-    if (!paymentTemplate) return [];
-    return buildSchedule(paymentTemplate, total).schedule;
-  }, [paymentTemplate, total]);
+
+  // Effective discount: manual override wins; otherwise toggle decides between template % and 0.
+  const effectiveDiscountPct = useMemo(() => {
+    const manual = manualDiscount.trim() === "" ? null : Number(manualDiscount);
+    if (manual != null && !Number.isNaN(manual)) return Math.max(0, manual);
+    if (!paymentTemplate) return 0;
+    return applyTemplateDiscount ? paymentTemplate.discount_pct : 0;
+  }, [manualDiscount, applyTemplateDiscount, paymentTemplate]);
+
+  const scheduleResult = useMemo(() => {
+    if (!paymentTemplate) return { schedule: [], finalTotal: total, discount: 0, discountPct: 0 };
+    return buildSchedule(paymentTemplate, total, new Date(), effectiveDiscountPct);
+  }, [paymentTemplate, total, effectiveDiscountPct]);
+  const schedule = scheduleResult.schedule;
+  const discountAmount = scheduleResult.discount;
+  const finalTotal = scheduleResult.finalTotal;
 
   const salesperson = salespeople.find(s => s.id === salespersonId);
   const contact = contacts.find(c => c.id === contactId) || null;
