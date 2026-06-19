@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,7 +27,9 @@ import ModelPublicPage from "./pages/ModelPublicPage";
 import CategoriesIndexPage from "./pages/CategoriesIndexPage";
 import ModelsIndexPage from "./pages/ModelsIndexPage";
 import AdminVitrinePage from "./pages/AdminVitrinePage";
-import AdminSourcesPage from "./pages/AdminSourcesPage";
+import SettingsPage from "./pages/SettingsPage";
+import SettingsSourcesPage from "./pages/settings/SettingsSourcesPage";
+import SettingsSourceDetailPage from "./pages/settings/SettingsSourceDetailPage";
 import TrainingPage from "./pages/TrainingPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import LoginPage from "./pages/LoginPage";
@@ -63,7 +65,10 @@ const App = () => {
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/admin/vitrine" element={<ProtectedRoute><AdminVitrinePage /></ProtectedRoute>} />
-              <Route path="/admin/fontes" element={<ProtectedRoute><AdminSourcesPage /></ProtectedRoute>} />
+              <Route path="/admin/fontes" element={<Navigate to="/configuracoes/fontes" replace />} />
+              <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/configuracoes/fontes" element={<ProtectedRoute><SettingsSourcesPage /></ProtectedRoute>} />
+              <Route path="/configuracoes/fontes/:tipo" element={<ProtectedRoute><SettingsSourceDetailPage /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
               <Route path="/catalogo/categorias" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
               <Route path="/estoque" element={<ProtectedRoute><StockPage /></ProtectedRoute>} />
@@ -78,7 +83,7 @@ const App = () => {
               <Route path="/relatorio" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
               <Route path="/treinamento" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
               <Route path="/manutencao" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
-              <Route path="/configuracoes" element={<ProtectedRoute><ComingSoonPage title="Configurações" /></ProtectedRoute>} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { DataPagination } from "@/components/common/DataPagination";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,10 @@ export function CustomerImportsTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null);
   const [confirmDel, setConfirmDel] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total = imports?.length ?? 0;
+  const paginated = useMemo(() => (imports ?? []).slice((page - 1) * pageSize, page * pageSize), [imports, page, pageSize]);
 
   return (
     <Card className="overflow-hidden">
@@ -41,7 +46,7 @@ export function CustomerImportsTab() {
         <TableBody>
           {isLoading && <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>}
           {imports?.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma importação de clientes.</TableCell></TableRow>}
-          {imports?.map((r: any) => (
+          {paginated.map((r: any) => (
             <TableRow key={r.id}>
               <TableCell className="font-mono text-xs max-w-[240px] truncate">{r.file_name}</TableCell>
               <TableCell className="text-xs">{new Date(r.imported_at).toLocaleString("pt-BR")}</TableCell>
@@ -64,6 +69,9 @@ export function CustomerImportsTab() {
           ))}
         </TableBody>
       </Table>
+
+      <DataPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>

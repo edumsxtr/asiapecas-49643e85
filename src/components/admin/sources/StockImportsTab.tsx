@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { DataPagination } from "@/components/common/DataPagination";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,10 @@ export function StockImportsTab() {
 
   const [editing, setEditing] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ row: any; mode: "record" | "revert" } | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total = imports?.length ?? 0;
+  const paginated = useMemo(() => (imports ?? []).slice((page - 1) * pageSize, page * pageSize), [imports, page, pageSize]);
 
   const handleSaveEdit = async () => {
     if (!editing) return;
@@ -80,7 +85,7 @@ export function StockImportsTab() {
           {imports?.length === 0 && (
             <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma importação registrada.</TableCell></TableRow>
           )}
-          {imports?.map((row) => (
+          {paginated.map((row) => (
             <TableRow key={row.id}>
               <TableCell className="font-mono text-xs max-w-[240px] truncate">{row.file_name}</TableCell>
               <TableCell>{row.source_label}</TableCell>
@@ -115,6 +120,9 @@ export function StockImportsTab() {
           ))}
         </TableBody>
       </Table>
+
+      <DataPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+
 
       {/* Edit metadata */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>

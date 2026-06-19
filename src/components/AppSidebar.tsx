@@ -56,7 +56,6 @@ const toolItems = [
   { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
   { title: "Manutenção", url: "/manutencao", icon: Wrench },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
-  { title: "Fontes de Dados", url: "/admin/fontes", icon: Database },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
