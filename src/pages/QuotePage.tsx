@@ -72,6 +72,8 @@ export default function QuotePage() {
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-secondary-foreground/70">
+            <Link to="/cotacao/banners" className="hover:text-primary transition-colors">Campanhas</Link>
+            <Link to="/cotacao/vitrine" className="hover:text-primary transition-colors">Vitrine</Link>
             <a href="#pecas" className="hover:text-primary transition-colors">{tr("header.parts", lang)}</a>
             <a href="#como-funciona" className="hover:text-primary transition-colors">{tr("header.howItWorks", lang)}</a>
             <a href="#faq" className="hover:text-primary transition-colors">{tr("header.faq", lang)}</a>
@@ -191,9 +193,9 @@ export default function QuotePage() {
         </div>
       </section>
 
-      <section id="como-funciona" className="py-12 bg-card border-b">
+      <section id="como-funciona" className="py-12 bg-black text-white border-b border-white/10">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl font-bold font-display text-center text-foreground mb-8">{tr("how.title", lang)}</h2>
+          <h2 className="text-2xl font-bold font-display text-center text-white mb-8">{tr("how.title", lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: Search, title: tr("how.step1.title", lang), desc: tr("how.step1.desc", lang) },
@@ -201,11 +203,11 @@ export default function QuotePage() {
               { icon: Send, title: tr("how.step3.title", lang), desc: tr("how.step3.desc", lang) },
             ].map((step, i) => (
               <div key={i} className="text-center space-y-3">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                  <step.icon className="h-7 w-7 text-primary" />
+                <div className="h-14 w-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mx-auto">
+                  <step.icon className="h-7 w-7" />
                 </div>
-                <h3 className="font-semibold text-foreground">{step.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.desc}</p>
+                <h3 className="font-semibold text-white">{step.title}</h3>
+                <p className="text-sm text-white/70">{step.desc}</p>
               </div>
             ))}
           </div>

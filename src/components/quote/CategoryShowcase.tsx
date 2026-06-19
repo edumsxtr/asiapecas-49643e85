@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getSubcategoryIcon } from "@/lib/subcategory-rules";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShieldCheck, Truck, MessageCircle, FileCheck } from "lucide-react";
+import { useAllCategoryMedia } from "@/hooks/use-category-media";
+import { categorySlug } from "@/lib/slugs";
 import { type Lang } from "./translations";
 
 interface Props {
@@ -79,6 +82,11 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
           ))}
         </div>
 
+        {/* Custom category images (admin-configured) */}
+        <CategoryImageStrip lang={lang} />
+
+
+
         {/* Subcategory tiles */}
         <div>
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">
@@ -131,3 +139,28 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
     </section>
   );
 }
+
+function CategoryImageStrip({ lang }: { lang: Lang }) {
+  const { data: media = [] } = useAllCategoryMedia();
+  const withImage = media.filter(m => m.image_url);
+  if (withImage.length === 0) return null;
+  const heading = lang === "en" ? "Categories" : lang === "es" ? "Categorías" : "Categorias";
+  return (
+    <div>
+      <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">{heading}</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {withImage.map((m) => (
+          <Link key={m.category} to={`/cotacao/c/${categorySlug(m.category)}`} className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-foreground/10 bg-black">
+            <img src={m.image_url!} alt={m.headline || m.category} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <h3 className="text-white font-display font-semibold text-base leading-tight">{m.headline || m.category}</h3>
+              {m.description && <p className="text-white/75 text-xs mt-1 line-clamp-2">{m.description}</p>}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+

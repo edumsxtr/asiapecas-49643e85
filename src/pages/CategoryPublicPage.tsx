@@ -17,6 +17,7 @@ import B2BLeadDialog from "@/components/quote/B2BLeadDialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useCategoryMedia } from "@/hooks/use-category-media";
 
 export default function CategoryPublicPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -26,6 +27,7 @@ export default function CategoryPublicPage() {
   const { data: parts = [], isLoading } = useCategoryParts(categoryName);
   const { data: relatedModels = [] } = useCategoryRelatedModels(categoryName);
   const { items, addToCart, updateQty, removeItem, clearCart } = useCartSession();
+  const { data: catMedia } = useCategoryMedia(categoryName);
   const [b2bKey, setB2bKey] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const scrolledRef = useRef(false);
@@ -144,14 +146,15 @@ export default function CategoryPublicPage() {
 
       <div className="min-h-screen bg-background flex flex-col">
         <CategoryHero
-          title={`${cat?.key} para máquinas XCMG`}
-          subtitle={defaultDesc}
+          title={catMedia?.headline || `${cat?.key} para máquinas XCMG`}
+          subtitle={catMedia?.description || defaultDesc}
           countBadge={hasStock ? `${total} em estoque` : "Sob consulta"}
           Icon={Icon}
           whatsAppUrl={wppUrl}
           onB2bClick={handleB2bClick}
           onScrollToList={handleScrollToList}
           campaignActive={total > 0 && promoCount / total > 0.5}
+          imageUrl={catMedia?.image_url || undefined}
         />
 
         <div className="max-w-6xl mx-auto px-6 py-6 w-full">
