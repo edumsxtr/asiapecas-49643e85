@@ -46,7 +46,7 @@ export function CustomerImportsTab() {
         <TableBody>
           {isLoading && <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>}
           {imports?.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma importação de clientes.</TableCell></TableRow>}
-          {imports?.map((r: any) => (
+          {paginated.map((r: any) => (
             <TableRow key={r.id}>
               <TableCell className="font-mono text-xs max-w-[240px] truncate">{r.file_name}</TableCell>
               <TableCell className="text-xs">{new Date(r.imported_at).toLocaleString("pt-BR")}</TableCell>
