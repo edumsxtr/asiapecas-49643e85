@@ -17,6 +17,7 @@ import {
   Tags,
   Sparkles,
   Wrench,
+  Database,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import asiaLogo from "@/assets/asia-logo.png";
@@ -60,6 +61,7 @@ const toolItems = [
   { title: "Treinamento", url: "/treinamento", icon: GraduationCap },
   { title: "Manutenção", url: "/manutencao", icon: Wrench },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
+  { title: "Fontes de Dados", url: "/admin/fontes", icon: Database },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
