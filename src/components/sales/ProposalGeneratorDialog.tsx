@@ -464,10 +464,50 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                     <Select value={paymentTemplateId} onValueChange={setPaymentTemplateId}>
                       <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                       <SelectContent>
-                        {payments.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {payments.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}{p.discount_pct > 0 ? ` (−${p.discount_pct}%)` : ""}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {paymentTemplate && (
+                    <Card className="bg-muted/40">
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-xs">Aplicar desconto do template</Label>
+                            <p className="text-[10px] text-muted-foreground">
+                              Template tem {paymentTemplate.discount_pct}% de desconto configurado.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={applyTemplateDiscount}
+                            onCheckedChange={(v) => { setApplyTemplateDiscount(v); setManualDiscount(""); }}
+                            disabled={paymentTemplate.discount_pct === 0 && manualDiscount.trim() === ""}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Desconto manual (%) — opcional</Label>
+                          <Input
+                            type="number" min={0} step={0.5}
+                            value={manualDiscount}
+                            onChange={e => setManualDiscount(e.target.value)}
+                            placeholder={`Deixe vazio para usar ${applyTemplateDiscount ? paymentTemplate.discount_pct : 0}% do template`}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t">
+                          <div><p className="text-muted-foreground">Bruto</p><p className="font-mono">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></div>
+                          <div><p className="text-muted-foreground">Desc. ({effectiveDiscountPct}%)</p><p className="font-mono text-destructive">− R$ {discountAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></div>
+                          <div><p className="text-muted-foreground">Total final</p><p className="font-mono font-bold text-primary">R$ {finalTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <div>
                     <Label>Frete</Label>
                     <Input value={freight} onChange={e => setFreight(e.target.value)} />
@@ -482,7 +522,7 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
                         ))}
                       </TableBody>
                     </Table>
-                    <p className="text-right text-sm font-bold mt-2">Total: R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="text-right text-sm font-bold mt-2">Total final: R$ {finalTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                   </div>
                 </TabsContent>
 
