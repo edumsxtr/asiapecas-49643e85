@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSales, useUpdateSaleStatus, useDeleteSale, type Sale } from "@/hooks/use-sales";
 import { Plus, Eye, Trash2, ClipboardList, FileDown, Settings } from "lucide-react";
 import QuoteRequestsTab from "@/components/quote/QuoteRequestsTab";
-import ProposalCustomizeDialog from "@/components/sales/ProposalCustomizeDialog";
+import ProposalGeneratorDialog from "@/components/sales/ProposalGeneratorDialog";
 import ProposalConfigTab from "@/components/sales/ProposalConfigTab";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -219,8 +219,8 @@ export default function SalesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Proposal Customize Dialog */}
-      <ProposalCustomizeDialog
+      {/* Proposal Generator Dialog (institutional, with live preview) */}
+      <ProposalGeneratorDialog
         sale={proposalSale}
         open={!!proposalSale}
         onOpenChange={(o) => !o && setProposalSale(null)}
