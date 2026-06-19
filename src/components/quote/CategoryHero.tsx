@@ -12,16 +12,23 @@ interface CategoryHeroProps {
   onB2bClick: () => void;
   onScrollToList: () => void;
   campaignActive?: boolean;
+  imageUrl?: string | null;
 }
 
 export default function CategoryHero({
-  title, subtitle, countBadge, Icon, whatsAppUrl, onB2bClick, onScrollToList, campaignActive,
+  title, subtitle, countBadge, Icon, whatsAppUrl, onB2bClick, onScrollToList, campaignActive, imageUrl,
 }: CategoryHeroProps) {
   return (
-    <section className="relative overflow-hidden border-b bg-gradient-to-br from-secondary via-secondary to-primary/10">
-      <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+    <section className="relative overflow-hidden border-b bg-black text-white">
+      {imageUrl && (
+        <>
+          <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/30" />
+        </>
+      )}
+      <div className="relative max-w-6xl mx-auto px-6 py-12 md:py-16">
         <div className="flex flex-col md:flex-row md:items-center gap-8">
-          {Icon && (
+          {Icon && !imageUrl && (
             <div className="hidden md:flex h-24 w-24 rounded-2xl bg-primary/15 items-center justify-center shrink-0">
               <Icon className="h-12 w-12 text-primary" />
             </div>
@@ -35,11 +42,11 @@ export default function CategoryHero({
                 <Badge className="bg-destructive text-destructive-foreground animate-pulse">Campanha ativa</Badge>
               )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold font-display text-secondary-foreground leading-tight">
+            <h1 className="text-3xl md:text-4xl font-bold font-display text-white leading-tight">
               {title}
             </h1>
-            <p className="text-base text-secondary-foreground/80 max-w-2xl">{subtitle}</p>
-            <div className="flex flex-wrap gap-3 text-xs text-secondary-foreground/80">
+            <p className="text-base text-white/80 max-w-2xl">{subtitle}</p>
+            <div className="flex flex-wrap gap-3 text-xs text-white/80">
               <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Estoque real</span>
               <span className="inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-primary" /> Pronta entrega</span>
               <span className="inline-flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-primary" /> Atendimento BR / EN / ES</span>
@@ -48,11 +55,11 @@ export default function CategoryHero({
               <Button size="lg" onClick={onScrollToList} className="gap-2">
                 Solicitar cotação
               </Button>
-              <Button size="lg" variant="outline" onClick={onB2bClick} className="gap-2">
+              <Button size="lg" variant="outline" onClick={onB2bClick} className="gap-2 border-white/30 text-white hover:bg-white/10">
                 <Building2 className="h-4 w-4" /> Sou empresa / quero tabela
               </Button>
               <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" data-cta="whatsapp">
-                <Button size="lg" variant="outline" className="gap-2 border-primary text-foreground hover:bg-primary/10">
+                <Button size="lg" variant="outline" className="gap-2 border-primary text-white hover:bg-primary/10">
                   <MessageCircle className="h-4 w-4" /> WhatsApp
                 </Button>
               </a>
@@ -63,3 +70,4 @@ export default function CategoryHero({
     </section>
   );
 }
+
