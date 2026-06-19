@@ -1230,6 +1230,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          applied_discount_pct: number
           contact_id: string | null
           created_at: string
           customer_id: string | null
@@ -1252,6 +1253,7 @@ export type Database = {
           validity_days: number
         }
         Insert: {
+          applied_discount_pct?: number
           contact_id?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1274,6 +1276,7 @@ export type Database = {
           validity_days?: number
         }
         Update: {
+          applied_discount_pct?: number
           contact_id?: string | null
           created_at?: string
           customer_id?: string | null
