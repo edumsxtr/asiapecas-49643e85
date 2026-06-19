@@ -1,121 +1,95 @@
-# Portal do Cliente → E-commerce + Blog SEO
+## Objetivo
 
-Transformar `/cotacao` em experiência de e-commerce real, com múltiplas fotos por peça (carrossel), upload via Storage, blog gerenciável com geração automática por IA, e SEO robusto para ranqueamento.
+Elevar o portal Ásia Peças & Máquinas a um padrão institucional/corporativo, com identidade visual alinhada ao logo (preto + amarelo, tipografia sóbria), gestão própria de banners e cobertura completa das páginas que o Google espera para ranqueamento e confiança (E-E-A-T).
 
-## 1. Imagens múltiplas por peça (Storage + DB)
+---
 
-**Nova tabela `part_images`**
-- `part_id` (FK parts), `url`, `storage_path`, `position` (ordem), `is_primary`, `alt_text`, `width`, `height`
-- Índice por `part_id, position`
-- RLS: leitura pública; escrita autenticado
+## 1. Identidade visual institucional
 
-**Bucket Storage `part-images`** (público, com cache longo)
-- Estrutura: `parts/{material}/{uuid}.webp`
-- Políticas: SELECT público, INSERT/UPDATE/DELETE autenticado
-- Otimização: salvar como WebP, sizes responsivos (`?width=400`, `?width=800`), `loading="lazy"` + `decoding="async"`
-- `image_url` legado da tabela `parts` continua como fallback (primeira imagem)
+Refinar o design system para transmitir solidez (peças pesadas, mineração, frota):
 
-**Upload (admin)**
-- Em `PartDetailDialog` e nova aba "Imagens" no detalhe da peça
-- Multi-upload com drag-and-drop, reordenação, marcar principal, excluir
-- Compressão client-side antes do upload (canvas → WebP)
+- Paleta ajustada em `src/index.css`:
+  - `--background` branco quente, `--foreground` quase-preto (#0B0B0C)
+  - `--secondary` preto institucional (#111214) usado no header/footer
+  - `--primary` amarelo Ásia calibrado (HSL fechado) para CTAs e detalhes
+  - Tokens novos: `--gradient-institutional`, `--shadow-card-strong`, `--border-strong`
+- Tipografia: manter Space Grotesk para títulos, trocar corpo para "Inter Tight" ou "DM Sans" com tracking levemente apertado; criar utilitário `.font-display` e `.font-body`
+- Remover qualquer emoji do código (header, FAQ, footer, traduções, banners promo, chat, WhatsApp pills) e substituir por ícones `lucide-react` quando fizer sentido
+- Revisar tom dos textos em `src/components/quote/translations.ts` para linguagem corporativa, sem expressões de marketing exagerado nem marcações típicas de IA ("Vamos lá", "Claro!", "Aqui está", "Em resumo", listas com bullets decorativos)
+- Header e footer reestilizados em versão institucional: barra superior fina com contato/idiomas, barra principal com logo + navegação + CTA, footer em três colunas (Empresa, Catálogo, Atendimento) + selo de CNPJ/endereço
 
-## 2. Carrossel de imagens no portal
+## 2. Gestão de banners (vitrine)
 
-- `QuotePartCard`: usar primeira imagem + badge "+N fotos" se múltiplas
-- `PartDetailPublicPage`: substituir imagem única por carrossel (shadcn `carousel`) com thumbnails, zoom on hover, swipe mobile
-- Schema.org Product já inclui array de imagens (atualizar `productLd` em `src/lib/seo.tsx`)
+Já existe a tabela `vitrine_banners` e `HeroCarousel.tsx` consumindo-a. Falta a UI de administração:
 
-## 3. Visual e-commerce no Portal do Cliente
+- Novo CRUD em **Configurações → Vitrine / Banners** (`/configuracoes/banners`):
+  - Listagem paginada (usa `DataPagination`)
+  - Upload de imagem para bucket `vitrine-banners` (criar bucket privado + URLs assinadas longas, padrão já adotado)
+  - Campos: título, subtítulo, CTA label, CTA link, idioma (pt/en/es/all), ordem, datas início/fim, ativo
+  - Pré-visualização do banner no formato real do carrossel
+- Hook `use-vitrine-banners.ts` com CRUD
+- Entrada no `SettingsPage.tsx` no card "Operações" (ou novo card "Conteúdo")
+- Banners institucionais default (3 peças) gerados via `imagegen` com a estética nova caso a tabela esteja vazia
 
-Refinar `/cotacao` (`QuoteCatalog`, `QuotePartCard`):
-- Header tipo loja: busca grande centralizada, mini-cart sticky, links Categorias / Modelos / Blog / Ofertas
-- Grid mais denso, filtros laterais persistentes (categoria, modelo, faixa de preço, em estoque)
-- Seção "Mais vendidos", "Novidades", "Em promoção" na home
-- Trust badges (entrega, garantia, pagamento) no footer
-- Breadcrumbs em todas as páginas
-- Manter idioma (PT/EN/ES) já existente
+## 3. Páginas institucionais exigidas pelo Google (E-E-A-T)
 
-## 4. Blog
+Criar páginas públicas reais (não placeholders), com SEO completo (Helmet + JSON-LD adequado), todas linkadas no footer e no `sitemap.xml`:
 
-**Tabelas**
-- `blog_posts`: `slug`, `title`, `excerpt`, `content_md`, `cover_url`, `cover_storage_path`, `author_id`, `status` (draft/published), `published_at`, `tags[]`, `related_part_ids[]`, `related_category`, `seo_title`, `seo_description`, `views`
-- `blog_categories`: `slug`, `name`, `description`
-- RLS: leitura pública só de `status='published'`; CRUD autenticado
+- `/sobre` — História, missão, estrutura, fotos do galpão, números (anos de mercado, SKUs, clientes atendidos)
+- `/contato` — Endereço, telefone, WhatsApp, e-mail, formulário (grava em `quote_requests` com tipo `contact`), mapa estático, horário comercial; JSON-LD `LocalBusiness`
+- `/politica-de-privacidade` — LGPD: dados coletados, finalidade, base legal, direitos do titular, DPO/contato
+- `/termos-de-uso` — Uso do portal, propriedade intelectual, limitações, foro
+- `/politica-de-cookies` — Categorias de cookies, consentimento (integra com `ConsentBanner`)
+- `/trocas-e-devolucoes` — Política comercial (peças, garantia, prazos)
+- `/garantia` — Política de garantia das peças
+- `/entrega-e-frete` — Cobertura, prazos, modais
+- `/faq` — versão dedicada (hoje só existe seção embutida)
 
-**Bucket Storage `blog-images`** (público)
+Implementação:
 
-**Rotas públicas**
-- `/blog` — lista paginada, filtro por categoria/tag
-- `/blog/:slug` — post completo com SEO completo (Article JSON-LD, OG, canonical), peças relacionadas no rodapé
-- `/blog/categoria/:slug`
+- Componente `InstitutionalLayout` reutilizável (breadcrumb + container + tipografia editorial)
+- Cada página com `<SEO>` (title <60, description <160, canonical, OG) e BreadcrumbList JSON-LD
+- Conteúdo redigido em português institucional, sem emojis e sem padrões de IA
 
-**Admin (`/configuracoes/blog`)**
-- CRUD posts com editor markdown (preview), upload de capa, seleção de peças relacionadas, agendamento, SEO override
-- Lista paginada (reusa `DataPagination`)
-- Botão "Gerar com IA" → abre dialog
+## 4. SEO técnico complementar
 
-**Geração automática por IA**
-- Edge function `generate-blog-post`
-  - Input: tópico OU material/categoria de peça
-  - Usa Lovable AI Gateway (Gemini) com dados reais: descrição da peça, specs (`ai_compatibility_results`), modelos compatíveis, manutenção
-  - Output: título SEO, slug, excerpt, conteúdo markdown estruturado (H2/H3), tags, meta description
-  - Salva como `draft` para revisão antes de publicar
-- Botão "Gerar 10 posts a partir do catálogo" — escolhe peças com maior estoque/valor e enfileira gerações
+- `index.html`: title/description institucionais, Organization JSON-LD ampliado (logo, endereço, telefones, sameAs vazio por enquanto), `theme-color` preto
+- `public/robots.txt`: manter `Allow: /`, adicionar `Sitemap:` apontando para `https://asiapecas.lovable.app/sitemap.xml`
+- `supabase/functions/generate-sitemap`: incluir as novas rotas institucionais + `/blog`, `/cotacao`, categorias e modelos já existentes
+- `WebSite` JSON-LD com `SearchAction` no `QuotePage`
+- Garantir `<h1>` único por página, `alt` em todas as imagens, `loading="lazy"` em imagens fora do fold
 
-## 5. SEO robusto
+## 5. Limpeza de "linguagem de IA" e emojis
 
-- `react-helmet-async` já configurado? Se não, instalar e envolver app
-- Por rota: title único, meta description, canonical, OG completo, Twitter card
-- JSON-LD: Organization (sitewide), Product (peça), Article (blog), BreadcrumbList, FAQPage onde aplicável, ItemList nas categorias
-- `sitemap.xml` via edge function `generate-sitemap` (já existe): adicionar URLs de blog e categorias de blog
-- `robots.txt`: garantir Allow + Sitemap
-- Performance: WebP, lazy load, preload da LCP, dimensões explícitas (evita CLS)
-- URLs amigáveis com slug (já há `src/lib/slugs.ts`)
-- Alt text em todas as imagens (campo no `part_images` e blog)
+- Varredura em `src/components/quote/translations.ts`, `PromoBanner`, `B2BLeadDialog`, `QuoteChat`, `BlogHighlightStrip`, `FeaturedStrip`, `QuoteHero`, `CategoryShowcase`, `QuoteFAQ`, `QuoteFooter`
+- Remover emojis (🇧🇷, ⚡, 🚚, ✅, 🔥 etc.) — substituir por ícones lucide
+- Reescrever microcopy em tom B2B sóbrio: frases curtas, voz ativa, sem "Vamos", "Aqui você encontra", "Confira!", sem bullets com check decorativo
+- Prompt do `generate-blog-post` ajustado para proibir emojis, listas decorativas, abertura/encerramento típicos de IA e exigir tom técnico-editorial
 
-## 6. Performance e organização
-
-- React Query com `staleTime` adequado para imagens e posts
-- Paginação server-side em catálogo grande (já tem em parte) e blog
-- Índices: `part_images(part_id, position)`, `blog_posts(status, published_at)`, `blog_posts(slug)`
-- Cache HTTP nos buckets (1 ano, immutable)
-- Code-splitting da rota `/blog` e admin do blog
+---
 
 ## Detalhes técnicos
 
-**Novas tabelas (migração)**: `part_images`, `blog_posts`, `blog_categories` — todas com GRANT + RLS.
+**Novos arquivos**
+- `src/components/layout/InstitutionalLayout.tsx`
+- `src/components/layout/SiteHeader.tsx`, `SiteFooter.tsx` (versões institucionais reutilizáveis)
+- `src/hooks/use-vitrine-banners.ts`
+- `src/pages/settings/SettingsBannersPage.tsx`
+- `src/pages/institutional/AboutPage.tsx`, `ContactPage.tsx`, `PrivacyPage.tsx`, `TermsPage.tsx`, `CookiesPage.tsx`, `WarrantyPage.tsx`, `ReturnsPage.tsx`, `ShippingPage.tsx`, `FAQPage.tsx`
+- Migração SQL: bucket `vitrine-banners` (privado) + policies; ajuste de RLS em `vitrine_banners` se necessário para writes autenticados
 
-**Novos buckets**: `part-images` (público), `blog-images` (público).
+**Arquivos modificados**
+- `src/index.css`, `tailwind.config.ts` (tokens institucionais)
+- `index.html` (metadata sitewide + Organization LD ampliado)
+- `src/App.tsx` (novas rotas)
+- `src/components/quote/translations.ts` e demais componentes do `/cotacao` (remoção de emojis, tom institucional)
+- `src/components/quote/QuoteFooter.tsx` (links institucionais)
+- `src/pages/SettingsPage.tsx` (card de Banners)
+- `supabase/functions/generate-sitemap/index.ts` (novas URLs)
+- `supabase/functions/generate-blog-post/index.ts` (prompt anti-emoji/anti-IA)
+- `public/robots.txt`
 
-**Novas edge functions**: `generate-blog-post` (Lovable AI).
-
-**Novos componentes**:
-- `src/components/quote/PartImageCarousel.tsx`
-- `src/components/admin/PartImagesManager.tsx` (multi-upload + reorder)
-- `src/components/blog/BlogCard.tsx`, `BlogPostView.tsx`, `MarkdownRenderer.tsx`
-- `src/pages/BlogIndexPage.tsx`, `BlogPostPage.tsx`
-- `src/pages/settings/SettingsBlogPage.tsx`, `BlogPostEditor.tsx`
-- `src/components/blog/AIBlogGeneratorDialog.tsx`
-
-**Hooks**: `use-part-images`, `use-blog-posts`, `use-ai-blog-generator`.
-
-**Rotas em `App.tsx`**: `/blog`, `/blog/:slug`, `/blog/categoria/:slug`, `/configuracoes/blog`, `/configuracoes/blog/:id`.
-
-**Sidebar**: adicionar "Blog" sob Configurações.
-
-**Atualizar**: `QuotePartCard` (badge multi-foto), `PartDetailPublicPage` (carrossel + Product JSON-LD com array images), `AppSidebar`, `generate-sitemap` (incluir blog).
-
-## Fora de escopo
-
-- Checkout real / gateway de pagamento (continua via cotação/WhatsApp)
-- Comentários no blog
-- Tradução automática de posts (PT apenas na v1)
-- CDN externa (usa Storage público do backend já com cache)
-
-## Execução em fases (para evitar colapso)
-
-1. **Fase 1 — Imagens**: tabela `part_images`, bucket, manager admin, carrossel público
-2. **Fase 2 — Blog base**: tabelas, rotas públicas, admin CRUD, SEO
-3. **Fase 3 — IA do blog**: edge function + dialog de geração
-4. **Fase 4 — Polish e-commerce**: refino visual do portal, seções home, breadcrumbs
+**Fora de escopo**
+- Redesenhar páginas internas (Dashboard, Vendas, Estoque) — foco é o portal público e a área de configurações relacionada
+- Internacionalizar as novas páginas institucionais (ficam em PT no primeiro corte; estrutura preparada para i18n futuro)
+- Integração com Google Search Console / verificação de domínio
