@@ -34,7 +34,7 @@ export default function ContactPage() {
       <h2>Atendimento comercial</h2>
       <ul>
         <li><strong>E-mail:</strong> <a href="mailto:vendas@asiapecas.com">vendas@asiapecas.com</a></li>
-        <li><strong>Telefone e WhatsApp:</strong> <a href="https://wa.me/5531992293767">(31) 99229-3767</a></li>
+        <li><strong>Telefone e WhatsApp:</strong> <a href="https://wa.me/5531992293767">(31) 99229-3767</a> · <a href="https://wa.me/5531987334504">(31) 98733-4504</a></li>
         <li><strong>Horário:</strong> segunda a sexta, das 08h às 18h (horário de Brasília).</li>
       </ul>
 
