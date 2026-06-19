@@ -68,7 +68,7 @@ export default function QuoteHero({ search, onSearchChange, onCategoryClick, act
               <Package className="h-3 w-3" />
               {lang === "en" ? "Authorized XCMG distributor" : lang === "es" ? "Distribuidor XCMG autorizado" : "Distribuidor XCMG autorizado"}
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-['Space_Grotesk'] tracking-tight leading-[1.05]">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display tracking-tight leading-[1.05]">
               {tr("hero.title", lang)} <span className="text-primary">XCMG</span>
             </h1>
             <p className="text-base md:text-lg text-secondary-foreground/70 max-w-xl mx-auto lg:mx-0">

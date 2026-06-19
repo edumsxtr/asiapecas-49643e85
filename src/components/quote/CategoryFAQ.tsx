@@ -11,7 +11,7 @@ export default function CategoryFAQ({ title = "Perguntas frequentes", items }: C
   if (!items.length) return null;
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold font-['Space_Grotesk']">{title}</h2>
+      <h2 className="text-lg font-semibold font-display">{title}</h2>
       <Accordion type="single" collapsible className="bg-card rounded-lg border">
         {items.map((it, i) => (
           <AccordionItem key={i} value={`faq-${i}`} className="px-4">

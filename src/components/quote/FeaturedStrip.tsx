@@ -41,7 +41,7 @@ export default function FeaturedStrip({ lang, onAddToCart }: { lang: Lang; onAdd
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="flex items-end justify-between mb-5">
           <div>
-            <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-foreground flex items-center gap-2">
+            <h2 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" /> {title}
             </h2>
             <p className="text-sm text-muted-foreground">{lang === "en" ? "Selected by our team" : lang === "es" ? "Seleccionado por nuestro equipo" : "Selecionados pela nossa equipe"}</p>

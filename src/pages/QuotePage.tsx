@@ -64,7 +64,7 @@ export default function QuotePage() {
           <div className="flex items-center gap-3">
             <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-11 w-auto" />
             <div>
-              <h1 className="font-bold text-sm font-['Space_Grotesk']">Ásia Peças & Máquinas</h1>
+              <h1 className="font-bold text-sm font-display">Ásia Peças & Máquinas</h1>
               <p className="text-[10px] text-secondary-foreground/60">{tr("header.subtitle", lang)}</p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function QuotePage() {
                     ))}
                   </div>
                 </div>
-                <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="mt-4 bg-[hsl(142,71%,45%)] text-white px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="mt-4 bg-primary text-primary-foreground px-4 py-3 rounded-lg text-sm font-medium text-center hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
                   <MessageCircle className="h-4 w-4" />WhatsApp
                 </a>
               </nav>
@@ -179,7 +179,7 @@ export default function QuotePage() {
 
       <section id="como-funciona" className="py-12 bg-card border-b">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl font-bold font-['Space_Grotesk'] text-center text-foreground mb-8">{tr("how.title", lang)}</h2>
+          <h2 className="text-2xl font-bold font-display text-center text-foreground mb-8">{tr("how.title", lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: Search, title: tr("how.step1.title", lang), desc: tr("how.step1.desc", lang) },
@@ -212,7 +212,7 @@ export default function QuotePage() {
       <B2BLeadDialog lang={lang} open={b2bOpen} onOpenChange={setB2bOpen} />
       <ConsentBanner lang={lang} />
 
-      <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-[hsl(142,71%,45%)] text-white h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
+      <a href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20informa%C3%A7%C3%B5es%20sobre%20pe%C3%A7as%20XCMG" target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 z-50 bg-primary text-primary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform" title="WhatsApp">
         <MessageCircle className="h-6 w-6" />
       </a>
     </div>
