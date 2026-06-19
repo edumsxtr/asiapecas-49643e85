@@ -12,8 +12,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useProposalSettings, generateProposalNumber } from "@/hooks/use-proposal-settings";
 import { useSalespeople } from "@/hooks/use-salespeople";
-import { useWarrantyTemplates, pickTemplateForCategory } from "@/hooks/use-warranty-templates";
+import { useWarrantyTemplates, pickTemplateForCategory, useUpsertWarrantyTemplate } from "@/hooks/use-warranty-templates";
 import { usePaymentTemplates, buildSchedule } from "@/hooks/use-payment-templates";
+import { useGenerateWarrantyAI } from "@/hooks/use-warranty-ai";
 import { useCustomerById } from "@/hooks/use-customers";
 import { useCustomerContacts } from "@/hooks/use-customer-contacts";
 import { usePricingSettings, applySellPrice } from "@/hooks/use-pricing";
@@ -21,8 +22,9 @@ import type { Sale } from "@/hooks/use-sales";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProposalInstitutional, loadLogoAsBase64, type ProposalItem, type ProposalPayload } from "@/lib/generate-proposal-institutional";
 import ProposalPreviewInstitutional from "./ProposalPreviewInstitutional";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { FileDown, Loader2, Eye, Save } from "lucide-react";
+import { FileDown, Loader2, Eye, Save, Sparkles } from "lucide-react";
 
 type Props = {
   sale: Sale | null;
