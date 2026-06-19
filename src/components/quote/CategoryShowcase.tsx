@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getSubcategoryIcon } from "@/lib/subcategory-rules";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShieldCheck, Truck, MessageCircle, FileCheck } from "lucide-react";
+import { useAllCategoryMedia } from "@/hooks/use-category-media";
+import { categorySlug } from "@/lib/slugs";
 import { type Lang } from "./translations";
 
 interface Props {
