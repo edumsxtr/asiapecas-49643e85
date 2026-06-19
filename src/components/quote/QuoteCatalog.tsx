@@ -331,8 +331,6 @@ export default function QuoteCatalog({ search, category, partCategory, onPartCat
                   <SelectItem value="stockDesc">{tr("sort.stockDesc", lang)}</SelectItem>
                   <SelectItem value="nameAsc">{tr("sort.nameAsc", lang)}</SelectItem>
                   <SelectItem value="newest">{tr("sort.newest", lang)}</SelectItem>
-                  {showPrice && <SelectItem value="priceAsc">{tr("sort.priceAsc", lang)}</SelectItem>}
-                  {showPrice && <SelectItem value="priceDesc">{tr("sort.priceDesc", lang)}</SelectItem>}
                 </SelectContent>
               </Select>
 
