@@ -30,7 +30,7 @@ export default function SaleItemAddDialog({
       if (search.trim().length < 2) return [] as Part[];
       const { data, error } = await supabase
         .from("parts")
-        .select("id, material, description, sell_price, cost_price")
+        .select("id, material, description, estimated_price, consumer_price")
         .or(`material.ilike.%${search}%,description.ilike.%${search}%`)
         .limit(15);
       if (error) throw error;
@@ -43,7 +43,7 @@ export default function SaleItemAddDialog({
 
   function pick(p: Part) {
     setSelected(p);
-    setPrice(Number(p.sell_price || p.cost_price || 0));
+    setPrice(Number(p.consumer_price || p.estimated_price || 0));
   }
 
   function reset() {
