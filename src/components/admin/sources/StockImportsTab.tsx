@@ -85,7 +85,7 @@ export function StockImportsTab() {
           {imports?.length === 0 && (
             <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma importação registrada.</TableCell></TableRow>
           )}
-          {imports?.map((row) => (
+          {paginated.map((row) => (
             <TableRow key={row.id}>
               <TableCell className="font-mono text-xs max-w-[240px] truncate">{row.file_name}</TableCell>
               <TableCell>{row.source_label}</TableCell>
