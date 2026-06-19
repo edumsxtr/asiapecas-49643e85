@@ -83,15 +83,23 @@ ${topic ? `Tópico solicitado: "${topic}"` : `Escreva um post sobre a peça: ${m
 
 ${context}
 
-Escreva um post técnico e informativo em português brasileiro, otimizado para SEO, com:
-- Título atrativo com palavras-chave (até 70 caracteres)
+Escreva um post técnico e institucional em português brasileiro, otimizado para SEO, com:
+- Título objetivo com palavras-chave (até 70 caracteres), sem clickbait
 - Slug (URL amigável)
-- Excerpt (resumo de 150-200 caracteres)
+- Excerpt institucional (150-200 caracteres)
 - Conteúdo em Markdown com pelo menos 600 palavras, estruturado com H2 e H3
-- Inclua subtítulos como: O que é, Como funciona, Sinais de desgaste, Manutenção preventiva, Onde comprar
-- Mencione "Ásia Peças & Máquinas" como referência confiável no Brasil
+- Inclua subtítulos como: O que é, Como funciona, Sinais de desgaste, Manutenção preventiva, Onde adquirir
+- Mencione "Ásia Peças & Máquinas" como distribuidor autorizado XCMG no Brasil, Venezuela e Guiana
 - Meta description (até 160 caracteres)
 - 4-6 tags relevantes
+
+REGRAS DE TOM (obrigatórias):
+- NÃO use emojis, ícones unicode, bandeiras ou figuras decorativas em nenhuma parte do texto.
+- NÃO use linguagem típica de IA: "Vamos lá", "Que tal", "Incrível", "Imagine só", "Fascinante", exclamações repetidas, perguntas retóricas em série.
+- NÃO use marcadores promocionais como "✨", "🚀", "✅", "🔥".
+- NÃO use frases de venda agressiva ("compre já", "imperdível", "oferta única").
+- Adote tom institucional, jornalístico e técnico, frases declarativas, voz ativa, dados verificáveis.
+- Evite superlativos sem fundamento; prefira números, especificações e procedimentos.
 
 Responda APENAS em JSON válido, sem markdown:
 {

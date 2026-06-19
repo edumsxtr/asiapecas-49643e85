@@ -34,7 +34,7 @@ const sections: { group: string; items: Section[] }[] = [
     group: "Operação & Conteúdo",
     items: [
       { title: "Blog", description: "Posts SEO com geração por IA. Apareça melhor no Google.", icon: BookOpen, to: "/configuracoes/blog" },
-      { title: "Vitrine (Portal)", description: "Banners, coleções e SEO do portal público.", icon: Sparkles, to: "/admin/vitrine" },
+      { title: "Banners e Vitrine", description: "Banners do hero, coleções em destaque e SEO do portal público.", icon: Sparkles, to: "/configuracoes/banners" },
       { title: "Manutenção", description: "Planos de manutenção por máquina.", icon: Wrench, to: "/manutencao" },
       { title: "Relatório Executivo", description: "Indicadores consolidados.", icon: BarChart3, to: "/relatorio" },
     ],
