@@ -99,21 +99,25 @@ export default function ProposalGeneratorDialog({ sale, open, onOpenChange }: Pr
 
   // Build items whenever sale opens
   useEffect(() => {
-    if (!open || !sale) { setItems([]); return; }
+    if (!open || !sale) { setItems([]); setPartMeta({}); return; }
     (async () => {
-      // Fetch parts.part_category for each item to choose default warranty.
       const partIds = (sale.sale_items || []).map(i => i.part_id).filter(Boolean) as string[];
-      const cats: Record<string, string | null> = {};
+      const meta: Record<string, { part_category: string | null; subcategory: string | null; manufacturer: string | null; machine_model: string | null }> = {};
       if (partIds.length > 0) {
-        const { data } = await supabase.from("parts").select("id, part_category").in("id", partIds);
-        for (const p of (data || []) as Array<{ id: string; part_category: string | null }>) cats[p.id] = p.part_category;
+        const { data } = await supabase.from("parts")
+          .select("id, part_category, subcategory, manufacturer, machine_model")
+          .in("id", partIds);
+        for (const p of (data || []) as Array<{ id: string; part_category: string | null; subcategory: string | null; manufacturer: string | null; machine_model: string | null }>) {
+          meta[p.id] = { part_category: p.part_category, subcategory: p.subcategory, manufacturer: p.manufacturer, machine_model: p.machine_model };
+        }
       }
+      setPartMeta(meta);
       const built: ProposalItem[] = (sale.sale_items || []).map((si) => {
         const partRow = si.parts as { material?: string; description?: string } | null;
         const sp = (si as { sell_price?: number }).sell_price && (si as { sell_price?: number }).sell_price! > 0
           ? (si as { sell_price?: number }).sell_price!
           : applySellPrice(si.unit_price, markup);
-        const cat = si.part_id ? cats[si.part_id] : null;
+        const cat = si.part_id ? meta[si.part_id]?.part_category ?? null : null;
         return {
           id: si.id,
           material: partRow?.material || "—",
