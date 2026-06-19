@@ -20,6 +20,7 @@ import {
 } from "@/hooks/use-customers";
 import { Plus, Search, Trash2, Pencil, Upload, Sparkles, Eye, Target } from "lucide-react";
 import { ImportXlsxWizard } from "@/components/customers/ImportXlsxWizard";
+import { AICustomerImportDialog } from "@/components/customers/AICustomerImportDialog";
 import { customerDedupKey } from "@/lib/normalize";
 import { WhatsAppButton } from "@/components/customers/WhatsAppButton";
 import { BulkActionsBar } from "@/components/customers/BulkActionsBar";
@@ -77,6 +78,7 @@ export default function CustomersPage() {
 
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [aiImportOpen, setAiImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CustomerInsert>(emptyCustomer);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -222,6 +224,9 @@ export default function CustomersPage() {
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-2" /> Importar XLSX
+            </Button>
+            <Button variant="outline" onClick={() => setAiImportOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" /> Cadastrar via IA
             </Button>
             <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
           </div>
@@ -372,6 +377,7 @@ export default function CustomersPage() {
       </div>
 
       <ImportXlsxWizard open={importOpen} onOpenChange={setImportOpen} existingKeys={existingKeys} />
+      <AICustomerImportDialog open={aiImportOpen} onOpenChange={setAiImportOpen} />
 
       {/* Single create/edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
