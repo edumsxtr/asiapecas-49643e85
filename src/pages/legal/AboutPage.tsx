@@ -63,7 +63,7 @@ export default function AboutPage() {
       <h2>Fale com a equipe comercial</h2>
       <p>
         Para abrir uma cotação ou conhecer nossas condições corporativas, entre em contato pelo e-mail
-        <a href="mailto:contato@asiapecas.com.br"> contato@asiapecas.com.br</a> ou pelo telefone +55 (95) 9 7400-9289.
+        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a> ou pelo telefone (31) 99229-3767.
       </p>
     </LegalPageShell>
   );

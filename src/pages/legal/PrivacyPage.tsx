@@ -83,7 +83,7 @@ export default function PrivacyPage() {
       <h2>10. Encarregado de dados (DPO)</h2>
       <p>
         Para exercer direitos, esclarecer dúvidas ou registrar reclamações, fale com o encarregado pelo e-mail
-        <a href="mailto:contato@asiapecas.com.br"> contato@asiapecas.com.br</a>, indicando no assunto "LGPD — titular de dados".
+        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a>, indicando no assunto "LGPD — titular de dados".
       </p>
 
       <h2>11. Atualizações</h2>

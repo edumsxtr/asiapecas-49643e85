@@ -64,7 +64,7 @@ export default function ModelPublicPage() {
   const noindex = total === 0 || !!seoOverride?.noindex;
 
   const wppText = `Olá! Quero peças para ${modelName}.`;
-  const wppUrl = `https://wa.me/5595974009289?text=${encodeURIComponent(wppText)}`;
+  const wppUrl = `https://wa.me/5531992293767?text=${encodeURIComponent(wppText)}`;
   const handleWppClick = () => {
     track.contact("whatsapp_model", { slug });
     trackServerConversion({ event: "whatsapp_click" });

@@ -29,7 +29,7 @@ export default function WarrantyPage() {
       <ol>
         <li>Identifique o número do pedido, a nota fiscal e o código da peça.</li>
         <li>Reúna registros do defeito (fotos, vídeos, leituras do sistema da máquina).</li>
-        <li>Envie a solicitação para <a href="mailto:contato@asiapecas.com.br">contato@asiapecas.com.br</a> com o assunto "Garantia — [código da peça]".</li>
+        <li>Envie a solicitação para <a href="mailto:vendas@asiapecas.com">vendas@asiapecas.com</a> com o assunto "Garantia — [código da peça]".</li>
         <li>Aguarde a triagem técnica e as orientações para envio do item, quando necessário.</li>
       </ol>
 
@@ -57,8 +57,8 @@ export default function WarrantyPage() {
 
       <h2>7. Suporte</h2>
       <p>
-        Dúvidas sobre garantia podem ser direcionadas ao canal comercial pelo telefone +55 (95) 9 7400-9289 ou pelo e-mail
-        <a href="mailto:contato@asiapecas.com.br"> contato@asiapecas.com.br</a>.
+        Dúvidas sobre garantia podem ser direcionadas ao canal comercial pelo telefone (31) 99229-3767 ou pelo e-mail
+        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a>.
       </p>
     </LegalPageShell>
   );

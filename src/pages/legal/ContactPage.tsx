@@ -14,12 +14,12 @@ export default function ContactPage() {
         mainEntity: {
           "@type": "Organization",
           name: "Ásia Peças & Máquinas",
-          email: "contato@asiapecas.com.br",
-          telephone: "+55-95-97400-9289",
+          email: "vendas@asiapecas.com",
+          telephone: "+55-31-99229-3767",
           areaServed: ["BR", "VE", "GY"],
           contactPoint: [{
             "@type": "ContactPoint",
-            telephone: "+55-95-97400-9289",
+            telephone: "+55-31-99229-3767",
             contactType: "sales",
             availableLanguage: ["Portuguese", "Spanish", "English"],
           }],
@@ -33,8 +33,8 @@ export default function ContactPage() {
 
       <h2>Atendimento comercial</h2>
       <ul>
-        <li><strong>E-mail:</strong> <a href="mailto:contato@asiapecas.com.br">contato@asiapecas.com.br</a></li>
-        <li><strong>Telefone e WhatsApp:</strong> <a href="https://wa.me/5595974009289">+55 (95) 9 7400-9289</a></li>
+        <li><strong>E-mail:</strong> <a href="mailto:vendas@asiapecas.com">vendas@asiapecas.com</a></li>
+        <li><strong>Telefone e WhatsApp:</strong> <a href="https://wa.me/5531992293767">(31) 99229-3767</a> · <a href="https://wa.me/5531987334504">(31) 98733-4504</a></li>
         <li><strong>Horário:</strong> segunda a sexta, das 08h às 18h (horário de Brasília).</li>
       </ul>
 
@@ -60,7 +60,7 @@ export default function ContactPage() {
       <h2>Imprensa e parcerias</h2>
       <p>
         Para propostas de parceria comercial, fornecimento, mídia e patrocínio, escreva para
-        <a href="mailto:contato@asiapecas.com.br"> contato@asiapecas.com.br</a> identificando assunto e empresa.
+        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a> identificando assunto e empresa.
       </p>
     </LegalPageShell>
   );

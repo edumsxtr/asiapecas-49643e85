@@ -42,7 +42,7 @@ export default function CookiesPage() {
       <h2>5. Mais informações</h2>
       <p>
         Consulte a <a href="/politica-de-privacidade">Política de Privacidade</a> para detalhes sobre o tratamento de dados pessoais
-        ou escreva para <a href="mailto:contato@asiapecas.com.br">contato@asiapecas.com.br</a>.
+        ou escreva para <a href="mailto:vendas@asiapecas.com">vendas@asiapecas.com</a>.
       </p>
     </LegalPageShell>
   );
