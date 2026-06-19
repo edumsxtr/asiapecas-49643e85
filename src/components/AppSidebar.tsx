@@ -54,9 +54,11 @@ const crmItems = [
 const toolItems = [
   { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
   { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
+const toolItems = [
+  { title: "Pesquisa de Mercado", url: "/pesquisa-mercado", icon: Search },
+  { title: "Portal do Cliente", url: "/cotacao", icon: FileText },
   { title: "Manutenção", url: "/manutencao", icon: Wrench },
   { title: "IA Assistente", url: "/assistente", icon: MessageSquare },
-  { title: "Fontes de Dados", url: "/admin/fontes", icon: Database },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
