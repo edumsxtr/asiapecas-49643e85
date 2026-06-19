@@ -1,65 +1,174 @@
-## Objetivo
+## Visão geral
 
-Criar uma página única `/admin/fontes` que centraliza o gerenciamento de TODAS as fontes que alimentam o sistema: importações de estoque, importações de clientes, catálogo de peças (em massa por filtro) e caches de pesquisa de mercado/IA. Tudo com CRUD simples, sem ter que mexer em SQL.
+Vamos reestruturar toda a cadeia **Cliente → Proposta → Histórico** para refletir o padrão do PDF da BORAPEÇAS (preto e branco, institucional). Tudo configurável em **Configurações**, com **pré-visualização** antes de gerar o PDF.
 
-## Tela `/admin/fontes`
+---
 
-Layout com 4 abas no topo, cada uma listando suas fontes em tabela + ações:
+## 1. Cadastro de Cliente PJ (expandido)
+
+Ampliar a tela de cliente para incluir, em abas/seções:
+
+**Dados fiscais**
+- Razão Social, Nome Fantasia, CNPJ
+- Inscrição Estadual, Inscrição Municipal
+
+**Endereço estruturado**
+- CEP (com busca automática), Rua, Número, Complemento, Bairro, Cidade, UF
+
+**Contatos múltiplos**
+- Lista (nome, cargo, telefone, email, "principal" sim/não)
+- Botão "Adicionar contato"
+
+**Aba "Propostas / Orçamentos"** (nova, dentro do detalhe do cliente)
+- Lista todas as propostas geradas para aquele cliente
+- Colunas: Nº proposta, data, validade, valor total, status (rascunho / enviada / aprovada / recusada / expirada)
+- Botões: Ver PDF, Duplicar, Nova proposta
+
+---
+
+## 2. Configurações → nova aba "Propostas"
+
+Centraliza todos os padrões editáveis:
+
+**a) Vendedores** (CRUD)
+- Nome, cargo, telefone, email, foto/assinatura (opcional)
+- Na hora de gerar proposta, vendedor é selecionável (dropdown)
+
+**b) Empresa (Fornecedor)**
+- Já existe; complementar com: Razão Social emissora (ex: Lopes e Lopes Mineração Ltda), Inscrição Estadual, dados bancários (banco, agência, conta, favorecido, PIX)
+
+**c) Templates de Garantia** (CRUD)
+- Nome (ex: "Motor Novo Cummins", "Filtros", "Sem Garantia")
+- Prazo (meses)
+- Texto introdutório
+- Lista de "Condições de validade" (itens)
+- Lista de "Exclusões" (itens)
+- Vínculo: categoria/subcategoria que aplica por padrão
+
+**d) Templates de Condição de Pagamento** (CRUD)
+- Nome (ex: "À vista PIX 5% desc.", "40% + 3x mensal", "30/60/90")
+- Tipo: à vista | entrada+parcelas | parcelado puro
+- Parâmetros: % entrada, nº parcelas, intervalo (dias), desconto
+- Sistema calcula automaticamente valores e datas de vencimento
+
+**e) Identidade visual da Proposta**
+- Modo: **Preto e Branco Institucional** (padrão novo) / Amarelo atual
+- Logo, rodapé, observações padrão
+
+---
+
+## 3. Fluxo de Geração da Proposta
+
+Wizard em 4 passos, com **preview ao vivo** ao lado:
+
+**Passo 1 — Cliente**
+- Selecionar cliente existente OU cadastrar novo inline
+- Validar que tem CNPJ, IE, endereço completo (avisar se faltar)
+- Escolher contato principal da proposta
+
+**Passo 2 — Itens**
+- Adicionar peças (busca do catálogo)
+- Por item: quantidade, condição (Novo/Recondicionado/Usado), valor unitário (sugerido pelo markup, editável)
+- **Garantia por item**: sistema sugere template pela categoria da peça; vendedor pode trocar template ou editar texto/prazo individual ("Templates + override no item")
+- Local de retirada por item (endereço)
+
+**Passo 3 — Condições**
+- Vendedor responsável (dropdown)
+- Validade da proposta (dias)
+- Template de pagamento (dropdown) → gera tabela de boletos automaticamente, com datas editáveis
+- Frete (Por conta do comprador / FOB / CIF / valor)
+- Observações gerais
+
+**Passo 4 — Preview & Gerar**
+- **Pré-visualização HTML fiel ao PDF final** (lado a lado com botões)
+- Botões: Voltar, Salvar Rascunho, **Gerar PDF**, Enviar por WhatsApp/Email
+- Só consome o "render PDF" no clique final → economia
+
+---
+
+## 4. Novo PDF Padrão (Preto e Branco Institucional)
+
+Replicando a estrutura do exemplo BORAPEÇAS:
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ Fontes de Dados                                             │
-│ [Estoque] [Clientes] [Catálogo] [Pesquisas IA/Mercado]      │
-├─────────────────────────────────────────────────────────────┤
-│ Arquivo          Filial    Data    Linhas  Valor  Status  ⋮ │
-│ XCMG 28-05.xlsx  XCMG      28/05   20.958  R$273M  ✓     ⋮ │
-│   └─ Editar | Reprocessar | Excluir só registro |          │
-│      Excluir + reverter peças                              │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ [LOGO ÁSIA]              Proposta nº AP-...  │
+│                          Data / Validade     │
+├──────────────────────────────────────────────┤
+│ Parágrafo de apresentação personalizado      │
+│                                              │
+│ 1. IDENTIFICAÇÃO DAS PARTES                  │
+│ ┌────────────────┬────────────────┐          │
+│ │  FORNECEDOR    │    CLIENTE     │          │
+│ └────────────────┴────────────────┘          │
+│                                              │
+│ 2. OBJETO DA PROPOSTA                        │
+│ [tabela: Item|Descrição|Qtd|Condição|Vlr]    │
+│                              TOTAL: R$ ...   │
+│                                              │
+│ 3. CONDIÇÕES COMERCIAIS & DADOS BANCÁRIOS    │
+│ [tabela parcelas + bloco dados bancários]    │
+│                                              │
+│ 4. PRAZO, RETIRADA E FRETE                   │
+│ [tabela com endereço de retirada por item]   │
+│                                              │
+│ 5. GARANTIA                                  │
+│ [texto + condições + exclusões — por item    │
+│  agrupado quando templates iguais]           │
+│                                              │
+│ 6. OBSERVAÇÕES GERAIS                        │
+│                                              │
+│ Atenciosamente,                              │
+│ [Vendedor selecionado] — contatos            │
+└──────────────────────────────────────────────┘
+       Rodapé fixo: Ásia Peças | site | tel
 ```
 
-### Aba 1 — Importações de Estoque (`stock_imports`)
-Colunas: arquivo, filial/fonte, data, linhas, unidades, valor, status.
-Ações por linha:
-- **Editar metadados** — dialog com `file_name`, `source_label`, `imported_at`.
-- **Reprocessar** — re-roda a agregação por material a partir de `stock_import_items` e re-aplica upsert em `parts` (mesmo fluxo da edge function `import-catalog`, etapa 3).
-- **Excluir só registro** — `DELETE` em `stock_imports` (cascata limpa `stock_import_items`); peças no catálogo permanecem.
-- **Excluir + reverter peças** — nova edge function `revert-stock-import`: para cada material da importação, se aquela importação era a única fonte de stock, zera o `stock`; se também era a única referência da peça, exclui a linha de `parts`. Depois apaga a importação.
+Tipografia serifada institucional para títulos, sans para corpo. Sem cores fortes — preto, cinzas, fundos brancos, linhas finas.
 
-### Aba 2 — Importações de Clientes (`customer_imports`)
-Colunas: arquivo, data, linhas, inseridos, atualizados, ignorados, status.
-Ações: editar nome do arquivo, excluir registro, ver relatório (`report` jsonb em dialog).
-Reverter clientes não está no escopo (não há vínculo cliente↔import hoje); deixar isso explícito na UI.
+---
 
-### Aba 3 — Catálogo de Peças (`parts`)
-Painel de "limpeza em massa" por filtro combinável:
-- Fabricante, modelo, categoria, faixa de preço, "sem estoque", "sem fabricante", "sem descrição".
-- Mostra preview com contagem antes de aplicar.
-- Botões: **Excluir selecionadas**, **Zerar estoque**, **Marcar como inativas** (campo novo opcional — ver técnica).
+## 5. Numeração de Propostas
 
-### Aba 4 — Pesquisas IA/Mercado
-Duas seções:
-- **Market Research** (`market_research`): lista por peça, com botão para limpar tudo de uma peça ou tudo anterior a uma data.
-- **AI Compatibility** (`ai_compatibility_results`): mesma coisa — limpar por peça, por modelo de IA usado, ou tudo.
+Formato `AP-DDMMAAAA-NNN` (igual ao exemplo), sequencial por dia. Gerado no backend ao salvar rascunho.
 
-## Acesso
+---
 
-Rota protegida por `ProtectedRoute` + checagem `has_role(auth.uid(), 'admin')` (já existe o sistema). Adicionar link "Fontes de Dados" no `AppSidebar` apenas para admin.
+## Detalhes Técnicos
 
-## Detalhes técnicos
+**Banco (migrations):**
+- `customers`: adicionar `legal_name`, `trade_name`, `state_registration`, `municipal_registration`, `address_street`, `address_number`, `address_complement`, `address_district`, `address_city`, `address_state`, `address_zip`
+- Nova tabela `customer_contacts` (FK customers, nome, cargo, telefone, email, is_primary)
+- Nova tabela `salespeople` (nome, cargo, telefone, email, signature_url, active)
+- Nova tabela `warranty_templates` (nome, prazo_meses, intro_text, conditions[], exclusions[], default_for_category)
+- Nova tabela `payment_condition_templates` (nome, tipo, entry_pct, installments, interval_days, discount_pct)
+- `proposal_settings`: adicionar `legal_company_name`, `state_registration`, `bank_name`, `bank_agency`, `bank_account`, `bank_favored`, `pix_key`, `pdf_theme` (`bw_institutional` | `yellow_legacy`)
+- `sales`: adicionar `proposal_number` (AP-...), `warranty_overrides` (jsonb por item via `sale_items.warranty_template_id` + `warranty_custom_text`), `payment_template_id`, `payment_schedule` (jsonb com parcelas calculadas), `salesperson_id`, `pickup_locations` (jsonb por item), `freight_terms`
+- `sale_items`: adicionar `condition` (Novo/Recond/Usado), `warranty_template_id`, `warranty_custom`, `pickup_address`
 
-- **Frontend novo:** `src/pages/AdminSourcesPage.tsx` + componentes em `src/components/admin/sources/` (`StockImportsTab.tsx`, `CustomerImportsTab.tsx`, `PartsBulkTab.tsx`, `ResearchCacheTab.tsx`). Rota em `src/App.tsx`.
-- **Hooks novos:** estender `use-stock-imports.ts` com `useUpdateStockImport`, `useReprocessStockImport`, `useRevertStockImport`. Novo `use-customer-imports.ts`, `use-parts-bulk.ts`, `use-research-cache.ts`.
-- **Edge functions novas:**
-  - `revert-stock-import` — recebe `import_id`, reverte/exclui peças órfãs, apaga a importação.
-  - `reprocess-stock-import` — re-roda a etapa de agregação+upsert para uma importação existente.
-  - `bulk-delete-parts` — recebe filtros validados (Zod), apaga em batches.
-- **Migration:** apenas se adotarmos "marcar inativa" — adicionar `parts.is_active boolean default true`. Caso contrário, nenhuma mudança de schema.
-- **RLS:** todas as tabelas envolvidas já têm policies `authenticated` para CRUD; nada a alterar.
+**Frontend:**
+- `src/pages/CustomerDetailPage.tsx`: nova aba "Propostas"
+- `src/components/customers/CustomerFormDialog.tsx`: campos fiscais + endereço + contatos
+- `src/pages/ProposalWizardPage.tsx` (novo): wizard 4 passos com preview lado-a-lado
+- `src/components/proposals/ProposalPreview.tsx` (novo): renderiza HTML fiel ao PDF
+- `src/components/settings/`: 4 novas abas (Vendedores, Garantias, Pagamento, Identidade Proposta)
+- `src/lib/generate-proposal-pdf.ts`: refatorar para tema "bw_institutional" replicando estrutura BORAPEÇAS; manter `yellow_legacy` como fallback
+- Hooks: `use-salespeople`, `use-warranty-templates`, `use-payment-templates`, `use-customer-proposals`
 
-## Fora de escopo
-- Não toca em `parts.consumer_price`, taxonomia, vendas ou usuários.
-- Não cria sistema de "undo" geral — reverter só funciona para importações de estoque, conforme acordado.
+**Fora do escopo:**
+- Envio automático por email (deixa só botão "Baixar/Compartilhar")
+- Assinatura digital
+- Aprovação online pelo cliente
+- Conversão de proposta em pedido/NF (pode ser próxima etapa)
 
-## Pergunta antes de implementar
-Quer o campo `is_active` em `parts` (para "desativar sem apagar"), ou só exclusão definitiva basta?
+---
+
+## Entregáveis
+
+1. Cadastro de cliente PJ completo com contatos múltiplos
+2. Aba Configurações → Propostas (vendedores, garantias, pagamento, identidade)
+3. Wizard de geração com preview ao vivo
+4. PDF preto e branco institucional padrão BORAPEÇAS
+5. Aba "Propostas" no detalhe do cliente com histórico
+
+Aprovando, eu implemento em ordem: migrations → cadastro cliente → configurações → wizard+preview → PDF novo → histórico no cliente.
