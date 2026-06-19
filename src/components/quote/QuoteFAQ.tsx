@@ -9,7 +9,7 @@ export default function QuoteFAQ({ lang }: { lang: Lang }) {
     <section className="bg-muted/30 py-16">
       <div className="max-w-3xl mx-auto px-6 space-y-8">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold font-['Space_Grotesk'] text-foreground">{tr("faq.title", lang)}</h2>
+          <h2 className="text-3xl font-bold font-display text-foreground">{tr("faq.title", lang)}</h2>
           <p className="text-muted-foreground">{tr("faq.subtitle", lang)}</p>
         </div>
 
@@ -27,7 +27,7 @@ export default function QuoteFAQ({ lang }: { lang: Lang }) {
             href="https://wa.me/5595974009289?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20especialista%20XCMG"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[hsl(142,71%,45%)] text-white px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
           >
             <MessageCircle className="h-5 w-5" />
             {tr("faq.specialist", lang)}

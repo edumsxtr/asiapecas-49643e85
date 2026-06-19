@@ -23,7 +23,7 @@ export default function ModelHero({ modelName, countBadge, whatsAppUrl, onB2bCli
               {countBadge && <Badge className="bg-primary text-primary-foreground">{countBadge}</Badge>}
               <Badge variant="outline" className="border-primary/40">XCMG</Badge>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold font-['Space_Grotesk'] text-secondary-foreground leading-tight">
+            <h1 className="text-3xl md:text-4xl font-bold font-display text-secondary-foreground leading-tight">
               Peças para {modelName} · Ásia Peças & Máquinas
             </h1>
             <p className="text-base text-secondary-foreground/80 max-w-2xl">
@@ -39,7 +39,7 @@ export default function ModelHero({ modelName, countBadge, whatsAppUrl, onB2bCli
                 <Building2 className="h-4 w-4" /> Tabela para frota
               </Button>
               <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" data-cta="whatsapp">
-                <Button size="lg" variant="outline" className="gap-2 border-[hsl(142,71%,45%)] text-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,45%)]/10">
+                <Button size="lg" variant="outline" className="gap-2 border-primary text-foreground hover:bg-primary/10">
                   <MessageCircle className="h-4 w-4" /> WhatsApp
                 </Button>
               </a>

@@ -35,7 +35,7 @@ export default function CategoryHero({
                 <Badge className="bg-destructive text-destructive-foreground animate-pulse">Campanha ativa</Badge>
               )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold font-['Space_Grotesk'] text-secondary-foreground leading-tight">
+            <h1 className="text-3xl md:text-4xl font-bold font-display text-secondary-foreground leading-tight">
               {title}
             </h1>
             <p className="text-base text-secondary-foreground/80 max-w-2xl">{subtitle}</p>
@@ -52,7 +52,7 @@ export default function CategoryHero({
                 <Building2 className="h-4 w-4" /> Sou empresa / quero tabela
               </Button>
               <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" data-cta="whatsapp">
-                <Button size="lg" variant="outline" className="gap-2 border-[hsl(142,71%,45%)] text-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,45%)]/10">
+                <Button size="lg" variant="outline" className="gap-2 border-primary text-foreground hover:bg-primary/10">
                   <MessageCircle className="h-4 w-4" /> WhatsApp
                 </Button>
               </a>

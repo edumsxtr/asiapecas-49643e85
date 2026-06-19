@@ -11,7 +11,7 @@ export default function RelatedChips({ title, items }: { title: string; items: C
   if (!items.length) return null;
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold font-['Space_Grotesk']">{title}</h2>
+      <h2 className="text-lg font-semibold font-display">{title}</h2>
       <div className="flex flex-wrap gap-2">
         {items.map(it => (
           <Link key={it.href} to={it.href}>

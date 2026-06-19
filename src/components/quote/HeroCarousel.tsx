@@ -54,7 +54,7 @@ export default function HeroCarousel({ lang, fallback }: { lang: Lang; fallback:
                 <img src={b.image_url} alt={b.title || "Banner"} className="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" />
                 <div className="absolute inset-0 bg-gradient-to-r from-secondary/95 via-secondary/70 to-transparent" />
                 <div className="relative max-w-6xl mx-auto h-full px-6 flex flex-col justify-center max-w-md md:max-w-xl gap-3">
-                  {b.title && <h2 className="text-3xl md:text-5xl font-bold font-['Space_Grotesk'] tracking-tight">{b.title}</h2>}
+                  {b.title && <h2 className="text-3xl md:text-5xl font-bold font-display tracking-tight">{b.title}</h2>}
                   {b.subtitle && <p className="text-base md:text-lg text-secondary-foreground/80">{b.subtitle}</p>}
                   {b.cta_label && b.cta_link && (
                     <a href={b.cta_link} className="inline-block w-fit">
