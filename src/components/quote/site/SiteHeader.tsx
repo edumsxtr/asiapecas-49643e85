@@ -38,7 +38,7 @@ export default function SiteHeader({ lang, search, onSearchChange, cartCount, on
   return (
     <>
       {/* Topbar institucional preta */}
-      <div className="hidden md:block bg-[hsl(0,0%,7%)] text-white/75 text-[11px]">
+      <div className="hidden md:block bg-primary text-primary-foreground/85 text-[11px]">
         <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
           <span className="uppercase tracking-[0.18em] font-medium">
             Distribuidor Autorizado XCMG · Brasil · Venezuela · Guiana
