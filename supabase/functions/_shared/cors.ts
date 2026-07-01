@@ -1,6 +1,6 @@
 // CORS com allowlist de origens para funções internas.
 // Reflete a origem na resposta apenas se ela estiver na allowlist
-// (domínio de produção, previews do Lovable e localhost em dev);
+// (domínio de produção, previews da Vercel e localhost em dev);
 // caso contrário usa o domínio de produção (bloqueia origens desconhecidas).
 const STATIC_ALLOWED = [
   "https://asiapecas.com",
@@ -11,8 +11,7 @@ export function corsFromReq(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") || "";
   const allowed =
     STATIC_ALLOWED.includes(origin) ||
-    /\.lovable\.app$/.test(origin) ||
-    /\.lovableproject\.com$/.test(origin) ||
+    /\.vercel\.app$/.test(origin) ||
     /^http:\/\/localhost(:\d+)?$/.test(origin);
   return {
     "Access-Control-Allow-Origin": allowed ? origin : STATIC_ALLOWED[0],

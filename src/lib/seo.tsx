@@ -12,7 +12,7 @@ interface SEOProps {
 }
 
 const SITE_URL = "https://asiapecas.com";
-const DEFAULT_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/0F2PXpHU28ORhVoHGue0Dm4n4P82/social-images/social-1781847786936-WhatsApp_Image_2026-04-23_at_22.07.27.webp";
+const DEFAULT_IMAGE = "https://asiapecas.com/og-image.webp";
 
 export function SEO({ title, description, canonical, image, type = "website", lang = "pt", noindex = false, jsonLd }: SEOProps) {
   const fullTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;

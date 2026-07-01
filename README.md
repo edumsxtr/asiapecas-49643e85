@@ -5,7 +5,7 @@ Plataforma da **Ásia Peças & Máquinas**, distribuidora de peças e máquinas 
 - **Site público / Portal do cliente** (`asiapecas.com`) — catálogo de peças, máquinas, blog, páginas institucionais, cotação e área do cliente.
 - **ERP/CRM interno** (rotas protegidas) — estoque, clientes, vendas, prospecção, relatórios, etc.
 
-> Projeto originado no Lovable, com backend no **Supabase** (Postgres + Auth + Edge Functions). Front em **React + Vite + TypeScript + Tailwind + shadcn/ui**.
+> Backend no **Supabase** (Postgres + Auth + Edge Functions). Front em **React + Vite + TypeScript + Tailwind + shadcn/ui**, com deploy na **Vercel**.
 
 ---
 

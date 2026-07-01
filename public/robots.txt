@@ -30,4 +30,4 @@ Disallow: /minhas-cotacoes
 Disallow: /portal/
 
 Sitemap: https://asiapecas.com/sitemap.xml
-Sitemap: https://ustzlgdhzgkhvyunvxyw.supabase.co/functions/v1/generate-sitemap
+Sitemap: https://hcwcuiviktajqogisiff.supabase.co/functions/v1/generate-sitemap
