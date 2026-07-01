@@ -94,6 +94,7 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
     return (
       <button
         onClick={() => setOpen(true)}
+        aria-label="Abrir chat de atendimento"
         className="fixed bottom-6 left-6 z-50 bg-secondary text-secondary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
       >
         <MessageCircle className="h-6 w-6" />
@@ -102,13 +103,13 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 w-80 sm:w-96 bg-card border rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ maxHeight: "70vh" }}>
+    <div className="fixed bottom-6 left-6 z-50 w-80 sm:w-96 bg-card border rounded-lg shadow-2xl flex flex-col overflow-hidden" style={{ maxHeight: "70vh" }}>
       <div className="bg-secondary text-secondary-foreground px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img src={asiaLogo} alt="Ásia Peças" className="h-5 w-5 rounded" />
           <span className="font-semibold text-sm">{tr("chat.title", lang)}</span>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-secondary-foreground hover:text-primary" onClick={() => setOpen(false)}>
+        <Button variant="ghost" size="icon" aria-label="Fechar chat" className="h-7 w-7 text-secondary-foreground hover:text-primary" onClick={() => setOpen(false)}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -117,7 +118,7 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && <Bot className="h-5 w-5 text-primary mt-1 shrink-0" />}
-            <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
               msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
             }`}>
               {msg.role === "assistant" ? (
@@ -132,7 +133,7 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
         {loading && (
           <div className="flex gap-2">
             <Bot className="h-5 w-5 text-primary mt-1" />
-            <div className="bg-muted rounded-xl px-3 py-2 text-sm text-muted-foreground animate-pulse">{tr("chat.typing", lang)}</div>
+            <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground animate-pulse">{tr("chat.typing", lang)}</div>
           </div>
         )}
       </div>
@@ -140,12 +141,13 @@ export default function QuoteChat({ lang }: { lang: Lang }) {
       <div className="border-t p-3 flex gap-2">
         <Input
           placeholder={tr("chat.placeholder", lang)}
+          aria-label={tr("chat.placeholder", lang)}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && send()}
           className="h-9 text-sm"
         />
-        <Button size="icon" className="h-9 w-9 shrink-0" onClick={send} disabled={loading || !input.trim()}>
+        <Button size="icon" aria-label="Enviar mensagem" className="h-9 w-9 shrink-0" onClick={send} disabled={loading || !input.trim()}>
           <Send className="h-4 w-4" />
         </Button>
       </div>

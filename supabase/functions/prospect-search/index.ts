@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsFromReq } from "../_shared/cors.ts";
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
@@ -113,9 +109,27 @@ const classifyTool = {
 } as const;
 
 serve(async (req) => {
+  const corsHeaders = corsFromReq(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth obrigatória: exige usuário autenticado real (rejeita anon key pública)
+    const _authHeader = req.headers.get("Authorization");
+    if (!_authHeader) {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const _authClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: _authHeader } },
+    });
+    const { data: _authData, error: _authErr } = await _authClient.auth.getUser();
+    if (_authErr || !_authData?.user) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { country, state, segment, count = 5 } = await req.json();
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {

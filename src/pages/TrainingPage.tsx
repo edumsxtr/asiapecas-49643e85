@@ -335,7 +335,7 @@ export default function TrainingPage() {
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold font-['Space_Grotesk'] text-foreground">
+          <h1 className="text-2xl font-bold font-display text-foreground">
             Treinamento da Equipe
           </h1>
           <p className="text-muted-foreground text-sm">

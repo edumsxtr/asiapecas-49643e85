@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="480" viewBox="0 0 1920 480" font-family="Archivo, 'Segoe UI', sans-serif">
+  <defs><linearGradient id="bg5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F5B400"/><stop offset="1" stop-color="#D89E00"/></linearGradient></defs>
+  <rect width="1920" height="480" fill="url(#bg5)"/>
+  <g opacity="0.10" fill="#1A3C9C"><polygon points="1920,0 1920,480 1480,480"/><circle cx="1700" cy="150" r="190"/></g>
+  <g opacity="0.07" stroke="#15181D" stroke-width="2"><line x1="1320" y1="0" x2="1560" y2="480"/><line x1="1420" y1="0" x2="1660" y2="480"/></g>
+  <rect x="110" y="96" width="56" height="7" fill="#1A3C9C"/>
+  <rect x="110" y="120" width="200" height="42" rx="4" fill="#1A3C9C"/>
+  <text x="124" y="149" font-family="'IBM Plex Mono', monospace" font-size="22" font-weight="700" letter-spacing="2" fill="#FFFFFF">ATENDIMENTO</text>
+  <text x="110" y="288" font-size="78" font-weight="800" letter-spacing="-2" fill="#15181D">Orçamento em 24h</text>
+  <text x="113" y="338" font-size="26" fill="#3A2E00">Envie sua lista pelo WhatsApp.</text>
+  <rect x="110" y="372" width="303" height="58" rx="29" fill="#1A3C9C"/>
+  <text x="261.5" y="409" font-size="24" font-weight="700" text-anchor="middle" fill="#FFFFFF">Pedir orçamento</text>
+  <text x="443" y="409" font-family="'IBM Plex Mono', monospace" font-size="18" letter-spacing="1" fill="#3A2E00">SKU • COTAÇÃO-24H</text>
+  <text x="1880" y="454" text-anchor="end" font-family="'IBM Plex Mono', monospace" font-size="18" fill="#15181D" opacity="0.45">MOCKUP • 1920×480 • DESKTOP • SLIDE 5</text>
+</svg>

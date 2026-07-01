@@ -1,4 +1,4 @@
-import LegalPageShell from "@/components/legal/LegalPageShell";
+﻿import LegalPageShell from "@/components/legal/LegalPageShell";
 
 export default function WarrantyPage() {
   return (
@@ -57,7 +57,7 @@ export default function WarrantyPage() {
 
       <h2>7. Suporte</h2>
       <p>
-        Dúvidas sobre garantia podem ser direcionadas ao canal comercial pelo telefone (31) 99229-3767 ou pelo e-mail
+        Dúvidas sobre garantia podem ser direcionadas ao canal comercial pelo telefone (31) 99516-5511 ou pelo e-mail
         <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a>.
       </p>
     </LegalPageShell>

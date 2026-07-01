@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+﻿import { Helmet } from "react-helmet-async";
 
 interface SEOProps {
   title: string;
@@ -11,8 +11,8 @@ interface SEOProps {
   jsonLd?: Record<string, any> | Record<string, any>[];
 }
 
-const SITE_URL = "https://asiapecas.lovable.app";
-const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
+const SITE_URL = "https://asiapecas.com";
+const DEFAULT_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/0F2PXpHU28ORhVoHGue0Dm4n4P82/social-images/social-1781847786936-WhatsApp_Image_2026-04-23_at_22.07.27.webp";
 
 export function SEO({ title, description, canonical, image, type = "website", lang = "pt", noindex = false, jsonLd }: SEOProps) {
   const fullTitle = title.length > 60 ? title.slice(0, 57) + "..." : title;
@@ -45,12 +45,6 @@ export function SEO({ title, description, canonical, image, type = "website", la
       {desc && <meta name="twitter:description" content={desc} />}
       <meta name="twitter:image" content={img} />
 
-      {/* hreflang */}
-      <link rel="alternate" hrefLang="pt-BR" href={`${url}${url.includes("?") ? "&" : "?"}lang=pt`} />
-      <link rel="alternate" hrefLang="en" href={`${url}${url.includes("?") ? "&" : "?"}lang=en`} />
-      <link rel="alternate" hrefLang="es" href={`${url}${url.includes("?") ? "&" : "?"}lang=es`} />
-      <link rel="alternate" hrefLang="x-default" href={url} />
-
       {lds.map((ld, i) => (
         <script key={i} type="application/ld+json">{JSON.stringify(ld)}</script>
       ))}
@@ -63,16 +57,60 @@ export function organizationLd() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Ásia Peças & Máquinas",
+    alternateName: "Ásia Peças",
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
-    sameAs: [],
+    logo: `${SITE_URL}/logo-asia.png`,
+    image: DEFAULT_IMAGE,
+    description:
+      "Distribuidor de peças XCMG originais e compatíveis para máquinas pesadas — escavadeiras, pás-carregadeiras, guindastes, motoniveladoras e mais. Estoque real e cotação rápida.",
+    email: "vendas@asiapecas.com",
+    sameAs: [
+      "https://www.instagram.com/asiapecasmaquinas/",
+      "https://linktr.ee/asiapecasmaquinas",
+    ],
+    areaServed: ["BR", "VE", "GY"],
     contactPoint: [{
       "@type": "ContactPoint",
-      telephone: "+55-31-99229-3767",
+      telephone: "+55-31-98733-4504",
       contactType: "sales",
-      areaServed: ["BR", "Latam"],
+      areaServed: ["BR", "VE", "GY"],
       availableLanguage: ["Portuguese", "English", "Spanish"],
     }],
+  };
+}
+
+export function localBusinessLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "AutoPartsStore",
+    "@id": `${SITE_URL}/#business`,
+    name: "Ásia Peças & Máquinas",
+    image: DEFAULT_IMAGE,
+    logo: `${SITE_URL}/logo-asia.png`,
+    url: SITE_URL,
+    email: "vendas@asiapecas.com",
+    telephone: "+55-31-98733-4504",
+    priceRange: "$$",
+    currenciesAccepted: "BRL",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Rua Áustria, 86",
+      addressLocality: "Belo Horizonte",
+      addressRegion: "MG",
+      postalCode: "30575-030",
+      addressCountry: "BR",
+    },
+    areaServed: ["BR", "VE", "GY"],
+    openingHoursSpecification: [{
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "08:00",
+      closes: "18:00",
+    }],
+    sameAs: [
+      "https://www.instagram.com/asiapecasmaquinas/",
+      "https://linktr.ee/asiapecasmaquinas",
+    ],
   };
 }
 

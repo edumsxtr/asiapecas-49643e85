@@ -6,15 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar, Tag } from "lucide-react";
+import SiteHeader from "@/components/quote/site/SiteHeader";
+import QuoteFooter from "@/components/quote/QuoteFooter";
+import QuoteCart from "@/components/quote/QuoteCart";
+import { useCartSession } from "@/hooks/use-cart-session";
 
 
 const PAGE_SIZE = 9;
 
 export default function BlogIndexPage() {
+  const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | undefined>();
   const [page, setPage] = useState(0);
   const { data: cats = [] } = useBlogCategories();
   const { data, isLoading } = usePublishedPosts({ category, page, pageSize: PAGE_SIZE });
+  const { items, updateQty, removeItem, clearCart } = useCartSession();
 
   const totalPages = Math.ceil((data?.count || 0) / PAGE_SIZE);
 
@@ -29,20 +35,32 @@ export default function BlogIndexPage() {
           { name: "Blog", url: "/blog" },
         ])]}
       />
-      <div className="min-h-screen bg-background">
-        <div className="border-b bg-gradient-to-br from-primary/5 to-background">
-          <div className="max-w-6xl mx-auto px-6 py-12">
-            <Link to="/cotacao" className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 mb-4">
-              <ChevronLeft className="h-3 w-3" /> Voltar ao catálogo
-            </Link>
-            <h1 className="text-4xl md:text-5xl font-bold font-['Space_Grotesk'] mb-3">Blog Ásia Peças</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl">
+      <div className="min-h-screen bg-background flex flex-col">
+        <SiteHeader
+          lang="pt"
+          search={search}
+          onSearchChange={setSearch}
+          cartCount={items.length}
+          onOpenCart={() => window.dispatchEvent(new Event("open-quote-cart"))}
+        />
+
+        <div className="border-b border-border bg-gradient-to-br from-primary/5 to-background">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-7 md:py-9">
+            <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground mb-3">
+              <ol className="flex gap-1">
+                <li><Link to="/" className="hover:text-primary">Início</Link></li>
+                <li>/</li>
+                <li className="text-foreground">Blog</li>
+              </ol>
+            </nav>
+            <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight mb-2">Blog Ásia Peças</h1>
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
               Conhecimento técnico sobre peças, manutenção e operação de máquinas pesadas XCMG.
             </p>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 w-full flex-1">
           {/* Category filter */}
           <div className="flex flex-wrap gap-2 mb-8">
             <Button
@@ -128,8 +146,12 @@ export default function BlogIndexPage() {
               )}
             </>
           )}
-        </div>
+        </main>
+
+        <QuoteFooter lang="pt" />
       </div>
+
+      <QuoteCart items={items} onUpdateQty={updateQty} onRemove={removeItem} onClear={clearCart} lang="pt" showTrigger={false} />
     </>
   );
 }

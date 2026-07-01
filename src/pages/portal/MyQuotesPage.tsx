@@ -9,11 +9,11 @@ import asiaLogo from "@/assets/asia-logo.png";
 import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 const STATUS_LABEL: Record<string, { label: string; cls: string; icon: any }> = {
-  pendente:           { label: "Pendente",          cls: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: Clock },
-  em_analise:         { label: "Em análise",        cls: "bg-blue-500/15 text-blue-700 border-blue-500/30", icon: Clock },
+  pendente:           { label: "Pendente",          cls: "bg-warning/15 text-warning border-warning/30", icon: Clock },
+  em_analise:         { label: "Em análise",        cls: "bg-info/15 text-info border-info/30", icon: Clock },
   proposta_enviada:   { label: "Proposta enviada",  cls: "bg-primary/15 text-primary border-primary/30", icon: FileText },
-  aprovado:           { label: "Aprovado",          cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: CheckCircle2 },
-  concluido:          { label: "Concluído",         cls: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: CheckCircle2 },
+  aprovado:           { label: "Aprovado",          cls: "bg-success/15 text-success border-success/30", icon: CheckCircle2 },
+  concluido:          { label: "Concluído",         cls: "bg-success/15 text-success border-success/30", icon: CheckCircle2 },
   recusado:           { label: "Encerrado",         cls: "bg-muted text-muted-foreground border-border", icon: XCircle },
   convertido:         { label: "Convertido",        cls: "bg-primary/15 text-primary border-primary/30", icon: FileText },
 };
@@ -28,7 +28,7 @@ export default function MyQuotesPage() {
     <div className="min-h-screen bg-background">
       <SEO title="Minhas cotações | Portal do Cliente — Ásia Peças" description="Acompanhe o status das suas cotações e propostas." canonical="/minhas-cotacoes" />
       <header className="bg-secondary text-secondary-foreground border-b border-secondary-foreground/10">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
           <Link to="/cotacao" className="flex items-center gap-3">
             <img src={asiaLogo} alt="Ásia Peças" className="h-10 w-auto" />
             <span className="font-bold text-sm font-display">Ásia Peças & Máquinas</span>
@@ -40,7 +40,7 @@ export default function MyQuotesPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
+      <main className="max-w-5xl mx-auto px-4 md:px-6 py-10">
         <div className="flex items-center gap-3 mb-6">
           <Link to="/cotacao" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
             <ArrowLeft className="h-4 w-4" /> Catálogo

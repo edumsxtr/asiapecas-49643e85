@@ -139,13 +139,13 @@ export default function QuotePartDetail({ part, open, onClose, inCart, onAdd, la
             </div>
           ) : (
             <div className="border-t pt-4 space-y-3">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center space-y-3">
-                <Sparkles className="h-8 w-8 text-amber-500 mx-auto" />
-                <p className="text-sm text-amber-800">{DETAIL_LABELS.noAiYet[lang]}</p>
+              <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center space-y-3">
+                <Sparkles className="h-8 w-8 text-accent mx-auto" />
+                <p className="text-sm text-muted-foreground">{DETAIL_LABELS.noAiYet[lang]}</p>
                 <Button
                   onClick={handleResearch}
                   disabled={researching}
-                  className="gap-2 bg-amber-500 hover:bg-amber-600 text-white"
+                  className="gap-2 bg-primary hover:brightness-95 text-primary-foreground"
                 >
                   {researching ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> {DETAIL_LABELS.researching[lang]}</>

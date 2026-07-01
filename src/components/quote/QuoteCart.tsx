@@ -24,6 +24,9 @@ interface QuoteCartProps {
   onRemove: (material: string) => void;
   onClear: () => void;
   lang: Lang;
+  /** Mostra o botão flutuante de cotação no canto inferior. Em páginas com o
+   *  botão "Cotação" no header, deixe false — a cotação fica só na parte superior. */
+  showTrigger?: boolean;
 }
 
 const SEGMENTS = ["Mineração", "Construção / Linha amarela", "Locação de equipamentos", "Revenda / Distribuidor", "Transporte / Logística", "Outro"];
@@ -41,7 +44,7 @@ const emptyForm = {
   createAccount: false, password: "", passwordConfirm: "",
 };
 
-export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang }: QuoteCartProps) {
+export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang, showTrigger = true }: QuoteCartProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -209,16 +212,18 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang 
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform">
-          <ShoppingCart className="h-6 w-6" />
-          {items.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center">
-              {items.length}
-            </span>
-          )}
-        </button>
-      </SheetTrigger>
+      {showTrigger && (
+        <SheetTrigger asChild>
+          <button aria-label="Abrir carrinho de cotação" className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground h-14 w-14 rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform">
+            <ShoppingCart className="h-6 w-6" />
+            {items.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center">
+                {items.length}
+              </span>
+            )}
+          </button>
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
@@ -345,14 +350,14 @@ export default function QuoteCart({ items, onUpdateQty, onRemove, onClear, lang 
                       <p className="text-sm text-foreground truncate">{item.description}</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => onUpdateQty(item.material, item.quantity - 1)}>
+                      <Button variant="outline" size="icon" aria-label="Diminuir quantidade" className="h-7 w-7" onClick={() => onUpdateQty(item.material, item.quantity - 1)}>
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="text-sm font-medium w-7 text-center">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => onUpdateQty(item.material, item.quantity + 1)}>
+                      <Button variant="outline" size="icon" aria-label="Aumentar quantidade" className="h-7 w-7" onClick={() => onUpdateQty(item.material, item.quantity + 1)}>
                         <Plus className="h-3 w-3" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemove(item.material)}>
+                      <Button variant="ghost" size="icon" aria-label="Remover item" className="h-7 w-7" onClick={() => onRemove(item.material)}>
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </div>

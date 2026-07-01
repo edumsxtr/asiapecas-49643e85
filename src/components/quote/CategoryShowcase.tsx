@@ -1,9 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { getSubcategoryIcon } from "@/lib/subcategory-rules";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldCheck, Truck, MessageCircle, FileCheck } from "lucide-react";
 import { useAllCategoryMedia } from "@/hooks/use-category-media";
 import { categorySlug } from "@/lib/slugs";
 import { type Lang } from "./translations";
@@ -13,121 +10,79 @@ interface Props {
   onSubcategoryClick: (sub: string) => void;
 }
 
-const TRUST = {
-  pt: [
-    { icon: FileCheck, label: "Nota fiscal emitida" },
-    { icon: Truck, label: "Entrega nacional" },
-    { icon: MessageCircle, label: "Cotação via WhatsApp" },
-    { icon: ShieldCheck, label: "Garantia 3 meses" },
-  ],
-  en: [
-    { icon: FileCheck, label: "Invoice issued" },
-    { icon: Truck, label: "Nationwide delivery" },
-    { icon: MessageCircle, label: "Quote via WhatsApp" },
-    { icon: ShieldCheck, label: "3-month warranty" },
-  ],
-  es: [
-    { icon: FileCheck, label: "Factura emitida" },
-    { icon: Truck, label: "Envío nacional" },
-    { icon: MessageCircle, label: "Cotización vía WhatsApp" },
-    { icon: ShieldCheck, label: "Garantía 3 meses" },
-  ],
-};
-
-export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["category-showcase"],
+export default function CategoryShowcase({ lang, onSubcategoryClick: _onSubcategoryClick }: Props) {
+  const { data: mfrs = [] } = useQuery({
+    queryKey: ["category-showcase-mfrs"],
     queryFn: async () => {
-      const { data: parts } = await supabase
+      const { data } = await supabase
         .from("parts")
-        .select("subcategory, manufacturer")
+        .select("manufacturer")
         .gt("stock", 0)
-        .not("subcategory", "is", null)
-        .limit(10000);
-
-      const subCount = new Map<string, number>();
-      const mfrCount = new Map<string, number>();
-      for (const p of parts ?? []) {
-        if (p.subcategory) subCount.set(p.subcategory, (subCount.get(p.subcategory) ?? 0) + 1);
-        if (p.manufacturer) mfrCount.set(p.manufacturer, (mfrCount.get(p.manufacturer) ?? 0) + 1);
+        .not("manufacturer", "is", null)
+        .limit(5000);
+      const count = new Map<string, number>();
+      for (const p of data ?? []) {
+        if (p.manufacturer) count.set(p.manufacturer, (count.get(p.manufacturer) ?? 0) + 1);
       }
-      const topSubs = Array.from(subCount.entries())
+      return Array.from(count.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
-        .map(([sub]) => ({ sub }));
-      const topMfrs = Array.from(mfrCount.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
         .map(([m]) => m);
-      return { topSubs, topMfrs };
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  const heading = lang === "en" ? "Parts you'll find here" : lang === "es" ? "Repuestos que encuentras aquí" : "Peças que você encontra aqui";
   const mfrHeading = lang === "en" ? "Compatible brands" : lang === "es" ? "Marcas compatibles" : "Marcas compatíveis";
 
+  const { data: media = [] } = useAllCategoryMedia();
+  const withImage = media.filter(m => m.image_url);
+  const hasContent = withImage.length > 0 || mfrs.length > 0;
+  if (!hasContent) return null;
+
   return (
-    <section className="bg-background border-y border-foreground/10">
-      <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
-        {/* Trust strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {TRUST[lang].map((t) => (
-            <div key={t.label} className="flex items-center gap-3 bg-white border border-foreground/10 rounded-lg px-3 py-2.5">
-              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
-                <t.icon className="h-4 w-4" />
-              </div>
-              <span className="text-xs font-medium text-foreground">{t.label}</span>
-            </div>
-          ))}
-        </div>
+    <section className="bg-background border-y border-border">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-6">
 
-        {/* Custom category images (admin-configured) */}
-        <CategoryImageStrip lang={lang} />
-
-
-
-        {/* Subcategory tiles */}
-        <div>
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">
-            {heading}
-          </h2>
-          {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {data?.topSubs.map(({ sub }) => {
-                const Icon = getSubcategoryIcon(sub);
-                return (
-                  <button
-                    key={sub}
-                    onClick={() => onSubcategoryClick(sub)}
-                    className="group relative bg-white hover:bg-foreground hover:text-background border border-foreground/10 rounded-xl p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center mb-3 group-hover:bg-primary">
-                      <Icon className="h-5 w-5" strokeWidth={2} />
-                    </div>
-                    <p className="text-sm font-display font-semibold leading-tight line-clamp-2">{sub}</p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Compatible manufacturers strip */}
-        {data && data.topMfrs.length > 0 && (
+        {/* Admin-configured category images */}
+        {withImage.length > 0 && (
           <div>
-            <p className="text-[11px] font-display font-semibold uppercase tracking-[0.2em] text-foreground/70 mb-3">
+            <h2 className="text-base md:text-lg font-display font-bold text-foreground mb-3">
+              {lang === "en" ? "Categories" : lang === "es" ? "Categorías" : "Categorias"}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {withImage.map((m) => (
+                <Link
+                  key={m.category}
+                  to={`/cotacao/c/${categorySlug(m.category)}`}
+                  className="group relative aspect-[16/9] rounded-lg overflow-hidden border border-border bg-black"
+                >
+                  <img
+                    src={m.image_url!}
+                    alt={m.headline || m.category}
+                    className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h3 className="text-white font-display font-semibold text-sm leading-tight">{m.headline || m.category}</h3>
+                    {m.description && <p className="text-white/70 text-[10px] mt-0.5 line-clamp-1">{m.description}</p>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Compatible manufacturers */}
+        {mfrs.length > 0 && (
+          <div className={withImage.length > 0 ? "border-t border-border pt-5" : ""}>
+            <p className="text-[10px] font-display font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2.5">
               {mfrHeading}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {data.topMfrs.map((m) => (
+            <div className="flex flex-wrap gap-1.5">
+              {mfrs.map((m) => (
                 <div
                   key={m}
-                  className="px-4 py-2 bg-white border border-foreground/15 rounded-full text-sm font-display font-semibold tracking-wide text-foreground hover:border-primary transition-colors"
+                  className="px-3 py-1.5 bg-card border border-border rounded-full text-xs font-display font-semibold text-foreground/80 hover:border-primary hover:text-primary transition-colors cursor-default"
                 >
                   {m}
                 </div>
@@ -139,28 +94,3 @@ export default function CategoryShowcase({ lang, onSubcategoryClick }: Props) {
     </section>
   );
 }
-
-function CategoryImageStrip({ lang }: { lang: Lang }) {
-  const { data: media = [] } = useAllCategoryMedia();
-  const withImage = media.filter(m => m.image_url);
-  if (withImage.length === 0) return null;
-  const heading = lang === "en" ? "Categories" : lang === "es" ? "Categorías" : "Categorias";
-  return (
-    <div>
-      <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">{heading}</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {withImage.map((m) => (
-          <Link key={m.category} to={`/cotacao/c/${categorySlug(m.category)}`} className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-foreground/10 bg-black">
-            <img src={m.image_url!} alt={m.headline || m.category} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <h3 className="text-white font-display font-semibold text-base leading-tight">{m.headline || m.category}</h3>
-              {m.description && <p className="text-white/75 text-xs mt-1 line-clamp-2">{m.description}</p>}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-

@@ -1,4 +1,4 @@
-import { Sparkles, MessageCircle } from "lucide-react";
+﻿import { Sparkles, MessageCircle } from "lucide-react";
 import { useHasActivePromotions } from "@/hooks/use-active-promotions";
 import { type Lang } from "./translations";
 
@@ -7,7 +7,7 @@ interface Props {
   whatsapp?: string;
 }
 
-export default function PromoBanner({ lang, whatsapp = "5531992293767" }: Props) {
+export default function PromoBanner({ lang, whatsapp = "5531995165511" }: Props) {
   const hasPromo = useHasActivePromotions();
   if (!hasPromo) return null;
 

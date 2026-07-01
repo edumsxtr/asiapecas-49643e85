@@ -1,4 +1,4 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+﻿import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { MessageCircle } from "lucide-react";
 import { type Lang, tr } from "./translations";
 
@@ -7,7 +7,7 @@ const FAQ_KEYS = [1, 2, 3, 4, 5, 6] as const;
 export default function QuoteFAQ({ lang }: { lang: Lang }) {
   return (
     <section className="bg-muted/30 py-16">
-      <div className="max-w-3xl mx-auto px-6 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 space-y-8">
         <div className="text-center space-y-2">
           <h2 className="text-3xl font-bold font-display text-foreground">{tr("faq.title", lang)}</h2>
           <p className="text-muted-foreground">{tr("faq.subtitle", lang)}</p>
@@ -24,7 +24,7 @@ export default function QuoteFAQ({ lang }: { lang: Lang }) {
 
         <div className="text-center">
           <a
-            href="https://wa.me/5531992293767?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20especialista%20XCMG"
+            href="https://wa.me/5531995165511?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20especialista%20XCMG"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"

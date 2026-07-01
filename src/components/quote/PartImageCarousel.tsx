@@ -14,7 +14,7 @@ export function PartImageCarousel({ images, fallbackUrl, alt }: Props) {
 
   if (list.length === 1) {
     return (
-      <div className="aspect-square bg-muted rounded-xl overflow-hidden">
+      <div className="aspect-square bg-muted rounded-lg overflow-hidden">
         <img src={list[0].url} alt={list[0].alt_text || alt} className="w-full h-full object-cover" loading="eager" fetchPriority="high" />
       </div>
     );
@@ -26,7 +26,7 @@ export function PartImageCarousel({ images, fallbackUrl, alt }: Props) {
         <CarouselContent>
           {list.map((img, i) => (
             <CarouselItem key={i}>
-              <div className="aspect-square bg-muted rounded-xl overflow-hidden">
+              <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                 <img
                   src={img.url}
                   alt={img.alt_text || `${alt} - foto ${i + 1}`}

@@ -53,7 +53,7 @@ export default function AdminVitrinePage() {
       <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold font-['Space_Grotesk']">Vitrine — Loja Pública</h1>
+            <h1 className="text-2xl font-bold font-display">Vitrine — Loja Pública</h1>
             <p className="text-sm text-muted-foreground">Configure banners, destaques, promoções e tracking que aparecem em <code className="bg-muted px-1 rounded">/cotacao</code>.</p>
           </div>
           <a href="/cotacao" target="_blank" rel="noopener noreferrer">

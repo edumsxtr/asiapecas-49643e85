@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="608" viewBox="0 0 1080 608" font-family="Archivo, 'Segoe UI', sans-serif">
+  <defs><linearGradient id="mbg3" x1="0" y1="0" x2="0.7" y2="1"><stop offset="0" stop-color="#EEEFEA"/><stop offset="1" stop-color="#DDDFD8"/></linearGradient></defs>
+  <rect width="1080" height="608" fill="url(#mbg3)"/>
+  <g opacity="0.10" fill="#F5B400"><circle cx="990" cy="538" r="220"/><polygon points="0,0 280,0 0,280"/></g>
+  <g opacity="0.07" stroke="#15181D" stroke-width="2"><line x1="740" y1="0" x2="920" y2="608"/><line x1="830" y1="0" x2="1010" y2="608"/></g>
+  <rect x="80" y="108" width="60" height="8" fill="#F5B400"/>
+  <rect x="80" y="132" width="158" height="46" rx="4" fill="#F5B400"/>
+  <text x="94" y="164" font-family="'IBM Plex Mono', monospace" font-size="23" font-weight="700" letter-spacing="2" fill="#15181D">NOVIDADE</text>
+  <text x="80" y="320" font-size="72" font-weight="800" letter-spacing="-2" fill="#15181D">Linha hidráulica</text>
+  <text x="82" y="372" font-size="30" fill="#5A6473">Bombas, válvulas e mangueiras.</text>
+  <rect x="80" y="412" width="204" height="68" rx="34" fill="#F5B400"/>
+  <text x="182" y="455" font-size="28" font-weight="700" text-anchor="middle" fill="#15181D">Conhecer</text>
+  <text x="540" y="578" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="20" fill="#15181D" opacity="0.45">MOCKUP • 1080×608 • MOBILE • SLIDE 3</text>
+</svg>

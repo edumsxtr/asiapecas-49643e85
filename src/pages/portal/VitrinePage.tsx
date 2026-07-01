@@ -1,22 +1,24 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Layers, Cpu } from "lucide-react";
+import SiteHeader from "@/components/quote/site/SiteHeader";
 import QuoteFooter from "@/components/quote/QuoteFooter";
 import QuotePartCard from "@/components/quote/QuotePartCard";
 import QuoteCart from "@/components/quote/QuoteCart";
+import MachineShowcase from "@/components/quote/MachineShowcase";
 import { useCartSession } from "@/hooks/use-cart-session";
-import { SEO } from "@/lib/seo";
-import asiaLogo from "@/assets/asia-logo.png";
+import { SEO, breadcrumbLd } from "@/lib/seo";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 
 export default function VitrinePage() {
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
   const { items, addToCart, updateQty, removeItem, clearCart } = useCartSession();
 
-  const { data: featured, isLoading } = useQuery({
+  const { data: featured = [], isLoading } = useQuery({
     queryKey: ["public-vitrine-featured"],
     queryFn: async () => {
       const { data } = await supabase
@@ -29,55 +31,103 @@ export default function VitrinePage() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
-      <SEO title="Vitrine — Peças em destaque | Ásia Peças" description="Peças XCMG selecionadas em destaque pela Ásia Peças & Máquinas." canonical="/cotacao/vitrine" />
-      <header className="border-b border-white/10 bg-black">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/cotacao" className="flex items-center gap-3">
-            <img src={asiaLogo} alt="Ásia Peças" className="h-10 w-auto" />
-            <span className="font-display font-bold">Ásia Peças & Máquinas</span>
-          </Link>
-          <Link to="/cotacao">
-            <Button variant="outline" size="sm" className="gap-1 border-white/20 text-white hover:bg-white/10">
-              <ArrowLeft className="h-4 w-4" /> Voltar à loja
-            </Button>
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-background">
+      <SEO
+        title="Catálogos XCMG — Máquinas e Peças | Ásia Peças"
+        description="Catálogos de máquinas XCMG por modelo e catálogo de peças em destaque. Escavadeiras, guindastes, carregadeiras e muito mais."
+        canonical="/catalogos"
+        lang="pt"
+        jsonLd={breadcrumbLd([
+          { name: "Início", url: "/" },
+          { name: "Catálogos", url: "/catalogos" },
+        ])}
+      />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-        <div className="flex items-center gap-3 mb-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl md:text-4xl font-display font-bold">Vitrine de destaques</h1>
-        </div>
-        <p className="text-white/70 mb-8 max-w-2xl">Peças selecionadas pela nossa equipe — pronta entrega e oportunidades especiais.</p>
+      <SiteHeader
+        lang="pt"
+        search={search}
+        onSearchChange={setSearch}
+        cartCount={items.length}
+        onOpenCart={() => window.dispatchEvent(new Event("open-quote-cart"))}
+      />
 
-        {isLoading ? (
-          <p className="text-white/60">Carregando...</p>
-        ) : !featured || featured.length === 0 ? (
-          <div className="border border-dashed border-white/20 rounded-2xl p-16 text-center">
-            <p className="text-white/70">Nenhuma peça em destaque no momento.</p>
+      <main className="flex-1">
+
+        {/* Herói — gradiente suave (sem faixa azul), padrão do site */}
+        <div className="border-b border-border bg-gradient-to-br from-primary/5 to-background">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-7 md:py-9">
+            <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground mb-3">
+              <ol className="flex gap-1">
+                <li><Link to="/" className="hover:text-primary">Início</Link></li>
+                <li>/</li>
+                <li className="text-foreground">Catálogos</li>
+              </ol>
+            </nav>
+            <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight mb-2">Catálogos</h1>
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
+              Navegue pelo catálogo de máquinas XCMG por modelo ou explore as peças em destaque.
+            </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {featured.map((f: any) => f.part && (
-              <div key={f.id} className="bg-white text-foreground rounded-xl overflow-hidden">
-                <QuotePartCard
-                  part={f.part}
-                  inCart={items.some(i => i.material === f.part.material)}
-                  hasAiData={false}
-                  onAdd={() => { addToCart(f.part); track.addToCart(f.part); toast.success("Adicionado à cotação"); }}
-                  onViewDetail={() => navigate(`/cotacao/p/${encodeURIComponent(f.part.material)}`)}
-                  lang="pt"
-                />
+        </div>
+
+        {/* Seção 1 — Catálogo por Máquina */}
+        <section className="bg-background">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 pt-10 md:pt-12 pb-1">
+            <div className="flex items-center gap-2">
+              <Cpu className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
+                Catálogo por Máquina
+              </h2>
+            </div>
+          </div>
+          <div className="pb-6"><MachineShowcase /></div>
+        </section>
+
+        {/* Seção 2 — Peças em destaque (superfície e borda diferenciam a seção) */}
+        <section className="border-t border-border bg-muted/40">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-12">
+            <div className="flex items-center gap-2 mb-5">
+              <Layers className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
+                Catálogo de Peças em Destaque
+              </h2>
+            </div>
+
+            {isLoading ? (
+              <p className="text-muted-foreground text-sm">Carregando...</p>
+            ) : featured.length === 0 ? (
+              <div className="border border-dashed border-border rounded-lg p-12 text-center">
+                <p className="text-muted-foreground text-sm">Nenhuma peça em destaque no momento.</p>
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {featured.map((f: any) => f.part && (
+                  <QuotePartCard
+                    key={f.id}
+                    part={f.part}
+                    inCart={items.some(i => i.material === f.part.material)}
+                    hasAiData={false}
+                    onAdd={() => { addToCart(f.part); track.addToCart(f.part); toast.success("Adicionado à cotação"); }}
+                    onViewDetail={() => navigate(`/cotacao/p/${encodeURIComponent(f.part.material)}`)}
+                    lang="pt"
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </section>
+
       </main>
 
       <QuoteFooter lang="pt" />
-      <QuoteCart items={items.map(i => ({ material: i.material, description: i.description, quantity: i.quantity }))} onUpdateQty={updateQty} onRemove={removeItem} onClear={clearCart} lang="pt" />
+      <QuoteCart
+        items={items.map(i => ({ material: i.material, description: i.description, quantity: i.quantity }))}
+        onUpdateQty={updateQty}
+        onRemove={removeItem}
+        onClear={clearCart}
+        lang="pt"
+        showTrigger={false}
+      />
     </div>
   );
 }

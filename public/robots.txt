@@ -1,14 +1,15 @@
-# Public storefront and parts open to crawlers
+# Vitrine pública e catálogo de peças — abertos aos crawlers
 User-agent: *
 Allow: /
-Allow: /cotacao
+Allow: /pecas
+Allow: /maquinas
+Allow: /catalogos
+Allow: /blog
 Allow: /cotacao/p/
 Allow: /cotacao/c/
 Allow: /cotacao/m/
-Allow: /cotacao/categorias
-Allow: /cotacao/modelos
 
-# Internal tools — never index
+# Ferramentas internas — nunca indexar
 Disallow: /painel
 Disallow: /clientes
 Disallow: /vendas

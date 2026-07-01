@@ -1,12 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsFromReq } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  const corsHeaders = corsFromReq(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -18,6 +15,22 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // --- Gate de autenticação ---
+    // Dados internos (clientes, vendas, financeiro, pós-venda, pesquisa de mercado,
+    // estatísticas de estoque) só entram no contexto para usuários AUTENTICADOS.
+    // Visitantes anônimos do chat público recebem apenas o catálogo de peças.
+    let isAuthed = false;
+    const _authHeader = req.headers.get("Authorization");
+    if (_authHeader) {
+      try {
+        const _authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: _authHeader } },
+        });
+        const { data: _u } = await _authClient.auth.getUser();
+        isAuthed = !!_u?.user;
+      } catch { isAuthed = false; }
+    }
+
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const contextSections: string[] = [];
 
@@ -25,8 +38,8 @@ serve(async (req) => {
       const searchText = lastUserMsg.content.toLowerCase();
       const words = searchText.split(/\s+/).filter((w: string) => w.length > 2);
 
-      // --- 1. Global stats ---
-      const { data: statsData } = await supabase.rpc("get_dashboard_stats");
+      // --- 1. Global stats (apenas autenticados) ---
+      const { data: statsData } = isAuthed ? await supabase.rpc("get_dashboard_stats") : { data: null };
       if (statsData) {
         const s = statsData as any;
         contextSections.push(`📊 ESTATÍSTICAS GLOBAIS DO ESTOQUE:
@@ -91,9 +104,9 @@ serve(async (req) => {
         }
       }
 
-      // --- 4. Search customers ---
+      // --- 4. Search customers (apenas autenticados) ---
       const customerKeywords = ["cliente", "clientes", "empresa", "cnpj", "comprador"];
-      if (customerKeywords.some(k => searchText.includes(k)) || words.length > 0) {
+      if (isAuthed && (customerKeywords.some(k => searchText.includes(k)) || words.length > 0)) {
         const custOr = words.map((w: string) => `name.ilike.%${w}%,company.ilike.%${w}%,cnpj_cpf.ilike.%${w}%`).join(",");
         if (custOr) {
           const { data: customers } = await supabase
@@ -112,9 +125,9 @@ serve(async (req) => {
         contextSections.push(`Total de clientes cadastrados: ${totalCustomers || 0}`);
       }
 
-      // --- 5. Search sales ---
+      // --- 5. Search sales (apenas autenticados) ---
       const salesKeywords = ["venda", "vendas", "faturamento", "orçamento", "pedido", "faturado"];
-      if (salesKeywords.some(k => searchText.includes(k))) {
+      if (isAuthed && salesKeywords.some(k => searchText.includes(k))) {
         const { data: recentSales } = await supabase
           .from("sales")
           .select("id, sale_date, status, total_amount, payment_method, notes, customers(name, company)")
@@ -137,9 +150,9 @@ serve(async (req) => {
         }
       }
 
-      // --- 6. After-sales ---
+      // --- 6. After-sales (apenas autenticados) ---
       const afterKeywords = ["pós-venda", "pos-venda", "garantia", "devolução", "reclamação", "ticket", "suporte"];
-      if (afterKeywords.some(k => searchText.includes(k))) {
+      if (isAuthed && afterKeywords.some(k => searchText.includes(k))) {
         const { data: tickets } = await supabase
           .from("after_sales")
           .select("type, status, priority, description, created_at, customers(name)")
@@ -154,8 +167,8 @@ serve(async (req) => {
         }
       }
 
-      // --- 7. Stale parts ---
-      if (searchText.includes("parad") || searchText.includes("antigo") || searchText.includes("2 ano") || searchText.includes("desconto")) {
+      // --- 7. Stale parts (apenas autenticados — informação de gestão de estoque) ---
+      if (isAuthed && (searchText.includes("parad") || searchText.includes("antigo") || searchText.includes("2 ano") || searchText.includes("desconto"))) {
         const { data: staleParts } = await supabase
           .from("parts")
           .select("material, description, stock, estimated_price, machine_model")
@@ -170,9 +183,9 @@ serve(async (req) => {
         }
       }
 
-      // --- 8. Market Research ---
+      // --- 8. Market Research (apenas autenticados) ---
       const marketKeywords = ["pesquisa", "mercado", "concorrent", "competitiv", "distribuidor", "preço de mercado", "comparar preço"];
-      if (marketKeywords.some(k => searchText.includes(k))) {
+      if (isAuthed && marketKeywords.some(k => searchText.includes(k))) {
         const { data: marketData } = await supabase
           .from("market_research")
           .select("distributor_name, price_found, delivery_days, availability, payment_terms, parts(material, description, estimated_price)")

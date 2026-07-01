@@ -10,7 +10,7 @@ const t = {
 
   // Hero
   "hero.title": { pt: "Peças Originais", en: "Original Parts", es: "Repuestos Originales" },
-  "hero.subtitle": { pt: "Distribuidor autorizado — Brasil, Venezuela, Guiana", en: "Authorized distributor — Brazil, Venezuela, Guyana", es: "Distribuidor autorizado — Brasil, Venezuela, Guyana" },
+  "hero.subtitle": { pt: "Mineração, linha amarela, guindastes e perfuratrizes — estoque real e cotação em até 24h.", en: "Mining, construction, cranes and drilling rigs — real stock and quotes within 24h.", es: "Minería, línea amarilla, grúas y perforadoras — stock real y cotización en 24h." },
   "hero.search": { pt: "Buscar peça por código, descrição ou modelo de máquina...", en: "Search part by code, description or machine model...", es: "Buscar repuesto por código, descripción o modelo de máquina..." },
   "hero.stats": { pt: "peças disponíveis em estoque", en: "parts available in stock", es: "repuestos disponibles en stock" },
   "cat.mineracao": { pt: "Mineração", en: "Mining", es: "Minería" },
@@ -137,7 +137,7 @@ const t = {
   "faq.a6": { pt: "Nosso sistema possui pesquisa de compatibilidade por IA. Ao consultar uma peça, você verá os modelos compatíveis. Em caso de dúvida, fale com nossos especialistas.", en: "Our system has AI-powered compatibility search. When viewing a part, you'll see compatible models. If in doubt, talk to our specialists.", es: "Nuestro sistema tiene búsqueda de compatibilidad con IA. Al consultar un repuesto, verá los modelos compatibles. En caso de duda, hable con nuestros especialistas." },
 
   // Footer
-  "footer.about": { pt: "Ásia Peças & Máquinas — Distribuidor autorizado de peças originais XCMG. Atuamos no Brasil, Venezuela e Guiana, fornecendo peças para mineração, construção, perfuração, guindastes e caminhões elétricos.", en: "Ásia Peças & Máquinas — Authorized distributor of original XCMG parts. We operate in Brazil, Venezuela and Guyana, supplying parts for mining, construction, drilling, cranes and electric trucks.", es: "Ásia Peças & Máquinas — Distribuidor autorizado de repuestos originales XCMG. Operamos en Brasil, Venezuela y Guyana, suministrando repuestos para minería, construcción, perforación, grúas y camiones eléctricos." },
+  "footer.about": { pt: "Ásia Peças & Máquinas, distribuidor autorizado de peças originais XCMG. Atuamos no Brasil, Venezuela e Guiana, fornecendo peças para mineração, construção, perfuração, guindastes e caminhões elétricos.", en: "Ásia Peças & Máquinas, authorized distributor of original XCMG parts. We operate in Brazil, Venezuela and Guyana, supplying parts for mining, construction, drilling, cranes and electric trucks.", es: "Ásia Peças & Máquinas, distribuidor autorizado de repuestos originales XCMG. Operamos en Brasil, Venezuela y Guyana, suministrando repuestos para minería, construcción, perforación, grúas y camiones eléctricos." },
   "footer.segments": { pt: "Segmentos", en: "Segments", es: "Segmentos" },
   "footer.contact": { pt: "Contato", en: "Contact", es: "Contacto" },
   "footer.rights": { pt: "Todos os direitos reservados", en: "All rights reserved", es: "Todos los derechos reservados" },

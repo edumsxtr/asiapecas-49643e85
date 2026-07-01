@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+﻿import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Sale } from "@/hooks/use-sales";
 import { applySellPrice } from "@/hooks/use-pricing";
@@ -24,7 +24,7 @@ const DEFAULT_COMPANY: CompanyData = {
   name: "Ásia Peças & Máquinas",
   cnpj: "XX.XXX.XXX/XXXX-XX",
   address: "Macapá - AP",
-  phone: "+55 31 99229-3767",
+  phone: "+55 31 99516-5511",
   email: "vendas@asiapecas.com",
 };
 

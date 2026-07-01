@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
   try {
     const urls: { loc: string; lastmod?: string; priority?: string }[] = [
       { loc: `${SITE}/`, priority: "1.0" },
-      { loc: `${SITE}/cotacao`, priority: "0.9" },
-      { loc: `${SITE}/cotacao/categorias`, priority: "0.8" },
-      { loc: `${SITE}/cotacao/modelos`, priority: "0.8" },
+      { loc: `${SITE}/pecas`, priority: "0.9" },
+      { loc: `${SITE}/maquinas`, priority: "0.8" },
+      { loc: `${SITE}/catalogos`, priority: "0.7" },
       { loc: `${SITE}/blog`, priority: "0.8" },
       { loc: `${SITE}/sobre`, priority: "0.6" },
       { loc: `${SITE}/contato`, priority: "0.6" },

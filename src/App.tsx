@@ -1,61 +1,86 @@
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
-import CatalogPage from "./pages/CatalogPage";
-import CategoriesPage from "./pages/CategoriesPage";
-import StockPage from "./pages/StockPage";
-import CustomersPage from "./pages/CustomersPage";
-import CustomerDetailPage from "./pages/CustomerDetailPage";
-import SalesPage from "./pages/SalesPage";
-import AfterSalesPage from "./pages/AfterSalesPage";
-import ComingSoonPage from "./pages/ComingSoonPage";
-import MarketResearchPage from "./pages/MarketResearchPage";
-import AssistantPage from "./pages/AssistantPage";
-import NewOrderPage from "./pages/NewOrderPage";
-import ProspectionPage from "./pages/ProspectionPage";
-import ReportPage from "./pages/ReportPage";
-import QuotePage from "./pages/QuotePage";
-import PartDetailPublicPage from "./pages/PartDetailPublicPage";
-import CategoryPublicPage from "./pages/CategoryPublicPage";
-import ModelPublicPage from "./pages/ModelPublicPage";
-import CategoriesIndexPage from "./pages/CategoriesIndexPage";
-import ModelsIndexPage from "./pages/ModelsIndexPage";
-import AdminVitrinePage from "./pages/AdminVitrinePage";
-import SettingsPage from "./pages/SettingsPage";
-import SettingsSourcesPage from "./pages/settings/SettingsSourcesPage";
-import SettingsSourceDetailPage from "./pages/settings/SettingsSourceDetailPage";
-import TrainingPage from "./pages/TrainingPage";
-import MaintenancePage from "./pages/MaintenancePage";
-import LoginPage from "./pages/LoginPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import PortalLoginPage from "./pages/portal/PortalLoginPage";
-import PortalSignupPage from "./pages/portal/PortalSignupPage";
-import MyQuotesPage from "./pages/portal/MyQuotesPage";
-import BannersPage from "./pages/portal/BannersPage";
-import VitrinePage from "./pages/portal/VitrinePage";
-import BlogIndexPage from "./pages/BlogIndexPage";
-import BlogPostPage from "./pages/BlogPostPage";
-import SettingsBlogPage from "./pages/settings/SettingsBlogPage";
-import NotFound from "./pages/NotFound";
-import AboutPage from "./pages/legal/AboutPage";
-import ContactPage from "./pages/legal/ContactPage";
-import PrivacyPage from "./pages/legal/PrivacyPage";
-import TermsPage from "./pages/legal/TermsPage";
-import CookiesPage from "./pages/legal/CookiesPage";
-import WarrantyPage from "./pages/legal/WarrantyPage";
-import ReturnsPage from "./pages/legal/ReturnsPage";
-import CompliancePage from "./pages/legal/CompliancePage";
-import { useEffect } from "react";
 import { captureUtm } from "@/lib/utm";
 import { initAnalytics } from "@/lib/analytics";
 
-const queryClient = new QueryClient();
+// Home — eager (entrada principal / LCP)
+import QuotePage from "./pages/QuotePage";
+
+// Demais páginas — lazy (cada rota vira um chunk separado)
+const PartsPage = lazy(() => import("./pages/PartsPage"));
+const ModelsIndexPage = lazy(() => import("./pages/ModelsIndexPage"));
+const MachineModelPage = lazy(() => import("./pages/MachineModelPage"));
+const VitrinePage = lazy(() => import("./pages/portal/VitrinePage"));
+const PartDetailPublicPage = lazy(() => import("./pages/PartDetailPublicPage"));
+const CategoryPublicPage = lazy(() => import("./pages/CategoryPublicPage"));
+const ModelPublicPage = lazy(() => import("./pages/ModelPublicPage"));
+const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage"));
+const BlogPostPage = lazy(() => import("./pages/BlogPostPage"));
+const BannersPage = lazy(() => import("./pages/portal/BannersPage"));
+const PortalLoginPage = lazy(() => import("./pages/portal/PortalLoginPage"));
+const PortalSignupPage = lazy(() => import("./pages/portal/PortalSignupPage"));
+const MyQuotesPage = lazy(() => import("./pages/portal/MyQuotesPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Institucional / legal — lazy
+const AboutPage = lazy(() => import("./pages/legal/AboutPage"));
+const ContactPage = lazy(() => import("./pages/legal/ContactPage"));
+const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/legal/TermsPage"));
+const CookiesPage = lazy(() => import("./pages/legal/CookiesPage"));
+const WarrantyPage = lazy(() => import("./pages/legal/WarrantyPage"));
+const ReturnsPage = lazy(() => import("./pages/legal/ReturnsPage"));
+const CompliancePage = lazy(() => import("./pages/legal/CompliancePage"));
+
+// Painel interno — lazy (recharts, jspdf, xlsx ficam fora do bundle público)
+const Index = lazy(() => import("./pages/Index"));
+const CatalogPage = lazy(() => import("./pages/CatalogPage"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
+const StockPage = lazy(() => import("./pages/StockPage"));
+const CustomersPage = lazy(() => import("./pages/CustomersPage"));
+const CustomerDetailPage = lazy(() => import("./pages/CustomerDetailPage"));
+const SalesPage = lazy(() => import("./pages/SalesPage"));
+const AfterSalesPage = lazy(() => import("./pages/AfterSalesPage"));
+const MarketResearchPage = lazy(() => import("./pages/MarketResearchPage"));
+const AssistantPage = lazy(() => import("./pages/AssistantPage"));
+const NewOrderPage = lazy(() => import("./pages/NewOrderPage"));
+const ProspectionPage = lazy(() => import("./pages/ProspectionPage"));
+const ReportPage = lazy(() => import("./pages/ReportPage"));
+const AdminVitrinePage = lazy(() => import("./pages/AdminVitrinePage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SettingsSourcesPage = lazy(() => import("./pages/settings/SettingsSourcesPage"));
+const SettingsSourceDetailPage = lazy(() => import("./pages/settings/SettingsSourceDetailPage"));
+const SettingsBlogPage = lazy(() => import("./pages/settings/SettingsBlogPage"));
+const TrainingPage = lazy(() => import("./pages/TrainingPage"));
+const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
 
 const App = () => {
   useEffect(() => { captureUtm(); initAnalytics(); }, []);
@@ -67,14 +92,20 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <Suspense fallback={<PageFallback />}>
             <Routes>
               {/* Public routes — root is the customer portal */}
               <Route path="/" element={<QuotePage />} />
+              <Route path="/pecas" element={<PartsPage />} />
+              <Route path="/maquinas" element={<ModelsIndexPage />} />
+              <Route path="/maquinas/:categoria/:slug" element={<MachineModelPage />} />
+              <Route path="/catalogos" element={<VitrinePage />} />
               <Route path="/cotacao" element={<Navigate to="/" replace />} />
               <Route path="/cotacao/banners" element={<BannersPage />} />
-              <Route path="/cotacao/vitrine" element={<VitrinePage />} />
-              <Route path="/cotacao/categorias" element={<CategoriesIndexPage />} />
-              <Route path="/cotacao/modelos" element={<ModelsIndexPage />} />
+              {/* Redirects das URLs antigas → URLs limpas */}
+              <Route path="/cotacao/vitrine" element={<Navigate to="/catalogos" replace />} />
+              <Route path="/cotacao/categorias" element={<Navigate to="/pecas" replace />} />
+              <Route path="/cotacao/modelos" element={<Navigate to="/maquinas" replace />} />
               <Route path="/cotacao/c/:slug" element={<CategoryPublicPage />} />
               <Route path="/cotacao/m/:slug" element={<ModelPublicPage />} />
               <Route path="/cotacao/p/:material" element={<PartDetailPublicPage />} />
@@ -119,9 +150,10 @@ const App = () => {
               <Route path="/relatorio" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
               <Route path="/treinamento" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
               <Route path="/manutencao" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
-              
+
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>

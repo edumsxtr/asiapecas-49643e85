@@ -37,36 +37,39 @@ export default function FeaturedStrip({ lang, onAddToCart }: { lang: Lang; onAdd
   const title = lang === "en" ? "Featured parts" : lang === "es" ? "Repuestos destacados" : "Peças em destaque";
 
   return (
-    <section className="bg-card border-b">
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        <div className="flex items-end justify-between mb-5">
-          <div>
-            <h2 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" /> {title}
-            </h2>
-            <p className="text-sm text-muted-foreground">{lang === "en" ? "Selected by our team" : lang === "es" ? "Seleccionado por nuestro equipo" : "Selecionados pela nossa equipe"}</p>
-          </div>
+    <section className="bg-card border-b border-border">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold font-display text-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> {title}
+          </h2>
+          <span className="text-[11px] text-muted-foreground hidden sm:block">
+            {lang === "en" ? "Selected by our team" : "Selecionados pelo nosso time"}
+          </span>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-thin">
+        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin">
           {data.map(({ id, badge_label, part }) => (
-            <div key={id} className="flex-shrink-0 w-[260px] snap-start bg-background rounded-xl border hover:border-primary/40 hover:shadow-lg transition-all overflow-hidden">
+            <div key={id} className="flex-shrink-0 w-[190px] snap-start bg-background rounded-lg border border-border hover:border-primary/35 hover:shadow-md transition-all overflow-hidden">
               <Link to={`/cotacao/p/${encodeURIComponent(part.material)}`} className="block">
-                <div className="aspect-video bg-muted relative overflow-hidden">
-                  <img src={partImage(part.image_url)} alt={part.description} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                  <img src={partImage(part.image_url)} alt={part.description} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                   {badge_label && (
-                    <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">{badge_label}</Badge>
+                    <Badge className="absolute top-1.5 left-1.5 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">{badge_label}</Badge>
+                  )}
+                  {part.stock > 0 && part.stock <= 5 && (
+                    <Badge className="absolute top-1.5 right-1.5 bg-warning text-warning-foreground text-[10px] px-1.5 py-0.5">Últimas {part.stock}</Badge>
                   )}
                 </div>
-                <div className="p-3 space-y-1">
-                  <p className="font-mono text-[10px] text-primary font-semibold">{part.material}</p>
-                  <p className="text-sm font-medium line-clamp-2 min-h-[2.5rem] text-foreground">{part.description}</p>
-                  <p className="text-xs text-muted-foreground">{part.machine_model || "—"}</p>
+                <div className="p-2.5 space-y-0.5">
+                  <p className="font-mono text-[9px] text-primary font-bold tracking-wide">{part.material}</p>
+                  <p className="text-xs font-medium line-clamp-2 text-foreground leading-snug">{part.description}</p>
+                  {part.machine_model && <p className="text-[10px] text-muted-foreground truncate">{part.machine_model}</p>}
                 </div>
               </Link>
-              <div className="px-3 pb-3">
-                <Button size="sm" className="w-full gap-1.5" onClick={() => onAddToCart(part)} disabled={part.stock <= 0}>
-                  <ShoppingCart className="h-3.5 w-3.5" />
+              <div className="px-2.5 pb-2.5">
+                <Button size="sm" className="w-full gap-1 h-7 text-xs" onClick={() => onAddToCart(part)} disabled={part.stock <= 0}>
+                  <ShoppingCart className="h-3 w-3" />
                   {tr("part.quote", lang)}
                 </Button>
               </div>

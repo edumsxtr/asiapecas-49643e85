@@ -79,8 +79,37 @@ function buildSearchUrl(distributor: string, material: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(`${distributor} "${material}" "original XCMG"`)}`;
 }
 
+// Proteção contra SSRF: bloqueia URLs que apontam para IPs internos/privados.
+function isPrivateIp(ip: string): boolean {
+  if (ip === "::1" || ip.startsWith("fe80:") || ip.startsWith("fc") || ip.startsWith("fd")) return true;
+  const m = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const a = Number(m[1]), b = Number(m[2]);
+  if (a === 0 || a === 10 || a === 127) return true;
+  if (a === 169 && b === 254) return true;            // link-local + metadata cloud
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;  // CGNAT
+  return false;
+}
+async function isSafePublicUrl(raw: string): Promise<boolean> {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return false;
+  if (/^[\d.]+$/.test(host) || host.includes(":")) return !isPrivateIp(host); // IP literal
+  // hostname: tenta resolver e validar os IPs (anti DNS-rebinding); se indisponível, segue
+  try {
+    const a = await Deno.resolveDns(host, "A").catch(() => null as string[] | null);
+    if (a && a.some(isPrivateIp)) return false;
+  } catch { /* Deno.resolveDns indisponível neste runtime */ }
+  return true;
+}
+
 async function verify(url: string, material: string, alt?: string | null): Promise<{ ok: boolean; evidence: string | null; reason?: string }> {
   if (isGenericUrl(url)) return { ok: false, evidence: null, reason: "generic_url" };
+  if (!(await isSafePublicUrl(url))) return { ok: false, evidence: null, reason: "blocked_url" };
   const targets = Array.from(new Set([material, alt].filter(Boolean) as string[]));
   const targetsNorm = targets.map(normalizePartNumber);
   const ctrl = new AbortController();

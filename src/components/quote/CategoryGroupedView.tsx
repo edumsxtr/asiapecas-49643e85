@@ -77,7 +77,7 @@ export default function CategoryGroupedView({
             <Skeleton className="h-6 w-64" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, j) => (
-                <Skeleton key={j} className="h-72 rounded-xl" />
+                <Skeleton key={j} className="h-72 rounded-lg" />
               ))}
             </div>
           </div>

@@ -1,6 +1,7 @@
 // Sends a new quote request to the sales team.
 // Uses Resend HTTP API (requires RESEND_API_KEY secret).
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 interface QuoteItem { material: string; description?: string; quantity: number }
 interface Payload {
@@ -26,6 +27,37 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Validação de input reforçada (anti-abuso)
+    const email = String(body.customer.email).trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 200) {
+      return new Response(JSON.stringify({ error: 'invalid_email' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (body.items.length === 0 || body.items.length > 200) {
+      return new Response(JSON.stringify({ error: 'invalid_items' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Rate-limit por IP: no máximo 5 envios a cada 10 minutos
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    try {
+      const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { count } = await admin
+        .from('email_send_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('ip', ip)
+        .gte('created_at', since);
+      if ((count ?? 0) >= 5) {
+        return new Response(JSON.stringify({ error: 'rate_limited' }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      await admin.from('email_send_log').insert({ ip, kind: 'quote' });
+    } catch (_) { /* falha no log não bloqueia envio legítimo */ }
 
     const RESEND_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_KEY) {

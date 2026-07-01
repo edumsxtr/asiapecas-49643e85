@@ -1,6 +1,7 @@
+import { ShieldCheck, Truck, ChevronDown, Building2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Truck, Wrench, MessageCircle, Building2 } from "lucide-react";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
+import { getMachineType } from "@/lib/machine-data";
 
 interface ModelHeroProps {
   modelName: string;
@@ -11,39 +12,87 @@ interface ModelHeroProps {
 }
 
 export default function ModelHero({ modelName, countBadge, whatsAppUrl, onB2bClick, onScrollToList }: ModelHeroProps) {
+  const machine = getMachineType(modelName);
+
   return (
-    <section className="relative overflow-hidden border-b bg-gradient-to-br from-secondary via-secondary to-primary/10">
-      <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
-        <div className="flex flex-col md:flex-row md:items-center gap-8">
-          <div className="hidden md:flex h-24 w-24 rounded-2xl bg-primary/15 items-center justify-center shrink-0">
-            <Wrench className="h-12 w-12 text-primary" />
+    <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/5 to-background text-foreground">
+      {/* Foto da máquina como textura sutil */}
+      <img
+        src={machine.photo}
+        alt={`${machine.label} XCMG ${modelName}`}
+        className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.06]"
+        loading="eager"
+        fetchPriority="high"
+      />
+
+      {/* Content */}
+      <div className="relative max-w-7xl mx-auto px-4 md:px-6 py-7 md:py-9">
+        <div className="max-w-2xl space-y-3">
+          {/* Tags */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent text-accent-foreground rounded-full text-[11px] font-bold uppercase tracking-wider">
+              <Package className="h-3 w-3" />
+              {machine.label}
+            </span>
+            <span className="inline-flex items-center px-2.5 py-1 bg-primary/10 text-primary rounded-full text-[11px] font-semibold">
+              XCMG Oficial
+            </span>
+            {countBadge && (
+              <span className="inline-flex items-center px-2.5 py-1 bg-success text-success-foreground rounded-full text-[11px] font-bold">
+                {countBadge}
+              </span>
+            )}
           </div>
-          <div className="flex-1 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {countBadge && <Badge className="bg-primary text-primary-foreground">{countBadge}</Badge>}
-              <Badge variant="outline" className="border-primary/40">XCMG</Badge>
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold font-display text-secondary-foreground leading-tight">
-              Peças para {modelName} · Ásia Peças & Máquinas
-            </h1>
-            <p className="text-base text-secondary-foreground/80 max-w-2xl">
-              Catálogo completo de peças compatíveis com {modelName} em estoque real no Brasil. Filtros, motor, hidráulico, transmissão e muito mais — pronta entrega e suporte técnico.
-            </p>
-            <div className="flex flex-wrap gap-3 text-xs text-secondary-foreground/80">
-              <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Garantia 3 meses</span>
-              <span className="inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-primary" /> Entrega para todo o BR</span>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button size="lg" onClick={onScrollToList} className="gap-2">Ver peças disponíveis</Button>
-              <Button size="lg" variant="outline" onClick={onB2bClick} className="gap-2">
-                <Building2 className="h-4 w-4" /> Tabela para frota
+
+          {/* H1 */}
+          <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight leading-tight text-foreground">
+            Peças para <span className="text-primary">{modelName}</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-sm md:text-base text-muted-foreground leading-relaxed max-w-xl">
+            {machine.application} · Distribuidor autorizado XCMG no Brasil, Venezuela e Guiana.
+          </p>
+
+          {/* Specs row */}
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-1">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" /> Garantia de fábrica
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Truck className="h-3.5 w-3.5 text-primary shrink-0" /> Entrega nacional
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Package className="h-3.5 w-3.5 text-primary shrink-0" /> Peças originais e compatíveis
+            </span>
+          </div>
+
+          {/* CTAs */}
+          <div className="flex flex-wrap gap-2.5 pt-2">
+            <Button
+              size="lg"
+              className="gap-2 font-bold"
+              onClick={onScrollToList}
+            >
+              <ChevronDown className="h-4 w-4" /> Ver peças disponíveis
+            </Button>
+            <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10 gap-2 font-bold"
+              >
+                <WhatsAppIcon className="h-4 w-4" /> WhatsApp
               </Button>
-              <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" data-cta="whatsapp">
-                <Button size="lg" variant="outline" className="gap-2 border-primary text-foreground hover:bg-primary/10">
-                  <MessageCircle className="h-4 w-4" /> WhatsApp
-                </Button>
-              </a>
-            </div>
+            </a>
+            <Button
+              size="lg"
+              variant="outline"
+              className="gap-2"
+              onClick={onB2bClick}
+            >
+              <Building2 className="h-4 w-4" /> Tabela para frota
+            </Button>
           </div>
         </div>
       </div>

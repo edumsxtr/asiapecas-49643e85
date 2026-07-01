@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -104,11 +105,13 @@ export default function AssistantPage() {
         ? { content: currentFile.content, question: msg, fileName: currentFile.name }
         : { messages: newMessages.filter(m => m.content) };
 
+      const { data: { session } } = await supabase.auth.getSession();
       const resp = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify(body),
       });

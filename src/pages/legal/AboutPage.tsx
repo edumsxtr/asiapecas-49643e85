@@ -1,4 +1,4 @@
-import LegalPageShell from "@/components/legal/LegalPageShell";
+﻿import LegalPageShell from "@/components/legal/LegalPageShell";
 
 export default function AboutPage() {
   return (
@@ -10,7 +10,7 @@ export default function AboutPage() {
         "@context": "https://schema.org",
         "@type": "AboutPage",
         name: "Sobre a Ásia Peças & Máquinas",
-        url: "https://asiapecas.lovable.app/sobre",
+        url: "https://asiapecas.com/sobre",
         about: {
           "@type": "Organization",
           name: "Ásia Peças & Máquinas",
@@ -63,7 +63,7 @@ export default function AboutPage() {
       <h2>Fale com a equipe comercial</h2>
       <p>
         Para abrir uma cotação ou conhecer nossas condições corporativas, entre em contato pelo e-mail
-        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a> ou pelo telefone (31) 99229-3767.
+        <a href="mailto:vendas@asiapecas.com"> vendas@asiapecas.com</a> ou pelo telefone (31) 99516-5511.
       </p>
     </LegalPageShell>
   );

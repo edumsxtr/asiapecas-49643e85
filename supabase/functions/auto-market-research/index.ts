@@ -44,6 +44,33 @@ function normalizePartNumber(s: string): string {
   return (s || "").toLowerCase().replace(/[\s\-._]/g, "");
 }
 
+// Proteção contra SSRF: bloqueia URLs que apontam para IPs internos/privados.
+function isPrivateIp(ip: string): boolean {
+  if (ip === "::1" || ip.startsWith("fe80:") || ip.startsWith("fc") || ip.startsWith("fd")) return true;
+  const m = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const a = Number(m[1]), b = Number(m[2]);
+  if (a === 0 || a === 10 || a === 127) return true;
+  if (a === 169 && b === 254) return true;            // link-local + metadata cloud
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;  // CGNAT
+  return false;
+}
+async function isSafePublicUrl(raw: string): Promise<boolean> {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return false;
+  if (/^[\d.]+$/.test(host) || host.includes(":")) return !isPrivateIp(host); // IP literal
+  try {
+    const a = await Deno.resolveDns(host, "A").catch(() => null as string[] | null);
+    if (a && a.some(isPrivateIp)) return false;
+  } catch { /* Deno.resolveDns indisponível neste runtime */ }
+  return true;
+}
+
 function isValidHttpUrl(raw: string): boolean {
   try {
     const u = new URL(raw);
@@ -143,6 +170,13 @@ async function verifyUrlContainsPartNumber(
       const result = { ok: false, evidence: null, reason: "generic_url" };
       verifyCache.set(cacheKey, { result, ts: Date.now() });
       console.info(`verify reject (generic_url): ${url}`);
+      return result;
+    }
+
+    if (!(await isSafePublicUrl(url))) {
+      const result = { ok: false, evidence: null, reason: "blocked_url" };
+      verifyCache.set(cacheKey, { result, ts: Date.now() });
+      console.info(`verify reject (blocked_url): ${url}`);
       return result;
     }
 

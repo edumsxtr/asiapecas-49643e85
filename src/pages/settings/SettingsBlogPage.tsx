@@ -107,7 +107,7 @@ export default function SettingsBlogPage() {
                   </div>
                   <div className="flex gap-1">
                     {p.status === "published" && (
-                      <Link to={`/blog/${p.slug}`} target="_blank">
+                      <Link to={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="ghost">Ver</Button>
                       </Link>
                     )}

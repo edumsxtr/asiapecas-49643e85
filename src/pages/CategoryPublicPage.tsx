@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,7 +108,7 @@ export default function CategoryPublicPage() {
   const noindex = !hasStock || !!seoOverride?.noindex;
 
   const wppText = `Olá! Tenho interesse em ${cat?.key || "peças"} XCMG.`;
-  const wppUrl = `https://wa.me/5531992293767?text=${encodeURIComponent(wppText)}`;
+  const wppUrl = `https://wa.me/5531995165511?text=${encodeURIComponent(wppText)}`;
 
   const defaultTitle = `${cat?.key} XCMG · ${total} em estoque · Ásia Peças`;
   const defaultDesc = `${total} ${cat?.key?.toLowerCase()} originais e equivalentes para máquinas XCMG. Estoque real em Macapá-AP. Cotação rápida via WhatsApp em PT/EN/ES.`;
@@ -157,7 +157,7 @@ export default function CategoryPublicPage() {
           imageUrl={catMedia?.image_url || undefined}
         />
 
-        <div className="max-w-6xl mx-auto px-6 py-6 w-full">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 w-full">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4 gap-1">
             <ChevronLeft className="h-4 w-4" /> Voltar
           </Button>
@@ -177,7 +177,7 @@ export default function CategoryPublicPage() {
           {/* Mais procurados */}
           {top4.length > 0 && (
             <section className="mb-10 space-y-3">
-              <h2 className="text-lg font-semibold font-['Space_Grotesk']">Mais procurados em estoque</h2>
+              <h2 className="text-lg font-bold font-display">Mais procurados em estoque</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {top4.map(p => (
                   <QuotePartCard
@@ -196,7 +196,7 @@ export default function CategoryPublicPage() {
 
           {/* Catálogo completo */}
           <section ref={listRef} id="lista" className="space-y-3 mb-10">
-            <h2 className="text-lg font-semibold font-['Space_Grotesk']">Todas as peças desta categoria</h2>
+            <h2 className="text-lg font-bold font-display">Todas as peças desta categoria</h2>
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Carregando...</p>
             ) : parts.length === 0 ? (

@@ -1,4 +1,4 @@
-import LegalPageShell from "@/components/legal/LegalPageShell";
+﻿import LegalPageShell from "@/components/legal/LegalPageShell";
 
 export default function CompliancePage() {
   return (
@@ -32,7 +32,7 @@ export default function CompliancePage() {
       <p>
         Recomendamos validar dados bancários e fiscais sempre por canais oficiais. A Ásia Peças &amp; Máquinas não solicita
         pagamentos em contas pessoais e não altera dados bancários por meio de mensagens informais. Em caso de dúvida,
-        confirme pelo telefone (31) 99229-3767 antes de qualquer transferência.
+        confirme pelo telefone (31) 99516-5511 antes de qualquer transferência.
       </p>
 
       <h2>4. Conduta comercial</h2>

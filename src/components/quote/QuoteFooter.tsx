@@ -1,7 +1,7 @@
-import { Mail, Phone, MapPin } from "lucide-react";
+﻿import { Mail, Phone, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { type Lang, tr } from "./translations";
-import asiaLogo from "@/assets/asia-logo.png";
+import asiaLogo from "@/assets/asia-logo-desktop.png";
 
 const INSTITUTIONAL = [
   { href: "/sobre", pt: "Sobre a empresa", en: "About the company", es: "Sobre la empresa" },
@@ -23,10 +23,10 @@ const pick = (item: { pt: string; en: string; es: string }, lang: Lang) => item[
 export default function QuoteFooter({ lang }: { lang: Lang }) {
   return (
     <footer className="bg-secondary text-secondary-foreground">
-      <div className="max-w-6xl mx-auto px-6 py-14">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="space-y-3 md:col-span-1">
-            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-12 w-auto" />
+            <img src={asiaLogo} alt="Ásia Peças & Máquinas" className="h-12 w-auto brightness-0 invert" />
             <p className="text-xs text-secondary-foreground/70 leading-relaxed">
               {tr("footer.about", lang)}
             </p>
@@ -66,9 +66,10 @@ export default function QuoteFooter({ lang }: { lang: Lang }) {
             <h4 className="font-semibold text-[11px] uppercase tracking-widest text-primary">{tr("footer.contact", lang)}</h4>
             <ul className="space-y-2 text-sm text-secondary-foreground/75">
               <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> vendas@asiapecas.com</li>
-              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (31) 99229-3767</li>
+              <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (31) 99516-5511</li>
               <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> (31) 98733-4504</li>
-              <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Brasil — Venezuela — Guiana</li>
+              <li className="flex items-start gap-2"><MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Rua Áustria, 86, Havaí, Belo Horizonte/MG</li>
+              <li className="pl-6 text-secondary-foreground/55 text-xs">Atende Brasil, Venezuela e Guiana</li>
             </ul>
           </div>
         </div>

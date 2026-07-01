@@ -10,7 +10,7 @@ const ITEMS = [
 export default function BenefitsStrip() {
   return (
     <section className="bg-background border-y border-foreground/10">
-      <div className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         {ITEMS.map((it) => (
           <div key={it.title} className="flex items-center gap-3">
             <div className="h-11 w-11 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
