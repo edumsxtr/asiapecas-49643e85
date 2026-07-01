@@ -170,7 +170,7 @@ export default function SiteHeader({ lang, search, onSearchChange, cartCount, on
           );
         })}
         {!user && (
-          <Link to="/portal/login" onClick={() => setOpen(false)}
+          <Link to="/login" onClick={() => setOpen(false)}
             className="py-3 border-b border-foreground/10 text-sm font-semibold uppercase tracking-wider inline-flex items-center gap-2">
             <LogIn className="h-4 w-4" /> Entrar
           </Link>
@@ -284,7 +284,7 @@ export default function SiteHeader({ lang, search, onSearchChange, cartCount, on
                     <User className="h-4 w-4" /> Minhas cotações
                   </Link>
                 ) : (
-                  <Link to="/portal/login"
+                  <Link to="/login"
                     className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/75 hover:text-foreground transition-colors">
                     <LogIn className="h-4 w-4" /> Entrar
                   </Link>

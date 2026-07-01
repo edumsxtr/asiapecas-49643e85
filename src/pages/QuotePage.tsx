@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import HeroCarousel from "@/components/quote/HeroCarousel";
 import FeaturedStrip from "@/components/quote/FeaturedStrip";
@@ -12,9 +11,11 @@ import QuoteFooter from "@/components/quote/QuoteFooter";
 import SiteHeader from "@/components/quote/site/SiteHeader";
 import WhatsAppCTA from "@/components/quote/site/WhatsAppCTA";
 import { BlogHighlightStrip } from "@/components/quote/BlogHighlightStrip";
-import { Search, ClipboardList, Send, Building2 } from "lucide-react";
+import Reveal from "@/components/quote/Reveal";
+import QualitiesBar from "@/components/quote/QualitiesBar";
+import BestSellersCarousel from "@/components/quote/BestSellersCarousel";
 import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
-import { type Lang, tr } from "@/components/quote/translations";
+import { type Lang } from "@/components/quote/translations";
 import { SEO, organizationLd, localBusinessLd } from "@/lib/seo";
 import { useCartSession } from "@/hooks/use-cart-session";
 
@@ -51,78 +52,35 @@ export default function QuotePage() {
       {/* 2 — Hero / Carrossel de slides 1920×600 */}
       <HeroCarousel lang={lang} />
 
-      {/* 3 — Como funciona (strip compacta) */}
-      <section className="bg-muted border-y border-border">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
-          {[
-            { icon: Search,        step: "01", title: tr("how.step1.title", lang), desc: tr("how.step1.desc", lang) },
-            { icon: ClipboardList, step: "02", title: tr("how.step2.title", lang), desc: tr("how.step2.desc", lang) },
-            { icon: Send,          step: "03", title: tr("how.step3.title", lang), desc: tr("how.step3.desc", lang) },
-          ].map(({ icon: Icon, step, title, desc }) => (
-            <div key={step} className="flex items-center gap-3 py-3 md:py-2.5 px-4 md:px-5 first:pl-0 last:pr-0">
-              <div className="h-8 w-8 shrink-0 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-                <Icon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Passo {step}</p>
-                <p className="text-xs font-display font-bold text-foreground leading-tight">{title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* 3 — Faixa de qualidades (azul sólido, detalhes amarelos, texto branco) */}
+      <Reveal>
+        <QualitiesBar />
+      </Reveal>
 
       {/* 4 — Peças em destaque (horizontal scroll) */}
-      <FeaturedStrip lang={lang} onAddToCart={addToCart} />
+      <Reveal>
+        <FeaturedStrip lang={lang} onAddToCart={addToCart} />
+      </Reveal>
 
-      {/* 5 — B2B corporativo */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-primary-foreground/15 text-primary-foreground flex items-center justify-center">
-              <Building2 className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-display font-semibold">Compra para frota ou revenda?</p>
-              <p className="text-xs text-primary-foreground/65">Receba tabela exclusiva corporativa.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setB2bOpen(true)}
-            className="bg-accent text-accent-foreground text-xs font-bold px-4 py-2 rounded-full hover:brightness-95 transition uppercase tracking-wide"
-          >
-            Falar com consultor
-          </button>
-        </div>
-      </section>
-
-      {/* 8 — CTA para o catálogo completo (agora em /pecas) */}
-      <section className="bg-background border-y border-border">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 flex flex-col items-center text-center gap-3">
-          <h2 className="text-xl md:text-2xl font-display font-bold tracking-tight text-foreground">
-            Explore o catálogo completo de peças
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-            Milhares de itens XCMG com estoque real. Filtre por categoria, modelo de máquina ou busque pelo código.
-          </p>
-          <Link
-            to="/pecas"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider hover:brightness-95 transition"
-          >
-            Ver todas as peças
-          </Link>
-        </div>
-      </section>
+      {/* 8 — Peças mais vendidas (slider + botão Comprar no WhatsApp) */}
+      <Reveal>
+        <BestSellersCarousel />
+      </Reveal>
 
       {/* 9 — Blog */}
-      <BlogHighlightStrip />
+      <Reveal>
+        <BlogHighlightStrip />
+      </Reveal>
 
       {/* 10 — CTA WhatsApp */}
-      <WhatsAppCTA />
+      <Reveal>
+        <WhatsAppCTA />
+      </Reveal>
 
       {/* 11 — FAQ */}
-      <div id="faq"><QuoteFAQ lang={lang} /></div>
+      <Reveal>
+        <div id="faq"><QuoteFAQ lang={lang} /></div>
+      </Reveal>
 
       {/* 12 — Rodapé */}
       <QuoteFooter lang={lang} />
