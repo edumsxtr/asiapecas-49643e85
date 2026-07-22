@@ -63,6 +63,8 @@ const SettingsSourceDetailPage = lazy(() => import("./pages/settings/SettingsSou
 const SettingsBlogPage = lazy(() => import("./pages/settings/SettingsBlogPage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
 const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
+const CotacoesPage = lazy(() => import("./pages/CotacoesPage"));
+const CotacaoDetailPage = lazy(() => import("./pages/CotacaoDetailPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
