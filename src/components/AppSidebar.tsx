@@ -45,6 +45,7 @@ const mainItems = [
 
 const crmItems = [
   { title: "Clientes", url: "/clientes", icon: Users },
+  { title: "Cotações", url: "/cotacoes", icon: FileBarChart },
   { title: "Vendas", url: "/vendas", icon: ShoppingCart },
   { title: "Novo Pedido", url: "/pedidos/novo", icon: ClipboardList },
   { title: "Prospecção", url: "/prospeccao", icon: Radar },
