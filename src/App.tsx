@@ -63,6 +63,8 @@ const SettingsSourceDetailPage = lazy(() => import("./pages/settings/SettingsSou
 const SettingsBlogPage = lazy(() => import("./pages/settings/SettingsBlogPage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
 const MaintenancePage = lazy(() => import("./pages/MaintenancePage"));
+const CotacoesPage = lazy(() => import("./pages/CotacoesPage"));
+const CotacaoDetailPage = lazy(() => import("./pages/CotacaoDetailPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -150,6 +152,8 @@ const App = () => {
               <Route path="/relatorio" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
               <Route path="/treinamento" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
               <Route path="/manutencao" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
+              <Route path="/cotacoes" element={<ProtectedRoute><CotacoesPage /></ProtectedRoute>} />
+              <Route path="/cotacoes/:id" element={<ProtectedRoute><CotacaoDetailPage /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
