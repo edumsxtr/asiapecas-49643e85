@@ -122,7 +122,7 @@ export default function PartDetailPublicPage() {
   const wppUrl = `https://wa.me/5531995165511?text=${encodeURIComponent(wppMsg)}`;
   const wppShare = `https://wa.me/?text=${encodeURIComponent(`Veja essa peça XCMG: ${part.description} (${part.material})\n${window.location.href}`)}`;
 
-  const specs = ai?.technical_specs as Record<string, string> | null;
+  const specs = ai?.technical_specs as unknown as Record<string, string> | null;
   const machines = (ai?.compatible_machines as string[]) ?? [];
   const tips = ai?.maintenance_tips as string | null;
   const inCart = cartItems.some(i => i.material === part.material);
