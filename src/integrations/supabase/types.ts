@@ -417,6 +417,160 @@ export type Database = {
         }
         Relationships: []
       }
+      cotacao_itens: {
+        Row: {
+          cotacao_id: string
+          created_at: string
+          data_envio_fabrica: string | null
+          data_resposta_fabrica: string | null
+          desconto_fabrica: number | null
+          descricao: string | null
+          disponibilidade_fabrica: Database["public"]["Enums"]["cotacao_item_disponibilidade"]
+          fonte: Database["public"]["Enums"]["cotacao_item_fonte"]
+          id: string
+          observacoes: string | null
+          parceiro_nome: string | null
+          pn: string
+          prazo: string | null
+          preco_custo: number | null
+          preco_venda: number | null
+          quantidade: number
+          updated_at: string
+        }
+        Insert: {
+          cotacao_id: string
+          created_at?: string
+          data_envio_fabrica?: string | null
+          data_resposta_fabrica?: string | null
+          desconto_fabrica?: number | null
+          descricao?: string | null
+          disponibilidade_fabrica?: Database["public"]["Enums"]["cotacao_item_disponibilidade"]
+          fonte?: Database["public"]["Enums"]["cotacao_item_fonte"]
+          id?: string
+          observacoes?: string | null
+          parceiro_nome?: string | null
+          pn: string
+          prazo?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          quantidade?: number
+          updated_at?: string
+        }
+        Update: {
+          cotacao_id?: string
+          created_at?: string
+          data_envio_fabrica?: string | null
+          data_resposta_fabrica?: string | null
+          desconto_fabrica?: number | null
+          descricao?: string | null
+          disponibilidade_fabrica?: Database["public"]["Enums"]["cotacao_item_disponibilidade"]
+          fonte?: Database["public"]["Enums"]["cotacao_item_fonte"]
+          id?: string
+          observacoes?: string | null
+          parceiro_nome?: string | null
+          pn?: string
+          prazo?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          quantidade?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacao_itens_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotacao_status_historico: {
+        Row: {
+          cotacao_id: string
+          created_at: string
+          id: string
+          observacao: string | null
+          status_anterior: Database["public"]["Enums"]["cotacao_status"] | null
+          status_novo: Database["public"]["Enums"]["cotacao_status"]
+          usuario_id: string | null
+        }
+        Insert: {
+          cotacao_id: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          status_anterior?: Database["public"]["Enums"]["cotacao_status"] | null
+          status_novo: Database["public"]["Enums"]["cotacao_status"]
+          usuario_id?: string | null
+        }
+        Update: {
+          cotacao_id?: string
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          status_anterior?: Database["public"]["Enums"]["cotacao_status"] | null
+          status_novo?: Database["public"]["Enums"]["cotacao_status"]
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacao_status_historico_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotacoes: {
+        Row: {
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_whatsapp: string | null
+          created_at: string
+          data_envio_fabrica: string | null
+          id: string
+          numero: string | null
+          observacoes: string | null
+          origem: Database["public"]["Enums"]["cotacao_origem"]
+          responsavel: string | null
+          status: Database["public"]["Enums"]["cotacao_status"]
+          updated_at: string
+          valor_total: number
+        }
+        Insert: {
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_whatsapp?: string | null
+          created_at?: string
+          data_envio_fabrica?: string | null
+          id?: string
+          numero?: string | null
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["cotacao_origem"]
+          responsavel?: string | null
+          status?: Database["public"]["Enums"]["cotacao_status"]
+          updated_at?: string
+          valor_total?: number
+        }
+        Update: {
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_whatsapp?: string | null
+          created_at?: string
+          data_envio_fabrica?: string | null
+          id?: string
+          numero?: string | null
+          observacoes?: string | null
+          origem?: Database["public"]["Enums"]["cotacao_origem"]
+          responsavel?: string | null
+          status?: Database["public"]["Enums"]["cotacao_status"]
+          updated_at?: string
+          valor_total?: number
+        }
+        Relationships: []
+      }
       customer_contacts: {
         Row: {
           created_at: string
@@ -2066,7 +2220,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      historico_pn: {
+        Row: {
+          cliente_nome: string | null
+          cotacao_data: string | null
+          cotacao_id: string | null
+          data_resposta_fabrica: string | null
+          desconto_fabrica: number | null
+          disponibilidade_fabrica:
+            | Database["public"]["Enums"]["cotacao_item_disponibilidade"]
+            | null
+          fonte: Database["public"]["Enums"]["cotacao_item_fonte"] | null
+          item_id: string | null
+          numero: string | null
+          parceiro_nome: string | null
+          pn: string | null
+          prazo: string | null
+          preco_custo: number | null
+          preco_venda: number | null
+          quantidade: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacao_itens_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_subcategory_rules: {
@@ -2141,6 +2324,23 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "user"
+      cotacao_item_disponibilidade: "pendente" | "tem" | "nao_tem" | "parcial"
+      cotacao_item_fonte: "estoque" | "fabrica" | "parceiro" | "sem_fonte"
+      cotacao_origem:
+        | "trafego_pago"
+        | "whatsapp"
+        | "email"
+        | "indicacao"
+        | "outro"
+      cotacao_status:
+        | "recebida"
+        | "verificando_estoque"
+        | "aguardando_fabrica"
+        | "fabrica_respondeu"
+        | "cotando_parceiro"
+        | "proposta_enviada"
+        | "fechada"
+        | "perdida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2269,6 +2469,25 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "user"],
+      cotacao_item_disponibilidade: ["pendente", "tem", "nao_tem", "parcial"],
+      cotacao_item_fonte: ["estoque", "fabrica", "parceiro", "sem_fonte"],
+      cotacao_origem: [
+        "trafego_pago",
+        "whatsapp",
+        "email",
+        "indicacao",
+        "outro",
+      ],
+      cotacao_status: [
+        "recebida",
+        "verificando_estoque",
+        "aguardando_fabrica",
+        "fabrica_respondeu",
+        "cotando_parceiro",
+        "proposta_enviada",
+        "fechada",
+        "perdida",
+      ],
     },
   },
 } as const
